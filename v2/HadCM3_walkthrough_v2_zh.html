@@ -1,0 +1,2081 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="HadCM3 交互式拆解第二版（UM vn4.5，工业革命前作业 tdaah）：每个分量画成由子程序、变量和参数组成的网络。">
+<title>HadCM3 时间步拆解 第二版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+/* Layout: one 1120px column — coupled-day flowchart → step player (timeline + component map + step card) → component tabs. Sibling of the cGENIE walkthrough. */
+:root {
+  --bg: #F2F5F6;
+  --surface: #FFFFFF;
+  --surface-2: #E8EEF0;
+  --ink: #12222A;
+  --muted: #586A72;
+  --line: #C7D3D8;
+  --atm: #2C6C9C;
+  --atm-soft: #DDEAF4;
+  --ocn: #13707A;
+  --ocn-soft: #D5ECEC;
+  --ice: #5B6E99;
+  --ice-soft: #E3E8F4;
+  --land: #5E7D22;
+  --land-soft: #E5EDD5;
+  --cpl: #A0642A;
+  --cpl-soft: #F2E5D5;
+  --off: #9AA5AA;
+  --sun: #D99A2B;
+  --signal: #B42F79;
+  --signal-soft: #F7E1EE;
+  --zone-air: #E8F0F7;
+  --zone-ocean: #E1EEEF;
+  --zone-land: #ECEDE3;
+  --font-display: "Source Serif 4", "Noto Serif SC", "Songti SC", Georgia, serif;
+  --font-body: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C1418; --surface: #131E24; --surface-2: #1A2830; --ink: #E2EBEE; --muted: #93A3AB; --line: #2A3A43;
+    --atm: #72B1E0; --atm-soft: #15304A; --ocn: #4FC1C2; --ocn-soft: #0F3336; --ice: #A3B4DE; --ice-soft: #232D45;
+    --land: #A7C764; --land-soft: #253018; --cpl: #D9A262; --cpl-soft: #3A2A18;
+    --off: #5D6A70; --sun: #E7B04C; --signal: #F06BB4; --signal-soft: #3D1A2E;
+    --zone-air: #0F1D28; --zone-ocean: #0D1F22; --zone-land: #1A1F17;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C1418; --surface: #131E24; --surface-2: #1A2830; --ink: #E2EBEE; --muted: #93A3AB; --line: #2A3A43;
+  --atm: #72B1E0; --atm-soft: #15304A; --ocn: #4FC1C2; --ocn-soft: #0F3336; --ice: #A3B4DE; --ice-soft: #232D45;
+  --land: #A7C764; --land-soft: #253018; --cpl: #D9A262; --cpl-soft: #3A2A18;
+  --off: #5D6A70; --sun: #E7B04C; --signal: #F06BB4; --signal-soft: #3D1A2E;
+  --zone-air: #0F1D28; --zone-ocean: #0D1F22; --zone-land: #1A1F17;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { color-scheme: light; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.75; }
+img { max-width: 100%; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); padding-block: 36px 72px; display: grid; gap: 56px; }
+@media (max-width: 480px) { .wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); } }
+
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; color: var(--ink); }
+h1 { font-size: clamp(30px, 4.4vw, 44px); line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 25px; line-height: 1.3; font-weight: 700; }
+h3 { font-size: 21px; line-height: 1.35; font-weight: 600; }
+p { margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+a { color: var(--signal); text-underline-offset: 3px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+header { display: grid; gap: 14px; }
+.toprow { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.lang { font-size: 13.5px; }
+.lede { max-width: 70ch; color: var(--ink); font-size: 16px; }
+.lede + .lede { color: var(--muted); font-size: 14.5px; }
+.lede code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
+section { display: grid; gap: 18px; }
+.sec-head { display: grid; gap: 6px; }
+.sec-head p { color: var(--muted); max-width: 72ch; }
+
+figure { margin: 0; display: grid; gap: 10px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+figcaption { color: var(--muted); font-size: 13.5px; max-width: 86ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--muted); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid; display: inline-block; }
+.sw.atm { background: var(--atm-soft); border-color: var(--atm); }
+.sw.ocn { background: var(--ocn-soft); border-color: var(--ocn); }
+.sw.ice { background: var(--ice-soft); border-color: var(--ice); }
+.sw.land { background: var(--land-soft); border-color: var(--land); }
+.sw.cpl { background: var(--cpl-soft); border-color: var(--cpl); }
+.sw.sun { background: var(--sun); border-color: var(--sun); width: 6px; height: 16px; border-radius: 1px; }
+.sw.some { background: var(--surface); border-color: var(--muted); border-style: dashed; }
+
+/* ---------- SVG shared ---------- */
+svg { display: block; }
+svg text { font-family: var(--font-body); fill: var(--ink); }
+.n rect { stroke-width: 1.5; transition: opacity .25s, stroke-width .2s; }
+.n.atm rect { fill: var(--atm-soft); stroke: var(--atm); }
+.n.ocn rect { fill: var(--ocn-soft); stroke: var(--ocn); }
+.n.ice rect { fill: var(--ice-soft); stroke: var(--ice); }
+.n.land rect { fill: var(--land-soft); stroke: var(--land); }
+.n.cpl rect { fill: var(--cpl-soft); stroke: var(--cpl); }
+.n.some rect { stroke-dasharray: 5 3; }
+.n .t1 { font-size: 14px; font-weight: 600; }
+.n .t2 { font-size: 12.5px; fill: var(--muted); }
+.n[data-tab] { cursor: pointer; }
+.n[data-tab]:hover rect { stroke-width: 2.5; }
+.n[data-tab]:focus { outline: none; }
+.n[data-tab]:focus-visible rect { stroke: var(--signal); stroke-width: 3; }
+.e path { fill: none; stroke: var(--muted); stroke-width: 1.4; }
+.e text { font-size: 12.5px; fill: var(--muted); }
+.ah { fill: var(--muted); }
+.ah-on { fill: var(--signal); }
+.zone { stroke: none; }
+.zone.air { fill: var(--zone-air); }
+.zone.ocean { fill: var(--zone-ocean); }
+.zone.land { fill: var(--zone-land); }
+.zlabel { font-size: 12.5px; fill: var(--muted) !important; letter-spacing: 0.02em; }
+
+/* overview flow */
+#flow { width: 100%; max-width: 1000px; min-width: 800px; height: auto; margin-inline: auto; }
+.frame { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 6 5; }
+.frametitle { font-family: var(--font-mono) !important; font-size: 12.5px; fill: var(--muted) !important; }
+.ztitle { font-size: 13px; font-weight: 600; fill: var(--muted) !important; letter-spacing: 0.02em; }
+.brk { fill: none; stroke: var(--muted); stroke-width: 1.2; }
+.brklab { font-family: var(--font-mono) !important; font-size: 12px; fill: var(--muted) !important; }
+.pill rect { fill: var(--surface-2); stroke: var(--line); }
+.pill text { font-size: 13px; }
+.seq path { fill: none; stroke: var(--ink); stroke-width: 1.4; opacity: .55; }
+.loopnote { font-size: 12.5px; fill: var(--muted) !important; }
+.tk { stroke: none; }
+.tk.atm { fill: var(--atm); opacity: .55; }
+.tk.rad { fill: var(--sun); }
+.tk.day { fill: var(--land); }
+.tk.ocn { fill: var(--ocn); opacity: .55; }
+.tk.mix { fill: var(--ocn); }
+
+/* component map */
+#map { width: 100%; max-width: 700px; min-width: 560px; height: auto; margin-inline: auto; }
+.sun circle { fill: var(--sun); }
+.sun line { stroke: var(--sun); stroke-width: 2; stroke-linecap: round; }
+.sun { transition: opacity .25s; }
+#map.stepping .n, #map.stepping .sun { opacity: .28; }
+#map.stepping .n.on, #map.stepping .sun.on { opacity: 1; }
+#map .n.cur rect { stroke: var(--signal); stroke-width: 3; }
+#map.stepping .e { opacity: .22; transition: opacity .25s; }
+#map.stepping .e.on { opacity: 1; }
+#map .e.on path { stroke: var(--signal); stroke-width: 2.3; }
+#map .e.on text { fill: var(--signal); font-weight: 600; }
+
+/* timeline */
+#track { width: 100%; max-width: 720px; min-width: 660px; height: auto; }
+.colbg { fill: transparent; transition: fill .2s; }
+.col.on .colbg { fill: var(--signal-soft); }
+.col { cursor: pointer; }
+.col:focus { outline: none; }
+.col:focus-visible .colbg { stroke: var(--signal); stroke-width: 2; }
+.kh { font-family: var(--font-mono) !important; font-size: 12px; fill: var(--muted) !important; }
+.col.on .kh { fill: var(--signal) !important; font-weight: 600; }
+.grp { font-size: 12px; fill: var(--muted) !important; letter-spacing: 0.04em; }
+.grpline { stroke: var(--line); stroke-width: 1.5; }
+.rowlab { font-size: 12.5px; fill: var(--muted) !important; }
+.dot.atm { fill: var(--atm); } .dot.ocn { fill: var(--ocn); } .dot.ice { fill: var(--ice); } .dot.land { fill: var(--land); } .dot.cpl { fill: var(--cpl); } .dot.sun { fill: var(--sun); }
+.dot.ring { fill: none; stroke-width: 1.5; }
+.dot.ring.atm { stroke: var(--atm); } .dot.ring.ocn { stroke: var(--ocn); } .dot.ring.ice { stroke: var(--ice); } .dot.ring.land { stroke: var(--land); } .dot.ring.cpl { stroke: var(--cpl); } .dot.ring.sun { stroke: var(--sun); }
+.dot.no { fill: var(--line); }
+#track .dot.cur { stroke: var(--signal); stroke-width: 3; }
+
+/* ---------- player ---------- */
+.controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.btns { display: flex; gap: 6px; }
+button { font: inherit; }
+.btn { height: 38px; min-width: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; }
+.btn:hover { border-color: var(--muted); }
+.btn:focus-visible, select:focus-visible, input[type=range]:focus-visible, .tab:focus-visible, .open-tab:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); min-width: 96px; font-weight: 500; }
+.btn svg { width: 14px; height: 14px; }
+.btn svg path, .btn svg rect { fill: currentColor; }
+.speed { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--muted); }
+select { font: inherit; font-size: 14px; height: 38px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 0 8px; }
+.scrub { flex: 1 1 220px; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.scrub input { flex: 1; min-width: 0; accent-color: var(--signal); }
+.count { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kbd-hint { font-size: 12.5px; color: var(--muted); }
+kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface); }
+
+.stage { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 16px; align-items: start; }
+@media (max-width: 920px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px 20px; display: grid; gap: 14px; min-width: 0; position: relative; overflow: hidden; }
+.timer { position: absolute; left: 0; top: 0; height: 3px; width: 100%; background: transparent; }
+.timer i { display: block; height: 100%; width: 0; background: var(--signal); }
+.timer.run i { animation: fillbar var(--dur, 5s) linear forwards; }
+@keyframes fillbar { from { width: 0; } to { width: 100%; } }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; color: var(--muted); white-space: nowrap; }
+.chip.k { color: var(--signal); border-color: var(--signal); }
+.call { font-family: var(--font-mono); font-size: 12.5px; background: var(--surface-2); border-radius: 6px; padding: 7px 10px; overflow-wrap: anywhere; line-height: 1.6; }
+.call .src { color: var(--muted); }
+.io { display: grid; gap: 10px; margin: 0; }
+.io > div { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; }
+.io dt { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; padding-top: 3px; }
+.io dd { margin: 0; }
+.io ul, .mod ul { margin: 0; padding-left: 1.1em; display: grid; gap: 3px; }
+.io li, .mod li { font-size: 14px; }
+.io li::marker, .mod li::marker { color: var(--muted); }
+.note { background: var(--signal-soft); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+.note b { color: var(--signal); font-weight: 600; margin-right: 6px; }
+.open-tab { justify-self: start; background: none; border: 0; padding: 0; color: var(--signal); cursor: pointer; font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- component tabs ---------- */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px; }
+.tab .d { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid; }
+.tab .d.atm { background: var(--atm); border-color: var(--atm); }
+.tab .d.ocn { background: var(--ocn); border-color: var(--ocn); }
+.tab .d.ice { background: var(--ice); border-color: var(--ice); }
+.tab .d.land { background: var(--land); border-color: var(--land); }
+.tab .d.cpl { background: var(--cpl); border-color: var(--cpl); }
+.tab .d.off { border-color: var(--off); border-style: dashed; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.mod { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; display: grid; gap: 18px; min-width: 0; }
+.mod-head { display: grid; gap: 6px; }
+.mod-head .full { color: var(--muted); font-size: 14px; }
+.mod .lead { font-size: 15.5px; max-width: 74ch; }
+.cols3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .cols3 { grid-template-columns: minmax(0, 1fr); } }
+.box { background: var(--surface-2); border-radius: 8px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.box h4 { margin: 0; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+td.k { font-family: var(--font-mono); font-size: 12.5px; }
+td.v { font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.tablewrap { overflow-x: auto; }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.pair .box p { font-size: 14px; }
+.box.rel { background: var(--signal-soft); }
+.box.rel h4 { color: var(--signal); }
+.srcs { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+
+/* ---------- v2: component networks ---------- */
+.ver { font-size: 14px; color: var(--muted); max-width: 72ch; }
+.vtag { font-family: var(--font-mono); font-size: 12px; color: var(--bg); background: var(--signal); border-radius: 999px; padding: 1px 8px; margin-right: 6px; }
+.netbox { display: grid; gap: 10px; min-width: 0; }
+.net-top { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
+.net-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); }
+.net-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.net-legend i { display: inline-block; width: 18px; height: 12px; border: 1.5px solid var(--muted); border-radius: 6px; background: var(--surface); }
+.net-legend .nl-proc i { border-radius: 3px; border-color: var(--ink); background: var(--surface-2); }
+.net-legend .nl-in i { background: linear-gradient(90deg, var(--atm-soft), var(--ocn-soft)); border-color: var(--atm); }
+.net-legend .nl-out i { background: linear-gradient(90deg, var(--cpl-soft), var(--land-soft)); border-color: var(--cpl); }
+.net-legend .nl-par i { border-style: dashed; border-radius: 2px; }
+.net-legend .nl-seq i, .net-legend .nl-data i, .net-legend .nl-pline i { height: 0; width: 22px; border-width: 1.5px 0 0; border-radius: 0; background: none; }
+.net-legend .nl-seq i { border-top-width: 2.5px; border-color: var(--ink); opacity: 0.6; }
+.net-legend .nl-pline i { border-style: dashed; }
+.net-tools { display: flex; gap: 6px; }
+.btn.sm { height: 30px; min-width: 30px; padding: 0 10px; font-size: 13px; }
+.net-stage { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+@media (max-width: 920px) { .net-stage { grid-template-columns: minmax(0, 1fr); } }
+.net-scroll { overflow: auto; max-height: 80vh; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); min-width: 0; overscroll-behavior: contain; cursor: grab; }
+.net-scroll.dragging { cursor: grabbing; user-select: none; }
+.net { padding: 4px; width: max-content; min-width: 100%; }
+.netsvg { display: block; margin-inline: auto; }
+.net-card { position: sticky; top: 12px; background: var(--surface-2); border-radius: 10px; padding: 14px; display: grid; gap: 8px; align-content: start; font-size: 13.5px; min-width: 0; max-height: 80vh; overflow: auto; }
+.net-card h4 { margin: 0; font-size: 16px; line-height: 1.35; font-family: var(--font-display); }
+.net-card p { margin: 0; }
+.nc-kind { font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.nc-r, .nc-tag { font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.nc-val b { font-family: var(--font-mono); font-weight: 500; }
+.nc-comp b { font-weight: 600; }
+.nc-sec { display: grid; gap: 4px; }
+.nc-sec h5 { margin: 6px 0 0; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+.nc-link { font: inherit; font-size: 13px; line-height: 1.4; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; color: var(--ink); cursor: pointer; overflow-wrap: anywhere; }
+.nc-link.k-par { font-family: var(--font-mono); font-size: 12px; border-style: dashed; }
+.nc-link.k-proc { font-weight: 500; }
+.nc-link:hover, .nc-link:focus-visible { border-color: var(--signal); outline: none; }
+.nc-open, .nc-clear { font: inherit; font-size: 13px; background: none; border: 0; padding: 0; color: var(--signal); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; justify-self: start; }
+.nc-empty { color: var(--muted); }
+.net-nolib { color: var(--signal); padding: 12px; margin: 0; }
+
+.netsvg text { font-family: var(--font-body); fill: var(--ink); }
+.netsvg .t1 { font-size: 13px; font-weight: 600; }
+.netsvg .lab { font-size: 12.5px; }
+.netsvg .mono, .netsvg .pname, .netsvg .pval { font-family: var(--font-mono); font-size: 11px; }
+.netsvg .mono, .netsvg .pval, .netsvg .tag, .netsvg .cap { fill: var(--muted); }
+.netsvg .pname { font-weight: 500; }
+.netsvg .tag, .netsvg .cap { font-size: 11px; }
+.nn { cursor: pointer; transition: opacity 0.2s; }
+.nn rect { stroke-width: 1.4; }
+.nn.proc rect { stroke-width: 1.8; }
+.nn.fam-atm rect { fill: var(--atm-soft); stroke: var(--atm); }
+.nn.fam-ocn rect { fill: var(--ocn-soft); stroke: var(--ocn); }
+.nn.fam-ice rect { fill: var(--ice-soft); stroke: var(--ice); }
+.nn.fam-land rect { fill: var(--land-soft); stroke: var(--land); }
+.nn.fam-cpl rect { fill: var(--cpl-soft); stroke: var(--cpl); }
+.nn.fam-neutral rect { fill: var(--surface-2); stroke: var(--line); }
+.nn.var rect { fill: var(--surface); stroke: var(--muted); }
+.nn.par rect { fill: var(--surface); stroke: var(--muted); stroke-dasharray: 3 2; }
+.nn.cond rect { stroke-dasharray: 6 3; }
+.nn.off rect { fill: var(--surface); stroke: var(--off); stroke-dasharray: 6 3; }
+.nn.off text { fill: var(--off); }
+.nn .nb { fill: var(--ink); }
+.nn .nbt { fill: var(--bg); font-family: var(--font-mono); font-size: 11px; font-weight: 500; }
+.nn.off .nb { fill: var(--off); }
+.nn:focus { outline: none; }
+.nn:focus-visible rect, .nn.me rect { stroke: var(--signal); stroke-width: 3; }
+.pl .plbg { fill: transparent; stroke: none; }
+.pl:hover .plbg, .pl.hl .plbg, .pl.sel .plbg { fill: var(--signal-soft); }
+.pl.sel .pname { fill: var(--signal); }
+.nc-link.hl, .nc-link.sel { border-color: var(--signal); background: var(--signal-soft); }
+.nc-mean { font-size: 12.5px; color: var(--muted); margin: 0 0 4px; }
+.ne path { fill: none; stroke: var(--muted); stroke-width: 1.2; opacity: 0.75; }
+.ne.seq path { stroke: var(--ink); stroke-width: 2; opacity: 0.45; }
+.ne.par path { stroke-dasharray: 3 3; opacity: 0.55; }
+.mk-a { fill: var(--muted); }
+.mk-s { fill: var(--ink); }
+.mk-h { fill: var(--signal); }
+.netsvg .ne, .netsvg .nn { transition: opacity 0.2s; }
+.netsvg.focus .nn:not(.lit) { opacity: 0.18; }
+.netsvg.focus .ne:not(.lit) { opacity: 0.08; }
+.ne.lit path { stroke: var(--signal); opacity: 1; stroke-width: 2.2; }
+
+/* parameter table (shared with version 1) */
+.mf-hint { font-size: 13px; color: var(--muted); margin: 0; }
+.ptab tr { cursor: pointer; }
+.ptab tr.hl td, .ptab tr.sel td { background: var(--signal-soft); }
+.ptab tr.sel td.k { color: var(--signal); }
+.ub { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--ink); color: var(--bg); font-family: var(--font-mono); font-size: 11px; margin-right: 4px; }
+td.u { font-size: 12.5px; }
+td.u span.ul { display: block; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .nn, .netsvg .ne { transition: none; } }
+
+footer { color: var(--muted); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 16px; }
+footer .mono { overflow-wrap: anywhere; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+  .timer { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="toprow">
+    <div class="eyebrow">UM vn4.5 · HadCM3B-M2.1aD · 作业 tdaah（工业革命前）</div>
+    <a class="lang xlink" href="HadCM3_walkthrough_v2_en.html" data-artifact="https://claude.ai/artifact/Lg1UbvqWPZuGRLGoEN2T49" hreflang="en" lang="en">English</a>
+  </div>
+  <h1>HadCM3 是怎样一步步算的</h1>
+  <p class="ver"><span class="vtag">v2</span>下面每个分量都画成网络：子程序、它们之间传递的变量，以及用到的每个参数。<a class="xlink" href="../HadCM3_timestep_walkthrough_zh.html" data-artifact="https://claude.ai/artifact/JbUE1UPjD2kXQjNeMWsRhw">第一版</a>保留了较简单的线性流程图。</p>
+  <p class="lede">主程序 <code>U_MODEL</code> 以<strong>耦合日</strong>为单位推进：先让大气用 48 个 30 分钟的步长走完一整天，把这一天的平均通量交给海洋，再让海洋用 24 个 1 小时的步长走完同一天；然后把 SST 和海冰交回大气，开始下一天。每个大气步内部的顺序是固定的：先动力，后物理。</p>
+  <p class="lede">数值取自 <code>tdaah</code>，它是 bc5 上 BRIDGE 共享 UMUI 作业中的一个标准工业革命前（PI）作业：CO₂ 280 ppm，<code>preind2</code> 辅助文件，MOSES 2.1 加 TRIFFID，360 天日历，从 1850 年 12 月 1 日起算。调用顺序和行号来自 UM vn4.5 的源码 deck。</p>
+</header>
+
+<!-- ============ 1. 总览 ============ -->
+<section aria-labelledby="h-over">
+  <div class="sec-head">
+    <div class="eyebrow">总览</div>
+    <h2 id="h-over">一个耦合日</h2>
+    <p>同一天的模式时间要走两遍：先大气，后海洋。每个刻度是一个时间步。下半部分是两者各自一步之内的调用顺序。点击任一方框查看详情。</p>
+  </div>
+  <figure class="panel">
+    <div class="scroll">
+      <svg id="flow" viewBox="0 0 1000 520" role="group" aria-label="HadCM3 主循环：每个耦合日，大气先走 48 个半小时步，SWAP_A2O 把日平均通量交给海洋，海洋走 24 个一小时步，SWAP_O2A 再把 SST 和海冰交回。一个大气步内：调整、平流、扩散、云、每 6 步一次的辐射、边界层、大尺度降水、对流、水文、重力波拖曳，第 48 步还有植被和能量订正。一个海洋步内：计步、逐行的斜压动量和示踪物、正压流函数、海冰。">
+        <defs>
+          <marker id="fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+        </defs>
+        <g class="pill"><rect x="20" y="12" width="250" height="34" rx="17"/><text x="145" y="34" text-anchor="middle">开始 · INITIAL · 读入 .astart、.ostart</text></g>
+        <g class="pill"><rect x="730" y="12" width="250" height="34" rx="17"/><text x="855" y="34" text-anchor="middle">结束 · 在 RUN_TARGET_END 写 dump</text></g>
+        <g class="seq"><path d="M145,46 V64" marker-end="url(#fa)"/><path d="M855,66 V48" marker-end="url(#fa)"/></g>
+        <rect class="frame" x="20" y="66" width="960" height="442" rx="14"/>
+        <text class="frametitle" x="36" y="90">U_MODEL · 一组 = MODEL_HRS_PER_GROUP = 24 小时模式时间 · 每天重复</text>
+
+        <g class="n atm" data-tab="dyn" tabindex="0" role="button" aria-label="大气：动力详情">
+          <rect x="40" y="104" width="420" height="92" rx="8"/>
+          <text class="t1" x="56" y="126">大气 · 第 n 天</text>
+          <text class="t2" x="56" y="144">ATM_STEP × 48 · Δt = 30 分钟 · 00:00 → 24:00</text>
+        </g>
+        <g id="aTicks"></g>
+        <g class="n cpl" data-tab="cpl" tabindex="0" role="button" aria-label="SWAP_A2O：耦合器详情">
+          <rect x="478" y="118" width="104" height="64" rx="7"/>
+          <text class="t1" x="530" y="140" text-anchor="middle">SWAP_A2O</text>
+          <text class="t2" x="530" y="158" text-anchor="middle">日平均通量</text>
+          <text class="t2" x="530" y="174" text-anchor="middle">→ 海洋网格</text>
+        </g>
+        <g class="n ocn" data-tab="ocn" tabindex="0" role="button" aria-label="海洋详情">
+          <rect x="600" y="104" width="240" height="92" rx="8"/>
+          <text class="t1" x="616" y="126">海洋 · 第 n 天</text>
+          <text class="t2" x="616" y="144">OCN_STEP × 24 · Δt = 1 小时</text>
+        </g>
+        <g id="oTicks"></g>
+        <g class="n cpl" data-tab="cpl" tabindex="0" role="button" aria-label="SWAP_O2A：耦合器详情">
+          <rect x="858" y="118" width="104" height="64" rx="7"/>
+          <text class="t1" x="910" y="140" text-anchor="middle">SWAP_O2A</text>
+          <text class="t2" x="910" y="158" text-anchor="middle">SST、海冰</text>
+          <text class="t2" x="910" y="174" text-anchor="middle">→ 大气网格</text>
+        </g>
+        <g class="seq">
+          <path d="M460,150 H476" marker-end="url(#fa)"/>
+          <path d="M582,150 H598" marker-end="url(#fa)"/>
+          <path d="M840,150 H856" marker-end="url(#fa)"/>
+          <path d="M910,182 V210 H30 V150 H38" marker-end="url(#fa)"/>
+        </g>
+        <text class="loopnote" x="480" y="226" text-anchor="middle">第 n + 1 天：回到大气</text>
+
+        <text class="ztitle" x="40" y="250">一个大气步内部（30 分钟）</text>
+        <path class="brk" d="M40,272 V266 H426 V272"/>
+        <text class="brklab" x="233" y="262" text-anchor="middle">ATM_DYN · 第 10–13 节</text>
+        <path class="brk" d="M442,272 V266 H560 V272"/>
+        <text class="brklab" x="501" y="262" text-anchor="middle">ATM_PHYS ↓</text>
+
+        <g class="n atm" data-tab="dyn" tabindex="0" role="button" aria-label="调整：动力详情"><rect x="40" y="276" width="118" height="48" rx="7"/><text class="t1" x="99" y="296" text-anchor="middle">调整</text><text class="t2" x="99" y="314" text-anchor="middle">3 × 10 分钟</text></g>
+        <g class="n atm" data-tab="dyn" tabindex="0" role="button" aria-label="平流：动力详情"><rect x="174" y="276" width="118" height="48" rx="7"/><text class="t1" x="233" y="296" text-anchor="middle">平流</text><text class="t2" x="233" y="314" text-anchor="middle">u, v, θl, qt</text></g>
+        <g class="n atm" data-tab="dyn" tabindex="0" role="button" aria-label="扩散与滤波：动力详情"><rect x="308" y="276" width="118" height="48" rx="7"/><text class="t1" x="367" y="296" text-anchor="middle">扩散</text><text class="t2" x="367" y="314" text-anchor="middle">∇⁶ · 极区滤波</text></g>
+        <g class="n atm" data-tab="cloud" tabindex="0" role="button" aria-label="大尺度云详情"><rect x="442" y="276" width="118" height="48" rx="7"/><text class="t1" x="501" y="296" text-anchor="middle">大尺度云</text><text class="t2" x="501" y="314" text-anchor="middle">+ 能量订正</text></g>
+
+        <g class="n atm some" data-tab="rad" tabindex="0" role="button" aria-label="辐射详情"><rect x="442" y="352" width="118" height="48" rx="7"/><text class="t1" x="501" y="372" text-anchor="middle">辐射</text><text class="t2" x="501" y="390" text-anchor="middle">每 6 步一次</text></g>
+        <g class="n atm" data-tab="bl" tabindex="0" role="button" aria-label="边界层详情"><rect x="308" y="352" width="118" height="48" rx="7"/><text class="t1" x="367" y="372" text-anchor="middle">边界层</text><text class="t2" x="367" y="390" text-anchor="middle">MOSES 2.1</text></g>
+        <g class="n atm" data-tab="cloud" tabindex="0" role="button" aria-label="大尺度降水详情"><rect x="174" y="352" width="118" height="48" rx="7"/><text class="t1" x="233" y="372" text-anchor="middle">大尺度降水</text><text class="t2" x="233" y="390" text-anchor="middle">雨、雪</text></g>
+        <g class="n atm" data-tab="conv" tabindex="0" role="button" aria-label="对流详情"><rect x="40" y="352" width="118" height="48" rx="7"/><text class="t1" x="99" y="372" text-anchor="middle">对流</text><text class="t2" x="99" y="390" text-anchor="middle">质量通量</text></g>
+
+        <g class="n land" data-tab="hydro" tabindex="0" role="button" aria-label="陆面水文详情"><rect x="40" y="428" width="118" height="48" rx="7"/><text class="t1" x="99" y="448" text-anchor="middle">陆面水文</text><text class="t2" x="99" y="466" text-anchor="middle">4 层土壤</text></g>
+        <g class="n atm" data-tab="gwd" tabindex="0" role="button" aria-label="重力波拖曳详情"><rect x="174" y="428" width="118" height="48" rx="7"/><text class="t1" x="233" y="448" text-anchor="middle">重力波拖曳</text><text class="t2" x="233" y="466" text-anchor="middle">地形</text></g>
+        <g class="n land some" data-tab="veg" tabindex="0" role="button" aria-label="植被详情"><rect x="308" y="428" width="118" height="48" rx="7"/><text class="t1" x="367" y="448" text-anchor="middle">植被</text><text class="t2" x="367" y="466" text-anchor="middle">1 天 / 10 天</text></g>
+        <g class="n atm some" data-tab="eng" tabindex="0" role="button" aria-label="能量订正详情"><rect x="442" y="428" width="118" height="48" rx="7"/><text class="t1" x="501" y="448" text-anchor="middle">能量订正</text><text class="t2" x="501" y="466" text-anchor="middle">每天一次</text></g>
+
+        <g class="seq">
+          <path d="M158,300 H172" marker-end="url(#fa)"/>
+          <path d="M292,300 H306" marker-end="url(#fa)"/>
+          <path d="M426,300 H440" marker-end="url(#fa)"/>
+          <path d="M501,324 V350" marker-end="url(#fa)"/>
+          <path d="M442,376 H428" marker-end="url(#fa)"/>
+          <path d="M308,376 H294" marker-end="url(#fa)"/>
+          <path d="M174,376 H160" marker-end="url(#fa)"/>
+          <path d="M99,400 V426" marker-end="url(#fa)"/>
+          <path d="M158,452 H172" marker-end="url(#fa)"/>
+          <path d="M292,452 H306" marker-end="url(#fa)"/>
+          <path d="M426,452 H440" marker-end="url(#fa)"/>
+        </g>
+        <text class="loopnote" x="560" y="496" text-anchor="end">然后诊断输出（STASH）→ 下一步</text>
+
+        <text class="ztitle" x="600" y="250">一个海洋步内部（1 小时）</text>
+        <g class="n ocn" data-tab="ocn" tabindex="0" role="button" aria-label="海洋计步详情"><rect x="676" y="258" width="270" height="38" rx="7"/><text class="t1" x="811" y="274" text-anchor="middle">计步</text><text class="t2" x="811" y="289" text-anchor="middle">OCN_FRST · 每天一次 Euler 步</text></g>
+        <g class="n ocn" data-tab="ocn" tabindex="0" role="button" aria-label="斜压动量：海洋详情"><rect x="676" y="306" width="270" height="38" rx="7"/><text class="t1" x="811" y="322" text-anchor="middle">斜压动量</text><text class="t2" x="811" y="337" text-anchor="middle">CLINIC · u, v</text></g>
+        <g class="n ocn" data-tab="ocn" tabindex="0" role="button" aria-label="温度和盐度：海洋详情"><rect x="676" y="354" width="270" height="38" rx="7"/><text class="t1" x="811" y="370" text-anchor="middle">温度、盐度</text><text class="t2" x="811" y="385" text-anchor="middle">TRACER · 通量、混合、对流</text></g>
+        <g class="n ocn" data-tab="ocn" tabindex="0" role="button" aria-label="正压流：海洋详情"><rect x="676" y="402" width="270" height="38" rx="7"/><text class="t1" x="811" y="418" text-anchor="middle">正压流</text><text class="t2" x="811" y="433" text-anchor="middle">TROP_CTL · 流函数（刚盖）</text></g>
+        <g class="n ice" data-tab="ice" tabindex="0" role="button" aria-label="海冰详情"><rect x="676" y="450" width="270" height="38" rx="7"/><text class="t1" x="811" y="466" text-anchor="middle">海冰</text><text class="t2" x="811" y="481" text-anchor="middle">ICE_CTL · 先漂移，后热力学</text></g>
+        <g class="seq">
+          <path d="M811,296 V304" marker-end="url(#fa)"/>
+          <path d="M811,344 V352" marker-end="url(#fa)"/>
+          <path d="M811,392 V400" marker-end="url(#fa)"/>
+          <path d="M811,440 V448" marker-end="url(#fa)"/>
+        </g>
+        <path class="brk" d="M672,306 H666 V392 H672"/>
+        <text class="brklab" x="660" y="345" text-anchor="end">ROW_CTL</text>
+        <text class="brklab" x="660" y="361" text-anchor="end">逐行</text>
+      </svg>
+    </div>
+    <figcaption>高的琥珀色刻度是完整辐射步（第 1、7、13 … 43 步），其间沿用存下来的加热率。绿色刻度是第 48 步：能量订正、叶物候，以及每 10 天一次的 TRIFFID 在这一步运行。海洋那排高刻度是每天一次的混合步（Euler 后差），其余 23 步是蛙跳步。虚线框表示不是每步都运行。</figcaption>
+    <div class="legend">
+      <span><i class="sw atm"></i>大气</span>
+      <span><i class="sw land"></i>陆面</span>
+      <span><i class="sw ocn"></i>海洋</span>
+      <span><i class="sw ice"></i>海冰</span>
+      <span><i class="sw cpl"></i>耦合器</span>
+      <span><i class="sw some"></i>不是每步都运行</span>
+    </div>
+  </figure>
+</section>
+
+<!-- ============ 2. 逐步演示 ============ -->
+<section aria-labelledby="h-play">
+  <div class="sec-head">
+    <div class="eyebrow">逐步演示</div>
+    <h2 id="h-play">跟着走一个耦合日</h2>
+    <p>依次是：启动；第一个大气步的细节；大气这一天的其余部分；交给海洋；第一个海洋步的细节；海洋这一天的其余部分；再交回大气。示意图上高亮的箭头是这一步中流动的数据。</p>
+  </div>
+
+  <div class="controls" aria-label="播放控制">
+    <div class="btns">
+      <button class="btn" id="bPrev" type="button" aria-label="上一步"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="2" height="12"/><path d="M14 2 L5 8 L14 14 z"/></svg></button>
+      <button class="btn primary" id="bPlay" type="button" aria-label="播放"><svg viewBox="0 0 16 16" aria-hidden="true" id="iPlay"><path d="M3 2 L14 8 L3 14 z"/></svg><span id="tPlay">播放</span></button>
+      <button class="btn" id="bNext" type="button" aria-label="下一步"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2 L11 8 L2 14 z"/><rect x="12" y="2" width="2" height="12"/></svg></button>
+      <button class="btn" id="bReset" type="button">重新开始</button>
+    </div>
+    <label class="speed" for="speed">速度
+      <select id="speed">
+        <option value="9000">慢</option>
+        <option value="6000" selected>中</option>
+        <option value="3000">快</option>
+      </select>
+    </label>
+    <div class="scrub">
+      <input type="range" id="scrub" min="0" max="19" value="0" step="1" aria-label="跳到某一步">
+      <span class="count" id="count">1 / 20</span>
+    </div>
+    <span class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> 单步，<kbd>空格</kbd> 播放 / 暂停</span>
+  </div>
+
+  <div class="panel scroll">
+    <svg id="track" viewBox="0 0 720 214" role="group" aria-label="一个耦合日的时间线：每列是一个大气步、一次交换或一个海洋步；每行是一组计算；有圆点表示该步运行这组计算"></svg>
+  </div>
+
+  <div class="stage">
+    <figure class="panel">
+      <div class="scroll">
+        <svg id="map" class="stepping" viewBox="0 0 700 540" role="group" aria-label="HadCM3 分量示意图：大气中有辐射、动力、湿过程、边界层、能量订正和重力波拖曳；大气与海洋之间是耦合器；海洋中有海冰和海洋 GCM；陆地上有陆面和 TRIFFID。箭头表示它们交换的量。">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+            <marker id="ahon" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-on"/></marker>
+          </defs>
+          <rect class="zone air" x="10" y="8" width="680" height="214" rx="10"/>
+          <text class="zlabel" x="680" y="24" text-anchor="end">大气 · 96 × 73 × 19 · Δt 30 分钟</text>
+          <rect class="zone ocean" x="10" y="292" width="520" height="240" rx="10"/>
+          <text class="zlabel" x="20" y="522">海洋 · 288 × 144 × 20 · Δt 1 小时</text>
+          <rect class="zone land" x="545" y="236" width="145" height="296" rx="10"/>
+          <text class="zlabel" x="555" y="254">陆地</text>
+
+          <g class="e" data-edge="e-sun" data-ends="end"><path d="M55,62 H78"/><text x="14" y="106">太阳辐射</text></g>
+          <g class="e" data-edge="e-rad-bl" data-ends="end"><path d="M170,90 V130"/><text x="178" y="116">地表短波、长波</text></g>
+          <g class="e" data-edge="e-dyn-bl" data-ends="both"><path d="M310,90 V130"/><text x="318" y="116">状态 ⇅ 增量</text></g>
+          <g class="e" data-edge="e-dyn-moist" data-ends="both"><path d="M470,62 H498"/></g>
+          <g class="e" data-edge="e-moist-land" data-ends="end"><path d="M668,90 V298"/><text x="662" y="206" text-anchor="end">雨、雪</text></g>
+          <g class="e" data-edge="e-bl-land" data-ends="both"><path d="M300,184 V200 H620 V298"/><text x="460" y="215" text-anchor="middle">热量、水 ⇅ 分 tile</text></g>
+          <g class="e" data-edge="e-a2o" data-ends="end"><path d="M120,184 V234"/><text x="128" y="215">日平均 ↓</text></g>
+          <g class="e" data-edge="e-o2a" data-ends="end"><path d="M230,234 V186"/><text x="238" y="215">SST、海冰 ↑</text></g>
+          <g class="e" data-edge="e-cpl-ocn" data-ends="both"><path d="M250,276 V394"/><text x="258" y="318">τ、热量、P − E、河流 ↓</text><text x="258" y="334">SST、洋流 ↑</text></g>
+          <g class="e" data-edge="e-cpl-ice" data-ends="both"><path d="M100,276 V304"/><text x="108" y="295">海冰 ⇅</text></g>
+          <g class="e" data-edge="e-ocn-ice" data-ends="both"><path d="M100,346 V394"/><text x="108" y="374">结冰、融化 · 漂移</text></g>
+          <g class="e" data-edge="e-river" data-ends="end"><path d="M556,330 H500 V278"/><text x="492" y="318" text-anchor="end">径流</text></g>
+          <g class="e" data-edge="e-veg-land" data-ends="both"><path d="M618,360 V398"/><text x="626" y="384">LAI、覆盖度</text></g>
+
+          <g class="sun" data-node="sun">
+            <circle cx="40" cy="62" r="13"/>
+            <line x1="40" y1="40" x2="40" y2="45"/><line x1="40" y1="79" x2="40" y2="84"/>
+            <line x1="18" y1="62" x2="23" y2="62"/><line x1="57" y1="62" x2="62" y2="62"/>
+            <line x1="24.4" y1="46.4" x2="28" y2="50"/><line x1="52" y1="74" x2="55.6" y2="77.6"/>
+            <line x1="55.6" y1="46.4" x2="52" y2="50"/><line x1="28" y1="74" x2="24.4" y2="77.6"/>
+          </g>
+
+          <g class="n atm" data-node="rad" data-tab="rad" tabindex="0" role="button" aria-label="辐射详情"><rect x="80" y="34" width="180" height="56" rx="8"/><text class="t1" x="170" y="58" text-anchor="middle">辐射</text><text class="t2" x="170" y="78" text-anchor="middle">短波 + 长波 · 每 3 小时</text></g>
+          <g class="n atm" data-node="dyn" data-tab="dyn" tabindex="0" role="button" aria-label="动力详情"><rect x="290" y="34" width="180" height="56" rx="8"/><text class="t1" x="380" y="58" text-anchor="middle">动力</text><text class="t2" x="380" y="78" text-anchor="middle">调整 · 平流 · 扩散</text></g>
+          <g class="n atm" data-node="moist" data-tab="cloud" tabindex="0" role="button" aria-label="云与降水详情"><rect x="500" y="34" width="180" height="56" rx="8"/><text class="t1" x="590" y="58" text-anchor="middle">湿过程</text><text class="t2" x="590" y="78" text-anchor="middle">云 · 降水 · 对流</text></g>
+          <g class="n atm" data-node="bl" data-tab="bl" tabindex="0" role="button" aria-label="边界层详情"><rect x="80" y="132" width="250" height="52" rx="8"/><text class="t1" x="205" y="154" text-anchor="middle">边界层</text><text class="t2" x="205" y="173" text-anchor="middle">MOSES 2.1 地表交换</text></g>
+          <g class="n atm" data-node="eng" data-tab="eng" tabindex="0" role="button" aria-label="能量订正详情"><rect x="345" y="132" width="135" height="52" rx="8"/><text class="t1" x="412.5" y="154" text-anchor="middle">能量订正</text><text class="t2" x="412.5" y="173" text-anchor="middle">每天</text></g>
+          <g class="n atm" data-node="gwd" data-tab="gwd" tabindex="0" role="button" aria-label="重力波拖曳详情"><rect x="495" y="132" width="155" height="52" rx="8"/><text class="t1" x="572.5" y="154" text-anchor="middle">重力波拖曳</text><text class="t2" x="572.5" y="173" text-anchor="middle">地形</text></g>
+          <g class="n cpl" data-node="cpl" data-tab="cpl" tabindex="0" role="button" aria-label="耦合器详情"><rect x="10" y="236" width="520" height="40" rx="7"/><text class="t1" x="270" y="261" text-anchor="middle">耦合器 · SWAP_A2O / SWAP_O2A · 每天一次</text></g>
+          <g class="n land" data-node="land" data-tab="hydro" tabindex="0" role="button" aria-label="陆面水文详情"><rect x="556" y="300" width="124" height="60" rx="8"/><text class="t1" x="618" y="325" text-anchor="middle">陆面</text><text class="t2" x="618" y="345" text-anchor="middle">土壤 · 雪 · 径流</text></g>
+          <g class="n land" data-node="veg" data-tab="veg" tabindex="0" role="button" aria-label="植被详情"><rect x="556" y="400" width="124" height="60" rx="8"/><text class="t1" x="618" y="425" text-anchor="middle">TRIFFID</text><text class="t2" x="618" y="445" text-anchor="middle">植被</text></g>
+          <g class="n ice" data-node="ice" data-tab="ice" tabindex="0" role="button" aria-label="海冰详情"><rect x="24" y="306" width="150" height="40" rx="7"/><text class="t1" x="99" y="323" text-anchor="middle">海冰</text><text class="t2" x="99" y="339" text-anchor="middle">漂移 · 热力学</text></g>
+          <g class="n ocn" data-node="ocn" data-tab="ocn" tabindex="0" role="button" aria-label="海洋详情"><rect x="24" y="396" width="300" height="80" rx="8"/><text class="t1" x="174" y="428" text-anchor="middle">海洋 GCM</text><text class="t2" x="174" y="450" text-anchor="middle">逐行 · 正压求解 · 1 小时</text></g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i class="sw atm"></i>大气</span>
+        <span><i class="sw land"></i>陆面</span>
+        <span><i class="sw ocn"></i>海洋</span>
+        <span><i class="sw ice"></i>海冰</span>
+        <span><i class="sw cpl"></i>耦合器</span>
+      </div>
+    </figure>
+
+    <article class="card" id="card" aria-live="polite">
+      <div class="timer" id="timer"><i></i></div>
+      <div class="meta" id="sMeta"></div>
+      <h3 id="sTitle"></h3>
+      <div class="call" id="sCall"></div>
+      <dl class="io">
+        <div><dt>读入</dt><dd id="sIn"></dd></div>
+        <div><dt>计算</dt><dd id="sCalc"></dd></div>
+        <div><dt>输出</dt><dd id="sOut"></dd></div>
+      </dl>
+      <p class="note" id="sNote"></p>
+      <button class="open-tab" id="sOpen" type="button"></button>
+    </article>
+  </div>
+</section>
+
+<!-- ============ 3. 分量 ============ -->
+<section aria-labelledby="h-mod" id="modules">
+  <div class="sec-head">
+    <div class="eyebrow">分量</div>
+    <h2 id="h-mod">各分量算什么</h2>
+    <p>每个标签把一个分量画成网络。带编号的方框是按调用顺序排列的子程序，用粗线相连；白色方框是它们之间传递的变量；彩色圆角框是来自或去往其他分量的量，颜色与那个分量一致；虚线框列出每个子程序用到的参数及其 tdaah 取值。鼠标移到任一方框上会点亮它的连接，点击可固定并查看它读入和写出什么，拖动背景可以平移。虚线子程序只在部分步运行；灰色的在本作业中关闭。</p>
+  </div>
+  <div class="tabs" role="tablist" aria-label="分量" id="tabs"></div>
+  <div id="panels"></div>
+</section>
+
+<footer>
+  <span>来源：<span class="mono">$UM_HOME/um/vn4.5/source/umpl</span> 中的 UM vn4.5 deck（U_MODEL1、SETGRCT1、INITTIM1、SETTSCT1、ATMSTEP1、ATMDYN1、ATMPHY1、RAD_CTL1、OCNSTEP1、OCNFRST1、OCN_CTL、OCN_FRST、ROWCALC、TRACER、TROP_CTL、ICE_CTL、ICEFLOE、SWAPA2O2、SWAPO2A2、TRANA2O1、INITA2O1）。作业 namelist 位于 <span class="mono">/projects/public/b56i/ggpjv/work/umui_jobs/tdaah</span>（2026 年 6 月 1 日）。</span>
+  <span>该作业还用了 Bristol 的 mod 包（BUGFIXES、BriSciModN048、GENERIC、MOSES2.1）和两个 STANDARD_MODS 包。它们都不改变图中的调用顺序；文中的轨道代码来自 <span class="mono">merge_BriSciModN048_01</span> 里的 CALC_SOLAR mod。</span>
+  <span>第二版网络数据：<span class="mono">v2/src/hadcm3_net.js</span>，由 <span class="mono">v2/build_v2.py</span> 从第一版页面生成。</span>
+  <span>姊妹页：<a class="xlink" href="../../cGENIE-visualization/cGENIE_timestep_walkthrough_en.html" data-artifact="https://claude.ai/artifact/9NgGTz5pv5qZjHbkjPRxrU">cGENIE 时间步拆解</a></span>
+</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
+<script>
+/* HadCM3 walkthrough v2 — component networks.
+   One source for both languages. build_v2.py inlines this file into the EN and ZH pages.
+   Needs dagre 0.8.5 (global `dagre`) for the layered layout.
+
+   Each network lists nodes and edges:
+     P(id, title, routine, opts)  process; opts: p [parameter names], d description,
+                                  cond (runs only sometimes, dashed), off (inactive, grey), loop, fam
+     V(id, label)                 variable made and used inside the component
+     I(id, from, label)           variable entering from another component (or 'state', 'file')
+     O(id, to, label)             variable leaving to another component (or 'state', 'stash')
+   seq: call order, chains "a>b>c", branches separated by ";"
+   e:   data edges, tokens "a>b" or "a,b>c,d"
+   Parameter nodes are added automatically from each process's p list; their values and
+   meanings come from the page's own parameter tables. */
+(function () {
+  'use strict';
+  const L = (en, zh) => ({ en, zh });
+  const P = (id, t, r, o) => Object.assign({ id, k: 'proc', t, r }, o || {});
+  const V = (id, t) => ({ id, k: 'var', t });
+  const I = (id, c, t) => ({ id, k: 'in', c, t });
+  const O = (id, c, t) => ({ id, k: 'out', c, t });
+
+  const RADSTEP = L('radiation steps only', '仅辐射步');
+  const NONRAD = L('steps without full radiation', '仅非辐射步');
+  const LOOPK = L('↻ per level k', '↻ 每层 k');
+  const LOOPJ = L('↻ per row j', '↻ 每行 j');
+  const TRIF = L('every TRIFFID_PERIOD', '每 TRIFFID_PERIOD');
+  const STEP48 = L('step 48 only', '仅第 48 步');
+
+  const NETS = {
+    /* ------------------------------------------------------------ dynamics */
+    dyn: {
+      nodes: [
+        I('ps', 'state', L('p*  surface pressure', 'p*  地面气压')),
+        I('th', 'state', L('θ  potential temperature', 'θ  位温')),
+        I('q', 'state', L('q  specific humidity', 'q  比湿')),
+        I('qc', 'state', L('qcl, qcf  cloud liquid and ice', 'qcl、qcf  云中液水和冰')),
+        I('uv', 'state', L('u, v  winds', 'u、v  风')),
+        I('orog', 'file', L('Orography', '地形')),
+        P('d1', L('Set the time steps', '设定时间步长'), 'ATM_DYN · ATMDYN1.dk:350–426',
+          { p: ['STEPS_PER_PERIODim', 'A_SWEEPS_DYN', 'L_HALF_TIMESTEP_DYN', 'A_ADJSTEPS'],
+            d: L('Dynamics step = 1800 s ÷ A_SWEEPS_DYN; adjustment step = that ÷ A_ADJSTEPS. With L_HALF_TIMESTEP_DYN off there is always one sweep.', '动力步长 = 1800 s ÷ A_SWEEPS_DYN；调整步长 = 再 ÷ A_ADJSTEPS。L_HALF_TIMESTEP_DYN 关闭，所以始终只扫描一次。') }),
+        V('dtd', L('Δt_dyn = 1800 s', 'Δt_dyn = 1800 s')),
+        V('dta', L('Δt_adj = 600 s', 'Δt_adj = 600 s')),
+        P('d2', L('Polar-filter set-up', '极区滤波设置'), 'SET_FIL · ATMDYN1.dk:472',
+          { p: ['A_NSET_FILTER', 'GRAV_WAVE_SPEED', 'FILTERING_SAFETY_FACTOR'],
+            d: L('For each row, find the zonal wavenumbers too fast for the adjustment step.', '逐行找出对调整步长来说太快的纬向波数。') }),
+        V('fw', L('Filter wavenumbers per row', '各行滤波波数')),
+        P('d3', L('Adjustment', '调整'), 'ADJ_CTL · ATMDYN1.dk:656',
+          { loop: L('× A_ADJSTEPS', '× A_ADJSTEPS'), p: ['A_ADJSTEPS', 'ADJ_TIME_SMOOTHING_COEFF'],
+            d: L('Gravity-wave adjustment of p*, θ, u, v (pressure gradient, Coriolis); Fourier filtering at high latitudes; time smoothing across the sub-steps.', '对 p*、θ、u、v 做重力波调整（气压梯度力、科氏力）；高纬傅里叶滤波；子步之间做时间平滑。') }),
+        V('adj', L('Adjusted p*, θ, u, v', '调整后的 p*、θ、u、v')),
+        V('ex', L('Exner pressure', 'Exner 气压')),
+        V('um', L('Time-mean mass fluxes ū and η̇', '时间平均质量通量 ū 和 η̇')),
+        P('d4', L('Convert to θl and qt', '换成 θl 和 qt'), 'THETL_QT · ATMDYN1.dk:771',
+          { d: L('Combine θ, q and cloud water into liquid-water potential temperature θl and total water qt, which advection conserves.', '把 θ、q 和云水合成液水位温 θl 和总水 qt，二者在平流中守恒。') }),
+        V('tl', L('θl, qt', 'θl、qt')),
+        P('d5', L('Advection', '平流'), 'ADV_CTL · ATMDYN1.dk:2138',
+          { p: ['NU_BASIC', 'DIV_DAMP_COEFF_FC'],
+            d: L('Advect mass-weighted u, v, θl, qt over the full step; add the Coriolis term from vertical motion.', '在完整步长内平流质量加权的 u、v、θl、qt；加入垂直运动引起的科氏项。') }),
+        V('adv', L('Advected mass-weighted u, v, θl, qt', '平流后质量加权的 u、v、θl、qt')),
+        P('d6', L('Remove mass weighting', '去掉质量加权'), 'MASS_UWT · ATMDYN1.dk:2232',
+          { d: L('Divide by the layer mass to recover u, v, θl, qt.', '除以层质量，恢复 u、v、θl、qt。') }),
+        V('st', L('u, v, θl, qt', 'u、v、θl、qt')),
+        P('d7', L('Vertical velocity ω', '垂直速度 ω'), 'ATM_DYN §12 · ATMDYN1.dk:2269–2345',
+          { d: L('ω on model levels, interpolated to pressure levels, for diagnostics.', '模式层上的 ω，插值到气压层，用于诊断。') }),
+        P('d8', L('Horizontal diffusion', '水平扩散'), 'DIF_CTL · ATMDYN1.dk:2380',
+          { p: ['DIFF_COEFF', 'DIFF_EXP', 'DIFF_COEFF_Q', 'DIFF_EXP_Q'],
+            d: L('Scale-selective diffusion: ∇⁶ on most levels, ∇² on the top level; ∇⁴ for moisture on levels 14–18.', '尺度选择性扩散：大部分层 ∇⁶，顶层 ∇²；水汽在第 14–18 层为 ∇⁴。') }),
+        P('d9', L('Remove negative humidity', '去掉负湿度'), 'QT_POS_CTL · ATMDYN1.dk:2410',
+          { p: ['L_QT_POS_LOCAL'], d: L('Fill negative qt left by advection.', '补上平流留下的负 qt。') }),
+        P('d10', L('Polar filtering of u, v', 'u、v 极区滤波'), 'FILT_UV · ATMDYN1.dk:2515',
+          { d: L('Mass-weighted Fourier filtering and polar averaging of the wind increments.', '对风增量做质量加权的傅里叶滤波和极点平均。') }),
+        O('o1', 'cloud', L('p*, θl, qt, u, v for the physics', '给物理部分的 p*、θl、qt、u、v')),
+        O('o2', 'stash', L('ω on model and pressure levels', '模式层和气压层上的 ω'))
+      ],
+      seq: 'd1>d2>d3>d4>d5>d6>d7>d8>d9>d10',
+      e: 'd1>dtd,dta dtd>d5 dta>d2,d3 d2>fw fw>d3,d10 ps,th,uv,orog>d3 d3>adj,ex,um adj>d4,d5 ex>d4 q,qc>d4 d4>tl tl>d5 um>d5,d7 d5>adv adv>d6 d6>st st>d8 ps>d7 d7>o2 d10>o1'
+    },
+
+    /* ------------------------------------------------------------ radiation */
+    rad: {
+      nodes: [
+        P('r1', L('Is this a radiation step?', '是辐射步吗？'), 'SETTSCTL · SETTSCT1.dk:508–510',
+          { p: ['A_SW_RADSTEP', 'A_LW_RADSTEP'], d: L('True when MOD(STEP − 1, 6) = 0: steps 1, 7, 13 … 43.', 'MOD(STEP − 1, 6) = 0 时为真：第 1、7、13 … 43 步。') }),
+        V('sw', L('L_SW_RADIATE, L_LW_RADIATE', 'L_SW_RADIATE、L_LW_RADIATE')),
+        I('date', 'state', L('Model date and time', '模式日期和时刻')),
+        I('orb', 'file', L('Orbit e, γ, τ₀, sin(obliquity), set once at start-up', '轨道 e、γ、τ₀、sin(黄赤交角)，启动时设定一次')),
+        I('tq', 'cloud', L('T, q after the cloud scheme', '云方案之后的 T、q')),
+        I('ps', 'dyn', L('p*, Exner pressure', 'p*、Exner 气压')),
+        I('lsc', 'cloud', L('Layer cloud fraction, liquid and ice water', '层状云量、液水和冰水')),
+        I('cvc', 'conv', L('Convective cloud amount, base, top', '对流云量、云底、云顶')),
+        I('oz', 'file', L('Ozone climatology (qrclim.ozone_CMIP7clim)', '臭氧气候态（qrclim.ozone_CMIP7clim）')),
+        I('ice', 'cpl', L('Sea-ice fraction (last swap)', '海冰比例（最近一次交换）')),
+        I('ts', 'bl', L('Surface temperature T*', '地表温度 T*')),
+        I('snow', 'hydro', L('Snow mass', '积雪量')),
+        I('lalb', 'veg', L('Albedo of the MOSES land tiles', 'MOSES 陆面 tile 反照率')),
+        P('r2', L('Tropopause', '对流层顶'), 'TROPIN · RAD_CTL1.dk:757', { cond: RADSTEP, d: L('Locate the tropopause in each column.', '确定每个气柱的对流层顶。') }),
+        V('trop', L('Tropopause level', '对流层顶层次')),
+        P('r3', L('Sun position', '太阳位置'), 'SOLPOS · RAD_CTL1.dk:843',
+          { cond: RADSTEP, p: ['L_SEC_VAR'], d: L('Solar declination and Earth–Sun distance factor for today.', '当天的太阳赤纬和日地距离因子。') }),
+        V('dec', L('sin(declination), distance factor', 'sin(赤纬)、日地距离因子')),
+        P('r4', L('Zenith angle over 3 h', '3 小时天顶角'), 'SOLANG · RAD_CTL1.dk:886',
+          { cond: RADSTEP, p: ['A_SW_RADSTEP'], d: L('Mean cos(zenith angle) and sunlit fraction at every point over the next A_SW_RADSTEP steps.', '每个格点未来 A_SW_RADSTEP 步的平均 cos(天顶角) 和日照比例。') }),
+        V('cz3', L('cos(zenith), sunlit fraction (3-h mean)', 'cos(天顶角)、日照比例（3 小时平均）')),
+        P('r5', L('Surface albedo', '地表反照率'), 'FTSA · RAD_CTL1.dk:990–1026',
+          { cond: RADSTEP, p: ['ALPHAC', 'ALPHAM', 'DTICE'], d: L('Albedo of open sea, of sea ice from its surface temperature, and of snow; land albedo from the tiles.', '开阔海面、海冰（由冰面温度决定）和积雪的反照率；陆面反照率来自 tile。') }),
+        V('alb', L('Surface albedo', '地表反照率')),
+        P('r6', L('Shortwave', '短波'), 'R2_SWRAD · RAD_CTL1.dk:1399',
+          { cond: RADSTEP, p: ['H_SWBANDS', 'SC', 'CO2_MMR', 'O2MMR', 'L_CLIMAT_AEROSOL', 'A_SW_SEGMENTS'], d: L('Edwards–Slingo two-stream scheme for every sunlit point.', '对每个日照点用 Edwards–Slingo 二流方案计算。') }),
+        V('swh', L('SW heating per layer, surface SW', '各层短波加热、地面短波')),
+        P('r7', L('Longwave', '长波'), 'R2_LWRAD · RAD_CTL1.dk:1985',
+          { cond: RADSTEP, p: ['H_LWBANDS', 'CO2_MMR', 'CH4MMR', 'N2OMMR', 'L_CLIMAT_AEROSOL', 'A_LW_SEGMENTS'], d: L('Edwards–Slingo longwave with water vapour, CO₂, CH₄, N₂O and ozone.', 'Edwards–Slingo 长波，含水汽、CO₂、CH₄、N₂O 和臭氧。') }),
+        V('lwh', L('LW heating per layer, surface LW down', '各层长波加热、地面向下长波')),
+        P('r8', L('Store and apply', '存下并施加'), 'BUFFOUT · RAD_CTL1.dk:1555–1660',
+          { cond: RADSTEP, d: L('Save the heating for the next 5 steps (shortwave per unit sunlight) and apply it, rescaled to this step’s sun angle.', '存下供后 5 步用的加热率（短波按单位日照存），按本步太阳高度角缩放后施加。') }),
+        V('inc', L('Stored increments (RADINCS)', '存下的增量（RADINCS）')),
+        P('r9', L('Net flux for the energy budget', '能量收支用的净通量'), 'FLUX_DIAG · RAD_CTL1.dk:1587, 2120', { cond: RADSTEP }),
+        P('r10', L('Reuse on the other steps', '其他步沿用'), 'CLD_CTL §9.1, §9.4 · CLDCTL1.dk:303–312, 750–990',
+          { cond: NONRAD, d: L('Read the stored heating, rescale shortwave to this step’s zenith angle (SOLPOS, SOLANG), reapply longwave unchanged.', '读回存下的加热率，短波按本步天顶角（SOLPOS、SOLANG）重新缩放，长波原样加上。') }),
+        P('r11', L('Tile surface radiation', 'tile 地表辐射'), 'RAD_MOSES · CLDCTL1.dk:978', { cond: NONRAD }),
+        O('oth', 'state', L('Radiative heating → θ', '辐射加热 → θ')),
+        O('osw', 'cpl', L('Surface net SW and blue SW', '地面净短波和蓝光短波')),
+        O('olw', 'bl', L('Surface SW and LW down', '地面向下短波和长波')),
+        O('opar', 'bl', L('Photosynthetically active radiation', '光合有效辐射')),
+        O('otile', 'bl', L('Net radiation per MOSES tile', '各 MOSES tile 的净辐射')),
+        O('oe', 'eng', L('Net radiative heating of the column', '气柱净辐射加热'))
+      ],
+      seq: 'r1>r2>r3>r4>r5>r6>r7>r8>r9; r1>r10>r11',
+      e: 'r1>sw sw>r2,r10 date,orb>r3 r3>dec dec>r4,r6 r4>cz3 cz3>r6 ps,tq>r2,r6,r7 r2>trop trop>r6,r7 lsc,cvc,oz>r6,r7 ice,ts,snow,lalb>r5 r5>alb alb>r6 r6>swh r7>lwh swh,lwh>r8 r8>inc,oth,opar swh>osw lwh>olw swh,lwh>r9 r9>oe inc>r10 r10>oth,opar r11>otile'
+    },
+
+    /* ------------------------------------------------------------ cloud & large-scale precipitation */
+    cloud: {
+      nodes: [
+        I('inc', 'rad', L('Stored radiative increments', '存下的辐射增量')),
+        I('tl', 'dyn', L('θl, qt after the dynamics', '动力之后的 θl、qt')),
+        I('ps', 'dyn', L('p*, Exner pressure', 'p*、Exner 气压')),
+        I('lsm', 'file', L('Land–sea mask', '海陆掩膜')),
+        P('c1', L('Read stored radiation', '读回存下的辐射'), 'CLD_CTL §9.1 · CLDCTL1.dk:303–312', { cond: NONRAD }),
+        P('c2', L('Diagnose RHcrit', '诊断 RHcrit'), 'RHCRIT_CALC · CLDCTL1.dk:316',
+          { off: true, cond: L('off: L_RHCPT = .FALSE.', '关闭：L_RHCPT = .FALSE.'), p: ['L_RHCPT'] }),
+        P('c3', L('Cloud scheme', '云方案'), 'GLUE_CLD → LS_CLD · CLDCTL1.dk:347',
+          { p: ['RHCRIT', 'L_LSPICE'], d: L('Split qt and θl into q, T, cloud liquid and ice, assuming a sub-grid spread of humidity set by RHcrit; liquid/ice split by temperature.', '假定宽度由 RHcrit 决定的次网格湿度分布，把 qt、θl 拆成 q、T、云中液水和冰；液/冰按温度划分。') }),
+        P('c4', L('Area cloud fraction', '面积云量'), 'AREA_CLD · CLDCTL1.dk:339',
+          { off: true, cond: L('off: L_CLD_AREA = .FALSE.', '关闭：L_CLD_AREA = .FALSE.'), p: ['L_CLD_AREA'] }),
+        V('tq', L('T, q', 'T、q')),
+        V('qcl', L('qcl, qcf  cloud liquid and ice', 'qcl、qcf  云中液水和冰')),
+        V('cf', L('Layer cloud fraction', '层状云量')),
+        P('c5', L('Cloud-cover diagnostics', '云覆盖诊断'), 'CLOUD_COVER · CLDCTL1.dk:454', { d: L('Total and layer cloud cover.', '总云量和分层云量。') }),
+        P('c6', L('Reapply radiation', '加回辐射'), 'CLD_CTL §9.4 · CLDCTL1.dk:750–990', { cond: NONRAD }),
+        P('c7', L('Large-scale precipitation', '大尺度降水'), 'GLUE_LSPP → LS_PPN · LSPP_CT1.dk:221',
+          { p: ['CW_SEA', 'CW_LAND', 'RHCRIT', 'L_LSPICE'], d: L('From the top down: ice fall-out, autoconversion of cloud liquid above a threshold (higher over land), evaporation of rain and snow below cloud.', '自上而下：冰晶下落、云中液水超过阈值后自动转化（陆地阈值更高）、云下雨雪蒸发。') }),
+        P('c8', L('Precipitation flux sum', '降水通量累计'), 'FLUX_DIAG · LSPP_CT1.dk:306'),
+        O('occ', 'stash', L('Total and layer cloud cover', '总云量和分层云量')),
+        O('ocf', 'rad', L('Cloud fraction, liquid and ice water', '云量、液水和冰水')),
+        O('oth', 'state', L('θ, q after cloud, radiation and precipitation', '云、辐射和降水之后的 θ、q')),
+        O('orain', 'hydro', L('LS rain and snow on land', '陆地上的大尺度雨和雪')),
+        O('ocpl', 'cpl', L('LS rain and snow over the sea', '海上的大尺度雨和雪')),
+        O('oe', 'eng', L('Latent heat of LS precipitation', '大尺度降水潜热'))
+      ],
+      seq: 'c1>c2>c3>c4>c5>c6>c7>c8',
+      e: 'inc>c1 c1>c6 tl,ps>c3 c3>tq,qcl,cf cf>c5,ocf,c7 qcl>ocf,c7 c5>occ tq>c6,c7 c6>oth ps,lsm>c7 c7>oth,orain,ocpl c8>oe'
+    },
+
+    /* ------------------------------------------------------------ convection */
+    conv: {
+      nodes: [
+        I('tq', 'bl', L('θ, q after BL and LS precipitation', '经边界层和大尺度降水后的 θ、q')),
+        I('uv', 'bl', L('u, v', 'u、v')),
+        I('ps', 'dyn', L('p*, Exner pressure', 'p*、Exner 气压')),
+        I('fl', 'bl', L('T₁, q₁ fluctuations', 'T₁、q₁ 扰动')),
+        P('v1', L('Is convection due?', '该做对流了吗？'), 'SETTSCTL · SETTSCT1.dk:512', { p: ['A_CONV_STEP'] }),
+        P('v2', L('Split into segments', '分块'), 'CONV_CTL → GLUE_CONV · CONV_CT1.dk:585', { p: ['A_CONVECT_SEGMENTS'] }),
+        P('v3', L('Column set-up', '气柱准备'), 'QSAT · FLAG_WET · CONVEC3C.dk:633–664',
+          { p: ['L_MOM'], d: L('Saturation humidity on every level; water or ice condensate; initial parcel momentum.', '各层饱和比湿；凝结物为水或冰；气块初始动量。') }),
+        V('qs', L('Saturation humidity per level', '各层饱和比湿')),
+        V('wi', L('Water/ice flag per level', '各层水/冰标志')),
+        P('v4', L('Initiation test', '触发检验'), 'LAYER_CN · DQS_DTH · CONVEC3C.dk:797–907',
+          { loop: LOOPK, d: L('Entrainment and detrainment rates; start a parcel where layer k to k + 1 is unstable enough.', '卷入、卷出率；在从 k 到 k + 1 足够不稳定处启动气块。') }),
+        V('ent', L('Entrainment, detrainment rates', '卷入、卷出率')),
+        V('par0', L('Initial parcel θp, qp, up, vp and mass flux', '初始气块 θp、qp、up、vp 和质量通量')),
+        P('v5', L('Lift the parcel', '抬升气块'), 'LIFT_PAR · CONVEC3C.dk:1198–1434',
+          { loop: LOOPK, p: ['L_MOM'], d: L('Lift from k to k + 1 with entrainment; test buoyancy; non-buoyant points detrain.', '带卷入地从 k 抬到 k + 1；检验浮力；无浮力的点卷出。') }),
+        V('buoy', L('Parcel buoyancy in k + 1', 'k + 1 层气块浮力')),
+        P('v6', L('Cloud and its effect', '云及其作用'), 'CONVEC2 · CONVEC3C.dk:1809',
+          { loop: LOOPK, p: ['MPARWTR', 'UD_FACTOR', 'L_CCW', 'L_MOM'], d: L('Condensation and precipitation, cloud water, forced detrainment, mass-flux increments.', '凝结与降水、云水、强迫卷出、质量通量增量。') }),
+        V('prec', L('Updraught precipitation', '上升气流降水')),
+        V('ccw', L('Convective cloud water', '对流云水')),
+        V('dth', L('dθ/dt, dq/dt, du/dt, dv/dt', 'dθ/dt、dq/dt、du/dt、dv/dt')),
+        P('v7', L('Closure and downdraught', '闭合与下沉气流'), 'DD_CALL · CONVEC3C.dk:1990–2098',
+          { loop: LOOPK, p: ['L_CAPE', 'L_PHASE_LIM'], d: L('For clouds ending at this level: cloud-base mass flux, downdraught, evaporation of falling precipitation.', '对在本层终止的云：云底质量通量、下沉气流、降水下落蒸发。') }),
+        V('evap', L('Downdraught and evaporation increments', '下沉气流和蒸发增量')),
+        P('v8', L('Energy balance', '能量平衡'), 'COR_ENGY · CONVEC3C.dk:2190', { d: L('Correct temperatures so the column conserves moist static energy.', '订正温度，使气柱湿静力能守恒。') }),
+        V('cca', L('Convective cloud amount, base, top', '对流云量、云底、云顶')),
+        P('v9', L('3-D convective cloud', '三维对流云'), 'CALC_3D_CCA · CONVEC3C.dk:2194',
+          { off: true, cond: L('off: L_3D_CCA = .FALSE.', '关闭：L_3D_CCA = .FALSE.'), p: ['L_3D_CCA', 'ANVIL_FACTOR', 'TOWER_FACTOR'] }),
+        P('v10', L('Apply increments', '施加增量'), 'CONV_CTL · CONV_CT1.dk:659'),
+        P('v11', L('Precipitation flux sum', '降水通量累计'), 'FLUX_DIAG · CONV_CT1.dk:1188'),
+        O('ost', 'state', L('θ, q, u, v after convection', '对流之后的 θ、q、u、v')),
+        O('or', 'hydro', L('Convective rain and snow on land', '陆地上的对流雨、雪')),
+        O('orc', 'cpl', L('Convective rain and snow over the sea', '海上的对流雨、雪')),
+        O('occ', 'rad', L('Convective cloud amount, base, top', '对流云量、云底、云顶')),
+        O('oe', 'eng', L('Latent heat of convective precipitation', '对流降水潜热'))
+      ],
+      seq: 'v1>v2>v3>v4>v5>v6>v7>v8>v9>v10>v11',
+      e: 'tq,ps>v3,v4 uv>v3 tq>v5 v3>qs,wi qs>v4,v5 wi>v5,v6 fl>v4 v4>ent,par0 ent>v5,v6 par0>v5 v5>buoy buoy>v6 v6>prec,ccw,dth ccw>cca prec>v7 v7>evap evap,dth>v8 v8>v10 cca>v9,occ prec,evap>v10 v10>ost,or,orc v10>v11 v11>oe'
+    },
+
+    /* ------------------------------------------------------------ boundary layer */
+    bl: {
+      nodes: [
+        I('frac', 'veg', L('Surface-type fractions (9 tiles)', '地表类型比例（9 种 tile）')),
+        I('spar', 'veg', L('LAI, canopy height, tile albedo and roughness', '叶面积、冠层高度、tile 反照率和粗糙度')),
+        I('par', 'rad', L('Photosynthetically active radiation', '光合有效辐射')),
+        I('rad', 'rad', L('Surface SW and LW, net radiation per tile', '地面短波和长波、各 tile 净辐射')),
+        I('smc', 'hydro', L('Soil moisture', '土壤水分')),
+        I('tsoil', 'hydro', L('Soil temperature, snow, canopy water', '土壤温度、积雪、冠层水')),
+        I('sst', 'cpl', L('SST, ice fraction, ice depth (last swap)', 'SST、海冰比例、冰厚（最近一次交换）')),
+        I('oro', 'file', L('Sub-grid orography (silhouette)', '次网格地形（剖面）')),
+        I('atm', 'cloud', L('T, q, u, v profiles; p*', 'T、q、u、v 廓线；p*')),
+        P('b1', L('Tile lists', 'tile 列表'), 'TILEPTS · BL_IC7A.dk:667', { p: ['LMOSES'] }),
+        V('tp', L('Points of each surface type', '各地表类型的点')),
+        P('b2', L('Plant physiology', '植物生理'), 'PHYSIOL · BL_IC7A.dk:686',
+          { p: ['CO2_MMR', 'L_CO2_INTERACTIVE'], d: L('Stomatal conductance, photosynthesis and respiration of the 5 plant types.', '5 种植物功能型的气孔导度、光合与呼吸。') }),
+        V('gs', L('Stomatal conductance', '气孔导度')),
+        P('b3', L('Layers and buoyancy', '层厚与浮力'), 'Z · BOUY_TQ · BDYLYR7A.dk:605–757'),
+        V('bq', L('Layer depths, buoyancy parameters', '层厚、浮力参数')),
+        P('b4', L('Surface exchange', '地表交换'), 'SF_EXCH · BDYLYR7A.dk:770',
+          { p: ['L_Z0_OROG'], d: L('Roughness (with orographic part), bulk Richardson number, exchange coefficients and explicit fluxes for sea, sea ice and each land tile.', '海面、海冰和每个陆面 tile 的粗糙度（含地形部分）、整体 Richardson 数、交换系数和显式通量。') }),
+        V('ch', L('Exchange coefficients CD, CH per tile', '各 tile 交换系数 CD、CH')),
+        V('xf', L('Explicit surface fluxes per tile', '各 tile 显式地表通量')),
+        P('b5', L('Mixing coefficients', '混合系数'), 'KMKH · BDYLYR7A.dk:825', { p: ['BL_LEVELS'] }),
+        V('k', L('Km, Kh on the lowest levels', '最低几层的 Km、Kh')),
+        P('b6', L('Explicit fluxes', '显式通量'), 'EX_FLUX_TQ · EX_FLUX_UV · BDYLYR7A.dk:917–933', { p: ['BL_LEVELS'] }),
+        P('b7', L('Implicit solve for T, q', 'T、q 隐式求解'), 'IM_CAL_TQ · BDYLYR7A.dk:970', { p: ['BL_LEVELS'] }),
+        V('tstar', L('Surface temperature per tile', '各 tile 地表温度')),
+        P('b8', L('Sea-ice heat flux', '海冰热通量'), 'SICE_HTF · BDYLYR7A.dk:1010', { d: L('Conduction through the ice from its surface temperature and depth.', '由冰面温度和冰厚算穿过冰层的热传导。') }),
+        P('b9', L('Evaporation limits', '蒸发限制'), 'SF_EVAP · BDYLYR7A.dk:1061'),
+        V('ev', L('Evaporation from canopy, soil, lakes; sublimation', '冠层、土壤、湖泊蒸发；升华')),
+        P('b10', L('Snowmelt', '融雪'), 'SF_MELT · BDYLYR7A.dk:1075'),
+        P('b11', L('Screen-level T, q', '屏蔽高度 T、q'), 'SCREEN_TQ · BDYLYR7A.dk:1088'),
+        P('b12', L('Implicit solve for u, v', 'u、v 隐式求解'), 'IM_CAL_UV · BDYLYR7A.dk:1166'),
+        V('tau', L('Surface wind stress τx, τy', '地面风应力 τx、τy')),
+        P('b13', L('Re-diagnose cloud', '重新诊断云'), 'GLUE_CLD · BL_CTL1.dk:1724'),
+        P('b14', L('Sensible-heat flux sum', '感热通量累计'), 'FLUX_DIAG · BL_CTL1.dk:1663'),
+        O('onpp', 'veg', L('GPP, NPP, respiration, leaf turnover', 'GPP、NPP、呼吸、落叶')),
+        O('owme', 'cpl', L('Wind-mixing energy', '风混合能')),
+        O('oice', 'cpl', L('Conductive and top-melt heat flux', '传导和顶部融化热通量')),
+        O('ohyd', 'hydro', L('Snowmelt, sublimation, transpiration, soil evaporation, surface heat flux', '融雪、升华、蒸腾、土壤蒸发、地表热通量')),
+        O('ocpl', 'cpl', L('τx, τy, sensible heat, evaporation', 'τx、τy、感热、蒸发')),
+        O('oconv', 'conv', L('T₁, q₁ fluctuations', 'T₁、q₁ 扰动')),
+        O('oscr', 'stash', L('1.5 m temperature and humidity', '1.5 m 温度和湿度')),
+        O('ost', 'state', L('T, q, u, v after mixing; cloud', '混合后的 T、q、u、v；云')),
+        O('oe', 'eng', L('Surface sensible heat', '地表感热'))
+      ],
+      seq: 'b1>b2>b3>b4>b5>b6>b7>b8>b9>b10>b11>b12>b13>b14',
+      e: 'frac>b1 b1>tp tp>b2,b4,b9 par,smc,spar>b2 b2>gs,onpp gs>b4 atm>b3,b4,b7,b12 b3>bq bq>b4,b5 rad,sst,tsoil,oro,spar>b4 b4>ch,xf,owme ch>b5,b6,b11 b5>k k>b6,b7,b12 xf>b6 b7>tstar,oconv,ost tstar>b8,b9,b10,b11 sst>b8 b8>oice smc>b9 b9>ev ev>ohyd,ocpl b10>ohyd b11>oscr b12>tau tau>ocpl b12,b13>ost b7>b14 b14>oe'
+    },
+
+    /* ------------------------------------------------------------ land hydrology */
+    hydro: {
+      nodes: [
+        I('soil', 'file', L('Soil properties (qrparm.soil.MOSES2)', '土壤属性（qrparm.soil.MOSES2）')),
+        I('smst', 'state', L('Soil moisture and frozen fraction per layer', '各层土壤水分和冻结比例')),
+        I('tst', 'state', L('Soil temperature per layer', '各层土壤温度')),
+        I('sn', 'state', L('Snow mass, canopy water', '积雪量、冠层水')),
+        I('snf', 'cloud', L('LS snowfall', '大尺度降雪')),
+        I('snc', 'conv', L('Convective snowfall', '对流降雪')),
+        I('rnf', 'cloud', L('LS rainfall', '大尺度降雨')),
+        I('rnc', 'conv', L('Convective rainfall', '对流降雨')),
+        I('blf', 'bl', L('Snowmelt, sublimation, canopy and soil evaporation, transpiration', '融雪、升华、冠层和土壤蒸发、蒸腾')),
+        I('hf', 'bl', L('Surface heat flux into the soil', '进入土壤的地表热通量')),
+        I('tile', 'veg', L('Tile fractions, canopy water capacity', 'tile 比例、冠层持水量')),
+        P('h1', L('Soil thermal conductivity', '土壤导热率'), 'HEAT_CON · HYDROL7A.dk:210', { p: ['ST_LEVELS'] }),
+        V('hc', L('Thermal conductivity per layer', '各层导热率')),
+        P('h2', L('Snow', '积雪'), 'SFSNOW · HYDROL7A.dk:215', { d: L('Add snowfall, remove melt and sublimation.', '加上降雪，减去融化和升华。') }),
+        P('h3', L('Canopy and surface runoff', '冠层和地表径流'), 'SURF_HYD · HYDROL7A.dk:244',
+          { p: ['L_VEG_FRACS'], d: L('Interception and throughfall on each tile; water the soil cannot take runs off.', '每个 tile 上的截留和穿透降水；土壤吸收不了的水形成径流。') }),
+        V('tf', L('Throughfall, infiltration', '穿透降水、下渗')),
+        P('h4', L('Soil water', '土壤水'), 'SOIL_HYD · HYDROL7A.dk:254',
+          { p: ['SM_LEVELS'], d: L('Flow between layers, root extraction, drainage from the bottom layer.', '层间水流、根系吸水、最底层排水。') }),
+        V('wf', L('Water fluxes between layers', '层间水通量')),
+        P('h5', L('Soil temperature', '土壤温度'), 'SOIL_HTC · ICE_HTC · HYDROL7A.dk:263–273', { p: ['ST_LEVELS'] }),
+        P('h6', L('Soil moisture totals', '土壤水分合计'), 'SOILMC · HYDROL7A.dk:286'),
+        O('ofast', 'cpl', L('Fast (surface) runoff', '快速（地表）径流')),
+        O('oslow', 'cpl', L('Slow (sub-surface) runoff', '慢速（地下）径流')),
+        O('obl', 'bl', L('Soil moisture, soil temperature, snow, canopy water', '土壤水分、土壤温度、积雪、冠层水')),
+        O('osnow', 'rad', L('Snow mass (albedo)', '积雪量（反照率）')),
+        O('odiag', 'stash', L('Column soil moisture', '整柱土壤水分'))
+      ],
+      seq: 'h1>h2>h3>h4>h5>h6',
+      e: 'soil>h1,h4,h5 smst>h1,h4 h1>hc hc>h5 sn>h2,h3 snf,snc,blf>h2 rnf,rnc,blf,tile>h3 h3>tf,ofast tf>h4 blf>h4 h4>wf,oslow wf>h5 hf,tst>h5 h2>osnow,obl h4,h5>obl h6>odiag'
+    },
+
+    /* ------------------------------------------------------------ vegetation */
+    veg: {
+      nodes: [
+        I('cnt', 'state', L('Steps since the last TRIFFID call', '距上次 TRIFFID 的步数')),
+        I('acc', 'bl', L('Accumulated NPP, plant and soil respiration, leaf turnover', '累积的 NPP、植物和土壤呼吸、落叶')),
+        I('vc', 'state', L('Vegetation carbon, soil carbon, fractions', '植被碳、土壤碳、比例')),
+        I('dist', 'file', L('Disturbed fraction (qrfrac.disturb.nodisturb)', '被扰动比例（qrfrac.disturb.nodisturb）')),
+        I('salb', 'file', L('Soil albedo', '土壤反照率')),
+        P('g1', L('Count steps', '计步'), 'ATM_PHYS · ATMPHY1.dk:1229'),
+        P('g2', L('Leaf phenology', '叶物候'), 'PHENOL · VEG2A.dk:344',
+          { cond: L('every PHENOL_PERIOD', '每 PHENOL_PERIOD'), p: ['L_PHENOL', 'PHENOL_PERIOD'], d: L('Leaf turnover from temperature; update leaf area.', '由温度得到落叶率，更新叶面积。') }),
+        V('lai', L('Leaf area index per plant type', '各植物功能型叶面积指数')),
+        P('g3', L('Mean fluxes', '平均通量'), 'VEG · VEG2A.dk:375–410', { cond: TRIF, p: ['L_TRIFFID', 'TRIFFID_PERIOD'] }),
+        V('mf', L('Mean NPP, respiration, leaf turnover over the period', '这段时间的平均 NPP、呼吸、落叶')),
+        P('g4', L('Disturbance', '扰动'), 'VEG · VEG2A.dk:422', { cond: TRIF }),
+        V('gan', L('Disturbance rate (zero here)', '扰动率（此处为零）')),
+        P('g5', L('TRIFFID', 'TRIFFID'), 'TRIFFID · VEG2A.dk:457',
+          { cond: TRIF, p: ['L_TRIF_EQ'], d: L('Carbon balance of each plant type, competition for space (Lotka–Volterra), litter into soil carbon.', '各植物功能型碳收支、空间竞争（Lotka–Volterra）、凋落物进入土壤碳。') }),
+        V('nf', L('New fractions; vegetation and soil carbon', '新比例；植被碳和土壤碳')),
+        P('g6', L('Update tiles', '更新 tile'), 'TILEPTS · VEG2A.dk:469', { cond: TRIF }),
+        P('g7', L('Surface parameters', '地表参数'), 'SPARM · VEG2A.dk:508',
+          { d: L('Albedo, roughness and canopy water capacity of each tile from leaf area and canopy height.', '由叶面积和冠层高度得到每个 tile 的反照率、粗糙度和冠层持水量。') }),
+        O('ofrac', 'bl', L('Tile fractions', 'tile 比例')),
+        O('osp', 'bl', L('Tile albedo, roughness, LAI, canopy height', 'tile 反照率、粗糙度、叶面积、冠层高度')),
+        O('orad', 'rad', L('Land surface albedo', '陆面反照率')),
+        O('ohyd', 'hydro', L('Tile fractions, canopy water capacity', 'tile 比例、冠层持水量')),
+        O('ost', 'state', L('Vegetation and soil carbon', '植被碳和土壤碳'))
+      ],
+      seq: 'g1>g2>g3>g4>g5>g6>g7',
+      e: 'cnt>g1 g1>g3 acc>g2,g3 g2>lai lai>g5,g7 g3>mf mf>g5 dist>g4 g4>gan gan>g5 vc>g5 g5>nf nf>g6,ost g6>ofrac,ohyd salb>g7 g7>osp,orad,ohyd'
+    },
+
+    /* ------------------------------------------------------------ gravity-wave drag */
+    gwd: {
+      nodes: [
+        I('uv', 'bl', L('u, v after the boundary layer', '边界层之后的 u、v')),
+        I('th', 'state', L('θ, q profiles; p*', 'θ、q 廓线；p*')),
+        I('sd', 'file', L('Sub-grid orography statistics (qrparm.orog)', '次网格地形统计量（qrparm.orog）')),
+        P('w1', L('Winds to pressure points', '风插到气压点'), 'UV_TO_P · GWAVE3A.dk:262'),
+        V('up', L('u, v at land pressure points', '陆地气压点上的 u、v')),
+        P('w2', L('Surface stress', '地面应力'), 'GW_SURF · GWAVE3A.dk:319', { p: ['KAY_GWAVE'] }),
+        V('s0', L('Surface stress Sx, Sy', '地面应力 Sx、Sy')),
+        P('w3', L('Vertical distribution', '垂直分布'), 'GW_VERT · GWAVE3A.dk:330',
+          { p: ['START_LEVEL_GWDRAG', 'KAY_LEE_GWAVE', 'KAY_GWAVE'], d: L('Deposit the stress where the wave saturates, from START_LEVEL_GWDRAG up; add hydraulic-jump and trapped lee-wave drag.', '从 START_LEVEL_GWDRAG 层往上，在波饱和处释放应力；加上水跃和陷波拖曳。') }),
+        V('sat', L('Drag from wave saturation', '波饱和拖曳')),
+        V('jump', L('Drag from hydraulic jump', '水跃拖曳')),
+        V('lee', L('Drag from trapped lee waves', '陷波拖曳')),
+        P('w4', L('Apply to the winds', '作用到风上'), 'P_TO_UV · GWAVE3A.dk:347–369'),
+        O('ouv', 'state', L('u, v after drag', '拖曳之后的 u、v')),
+        O('od', 'stash', L('Stress profiles, drag by mechanism', '应力廓线、各机制拖曳'))
+      ],
+      seq: 'w1>w2>w3>w4',
+      e: 'uv>w1 w1>up up>w2,w3 th,sd>w2,w3 w2>s0 s0>w3 w3>sat,jump,lee,od sat,jump,lee>w4 w4>ouv'
+    },
+
+    /* ------------------------------------------------------------ energy correction */
+    eng: {
+      nodes: [
+        I('rate', 'state', L('Correction rate from the previous day', '前一天算出的订正率')),
+        I('e0', 'state', L('Total energy at the start of the day', '当天开始时的总能量')),
+        I('rad', 'rad', L('Net radiative heating', '净辐射加热')),
+        I('lsp', 'cloud', L('Latent heat of LS rain and snow', '大尺度雨雪潜热')),
+        I('cv', 'conv', L('Latent heat of convective rain and snow', '对流雨雪潜热')),
+        I('sh', 'bl', L('Surface sensible heat', '地表感热')),
+        I('st', 'state', L('θ, u, v, p* at the end of the day', '当天结束时的 θ、u、v、p*')),
+        P('e1', L('Reset the daily sum', '当日累计清零'), 'ATM_PHYS · ATMPHY1.dk:470–477',
+          { cond: L('first step of each day', '每天第一步'), p: ['LEMCORR', 'A_ENERGYSTEPS'] }),
+        P('e2', L('Apply the correction', '施加订正'), 'ADD_ENG_CORR · ATMPHY1.dk:485', { p: ['LEMCORR'] }),
+        P('e3', L('Accumulate the net flux', '累计净通量'), 'FLUX_DIAG · RAD_CTL, LSPP_CTL, CONV_CTL, BL_CTL'),
+        V('nf', L('Net-flux field, summed over the day', '净通量场，全天累计')),
+        P('e4', L('Total energy and mass', '总能量和质量'), 'ENG_MASS_DIAG · ATMPHY1.dk:1338', { cond: STEP48, p: ['A_ENERGYSTEPS'] }),
+        V('en', L('Total energy and mass now', '此刻的总能量和质量')),
+        P('e5', L('Global sum of the flux', '通量全球求和'), 'DO_SUMS · ATMPHY1.dk:1359', { cond: STEP48 }),
+        V('gs', L('Global net energy input', '全球净能量输入')),
+        P('e6', L('Correction and mass fix', '订正与质量修正'), 'CAL_ENG_MASS_CORR · ATMPHY1.dk:1361',
+          { cond: STEP48, d: L('Energy change minus net input is the error; spread it as tomorrow’s heating rate; correct p* for dry-mass drift.', '能量变化减去净输入即误差；把它换成明天的加热率；修正 p* 的干空气质量漂移。') }),
+        O('oth', 'state', L('θ + rate × 1800 s, every step', 'θ + 订正率 × 1800 s，每步')),
+        O('orate', 'state', L('Tomorrow’s correction rate', '明天的订正率')),
+        O('ops', 'state', L('p* corrected for dry-mass drift', '修正干空气质量漂移后的 p*')),
+        O('oen', 'state', L('Total energy, kept for tomorrow', '总能量，留到明天比较'))
+      ],
+      seq: 'e1>e2>e3>e4>e5>e6',
+      e: 'e1>nf rate>e2 e2>oth rad,lsp,cv,sh>e3 e3>nf nf>e5 st>e4 e4>en en,e0>e6 e5>gs gs>e6 e6>orate,ops,oen'
+    },
+
+    /* ------------------------------------------------------------ coupler */
+    cpl: {
+      nodes: [
+        I('atau', 'bl', L('τx, τy; wind-mixing energy', 'τx、τy；风混合能')),
+        I('asw', 'rad', L('Net SW, blue SW', '净短波、蓝光短波')),
+        I('alw', 'rad', L('Net LW at the surface', '地面净长波')),
+        I('ash', 'bl', L('Sensible heat, evaporation, sublimation', '感热、蒸发、升华')),
+        I('aice', 'bl', L('Top melt, conductive heat flux, ice fraction', '顶部融化、传导热通量、海冰比例')),
+        I('apr', 'cloud', L('LS rain and snow', '大尺度雨、雪')),
+        I('acv', 'conv', L('Convective rain and snow', '对流雨、雪')),
+        I('aro', 'hydro', L('Fast and slow runoff', '快速与慢速径流')),
+        I('oce', 'file', L('River entry points on the coast (OCENTPTS)', '海岸上的河流入海点（OCENTPTS）')),
+        I('osst', 'ocn', L('SST, surface currents', 'SST、表层流')),
+        I('oice', 'ice', L('Ice fraction, ice depth, snow depth', '海冰比例、冰厚、雪深')),
+        P('k1', L('Group length', '组长度'), 'INITTIME · INITTIM1.dk:581', { p: ['MODEL_HRS_PER_GROUP', 'STEPS_PER_PERIODim'] }),
+        V('grp', L('48 atmosphere / 24 ocean steps', '48 个大气步 / 24 个海洋步')),
+        P('k2', L('Daily means', '日平均'), 'STASH (tag 10) · INITA2O1.dk', { cond: L('every atmosphere step', '每个大气步') }),
+        V('dm', L('Daily means on the atmosphere grid', '大气网格上的日平均量')),
+        P('k3', L('Switch to the ocean', '切换到海洋'), 'SETGRCTL · SETGRCT1.dk:120–140'),
+        P('k4', L('Gather; route runoff', '收集；分配径流'), 'SWAP_A2O · SWAPA2O2.dk:205–428', { p: ['L_CO2_INTERACTIVE'] }),
+        V('rr', L('Runoff at the river entry points', '入海点上的径流')),
+        P('k5', L('Interpolation weights', '插值权重'), 'H_INT_CO · COAST_AJ · TRANA2O1.dk:349–469'),
+        V('w', L('Bilinear weights with coastal adjustment', '含海岸调整的双线性权重')),
+        P('k6', L('Interpolate and combine', '插值与合成'), 'H_INT_BL · POST_H_INT · TRANA2O1.dk:381–760',
+          { d: L('Sections: wind stress, wind mixing, blue SW, non-penetrating heat flux, P − E, river outflow, snowfall, sublimation, ice heat fluxes.', '各部分：风应力、风混合、蓝光、非穿透热通量、P − E、河流入海、降雪、升华、海冰热通量。') }),
+        V('of', L('Fields on the 288 × 144 ocean grid', '288 × 144 海洋网格上的场')),
+        P('k7', L('Scatter to the ocean', '分发给海洋'), 'SCATTER_FIELD · SWAPA2O2.dk:556–694'),
+        P('k8', L('Ocean runs its day', '海洋跑完这一天'), 'OCN_STEP × 24 · U_MODEL1.dk:994'),
+        P('k9', L('Gather ocean fields', '收集海洋场'), 'SWAP_O2A · SWAPO2A2.dk'),
+        P('k10', L('Area-average to the atmosphere grid', '面积平均到大气网格'), 'PRE_AREAVER · DO_AREAVER · TRANO2A1.dk'),
+        O('toocn', 'ocn', L('τx, τy, wind mixing, blue SW, heat flux, P − E, river outflow', 'τx、τy、风混合、蓝光、热通量、P − E、河流入海')),
+        O('toice', 'ice', L('Snowfall, sublimation, top melt, conductive heat flux', '降雪、升华、顶部融化、传导热通量')),
+        O('toatm', 'bl', L('T*, ice fraction, ice depth, snow depth, currents (day n + 1)', 'T*、海冰比例、冰厚、雪深、洋流（第 n + 1 天）'))
+      ],
+      seq: 'k1>k2>k3>k4>k5>k6>k7>k8>k9>k10',
+      e: 'k1>grp grp>k2,k3 atau,asw,alw,ash,aice,apr,acv,aro>k2 k2>dm dm>k4,k6 oce>k4 k4>rr rr>k6 k5>w w>k6 k6>of of>k7 k7>toocn,toice osst,oice>k9 k10>toatm'
+    },
+
+    /* ------------------------------------------------------------ ocean */
+    ocn: {
+      nodes: [
+        I('ts', 'state', L('T, S at two time levels', '两个时间层上的 T、S')),
+        I('uv', 'state', L('Baroclinic u, v; streamfunction ψ', '斜压 u、v；流函数 ψ')),
+        I('tau', 'cpl', L('Wind stress τx, τy', '风应力 τx、τy')),
+        I('hf', 'cpl', L('Non-penetrating heat flux', '非穿透热通量')),
+        I('pe', 'cpl', L('P − E, river outflow, snowfall', 'P − E、河流入海、降雪')),
+        I('blue', 'cpl', L('Blue (penetrating) SW', '蓝光（穿透）短波')),
+        I('wme', 'cpl', L('Wind-mixing energy', '风混合能')),
+        I('wfix', 'file', L('Water fix (qrparm.waterfix.hadcm3)', 'water fix（qrparm.waterfix.hadcm3）')),
+        I('icef', 'ice', L('Ice cover; heat and salt from the ice', '海冰覆盖；海冰带来的热量和盐分')),
+        P('n1', L('Step bookkeeping', '计步'), 'OCN_FRST · OCN_FRST.dk:60', { p: ['NMIX'] }),
+        V('mix', L('MIX flag: Euler-backward or leapfrog', 'MIX 标志：Euler 后差或蛙跳')),
+        P('n2', L('Density', '密度'), 'STATED · ROWCALC.dk:1141', { loop: LOOPJ }),
+        V('rho', L('Density ρ', '密度 ρ')),
+        P('n3', L('Vertical viscosity', '垂直黏性'), 'VERTCOFC · CLINIC.dk:1405', { loop: LOOPJ, p: ['L_ORICHARD', 'FNU0_SI', 'FNUB_SI'] }),
+        V('nu', L('Viscosity ν(z)', '黏性 ν(z)')),
+        P('n4', L('Baroclinic momentum', '斜压动量'), 'CLINIC · ROWCALC.dk:1265',
+          { loop: LOOPJ, p: ['DTUV', 'AM0_SI', 'AM1_SI', 'ACOR'], d: L('Advection, Coriolis, pressure gradient, lateral viscosity AM = AM0 + AM1 cos φ, vertical viscosity; wind stress at the top.', '平流、科氏力、气压梯度、水平黏性 AM = AM0 + AM1 cos φ、垂直黏性；顶部风应力。') }),
+        V('ubc', L('New baroclinic u, v', '新的斜压 u、v')),
+        P('n5', L('Vertical diffusivity', '垂直扩散系数'), 'VERTCOFT · TRACER.dk:682–700',
+          { loop: LOOPJ, p: ['L_ORICHARD', 'STABLM_SI', 'KAPPA0_SI', 'DKAPPA_DZ_SI', 'L_OQLARGE', 'MAX_QLARGE_DEPTH'] }),
+        V('kap', L('Diffusivity κ(z)', '扩散系数 κ(z)')),
+        P('n6', L('Isopycnal slopes and GM', '等密度面斜率与 GM'), 'ISOPYC_M · IPDGMVEL · TRACER.dk:868–889',
+          { loop: LOOPJ, p: ['L_OISOPYC', 'L_OISOMOM', 'AHI1_SI', 'AHI2_SI', 'AHI3_SI', 'L_OISOGM', 'L_OVISBECK'], d: L('AHI(z) = AHI2 + (AHI1 − AHI2)·e^(−z/AHI3); Gent–McWilliams eddy velocity with the Visbeck coefficient.', 'AHI(z) = AHI2 + (AHI1 − AHI2)·e^(−z/AHI3)；带 Visbeck 系数的 Gent–McWilliams 涡致速度。') }),
+        V('ahi', L('AHI(z), GM eddy velocity', 'AHI(z)、GM 涡致速度')),
+        P('n7', L('Advection and implicit diffusion', '平流与隐式扩散'), 'ADV_SOURCE · ISOFLUX · TRACER.dk:1094–1453', { loop: LOOPJ, p: ['DTTS', 'L_OIMPDIF'] }),
+        P('n8', L('Surface fluxes', '地表通量'), 'SFCADD · TRACER.dk:1885',
+          { loop: LOOPJ, p: ['L_FLUXCORR', 'L_SALFLUXFIX', 'L_REFSAL', 'SALREF'], d: L('Heat into the top layer; fresh water as a virtual salt flux; the water fix added (its heat part zeroed).', '热量进入顶层；淡水以虚盐通量进入；加上 water fix（其热量部分置零）。') }),
+        P('n9', L('Ice–ocean heat', '冰–海热交换'), 'ICEFLUX · TRACER.dk:1983', { loop: LOOPJ }),
+        P('n10', L('Penetrating solar', '穿透性太阳辐射'), 'SOLADD · TRACER.dk:2067–2137', { loop: LOOPJ, p: ['RSOL', 'ETA1_SI', 'ETA2_SI'] }),
+        P('n11', L('Freezing', '结冰'), 'FREEZEUP · TRACER.dk:2192', { loop: LOOPJ }),
+        P('n12', L('Mediterranean outflow', '地中海出流'), 'TRACER.dk:2292–2378', { loop: LOOPJ, p: ['L_OMEDOUT'] }),
+        P('n13', L('Mixed layer', '混合层'), 'MIXLAY · TRACER.dk:2583', { loop: LOOPJ, p: ['LAMDA', 'DELTA_SI', 'EPSILON'] }),
+        V('mld', L('Mixed-layer depth', '混合层深度')),
+        P('n14', L('Convection', '对流'), 'CONVADJ · CONVFULL · TRACER.dk:2695–2755',
+          { loop: LOOPJ, p: ['L_OCONVROUS', 'ISROUS…JEROUS'], d: L('Roussenov convection in a fixed box, then Rahmstorf’s complete convective adjustment everywhere.', '先在固定区域内做 Roussenov 对流，再在全球做 Rahmstorf 完整对流调整。') }),
+        P('n15', L('Polar filter', '极区滤波'), 'OFILTR_CNTL · TRACER.dk:2879', { loop: LOOPJ, p: ['L_OFILTER'] }),
+        V('tsn', L('New T, S', '新的 T、S')),
+        P('n16', L('Barotropic flow', '正压流'), 'TROP_CTL → RELAX · TROP_CTL.dk:183',
+          { p: ['L_OFREESFC', 'DTSF', 'MXSCAN', 'SOR', 'CRIT', 'ACOR', 'NISLE'], d: L('Streamfunction by successive over-relaxation with island circulations; add the depth-mean flow.', '用超松弛迭代求流函数（含绕岛环流），加上深度平均流。') }),
+        V('psi', L('Streamfunction ψ, depth-mean flow', '流函数 ψ、深度平均流')),
+        P('n17', L('Sea ice', '海冰'), 'ICE_CTL · OCN_CTL.dk:474', { fam: 'ice' }),
+        O('onew', 'ice', L('New ice formed by freezing', '结冰生成的新冰')),
+        O('ocpl', 'cpl', L('SST, surface currents', 'SST、表层流')),
+        O('oice', 'ice', L('Surface currents, top-layer temperature', '表层流、顶层水温')),
+        O('ost', 'state', L('T, S, u, v, ψ for the next step', '下一步的 T、S、u、v、ψ')),
+        O('omld', 'stash', L('Mixed-layer depth', '混合层深度'))
+      ],
+      seq: 'n1>n2>n3>n4>n5>n6>n7>n8>n9>n10>n11>n12>n13>n14>n15>n16>n17',
+      e: 'n1>mix mix>n4,n7 ts>n2,n7 n2>rho rho>n3,n4,n5,n6 uv>n3,n4,n16 n3>nu nu>n4 tau>n4 n4>ubc ubc>n7,n16 n5>kap kap>n7 n6>ahi ahi>n7 hf,pe,wfix>n8 icef>n9 blue>n10 n11>onew wme>n13 n13>mld mld>omld n15>tsn tsn>ost,ocpl,oice n16>psi psi>ost,ocpl'
+    },
+
+    /* ------------------------------------------------------------ sea ice */
+    ice: {
+      nodes: [
+        I('ts', 'bl', L('Ice surface temperature (atmosphere)', '冰面温度（大气）')),
+        I('st', 'state', L('Ice fraction, ice depth, snow depth', '海冰比例、冰厚、雪深')),
+        I('cflx', 'cpl', L('Top melt, conductive heat flux, sublimation, snowfall', '顶部融化、传导热通量、升华、降雪')),
+        I('cur', 'ocn', L('Surface currents', '表层流')),
+        I('t1', 'ocn', L('Top-layer ocean temperature', '海洋顶层水温')),
+        I('new', 'ocn', L('New ice from freezing', '结冰生成的新冰')),
+        P('i1', L('Ice albedo', '海冰反照率'), 'FTSA · RAD_CTL1.dk:990–1026',
+          { fam: 'atm', cond: L('atmosphere, radiation steps', '大气，辐射步'), p: ['ALPHAC', 'ALPHAM', 'DTICE'] }),
+        P('i2', L('Ice surface energy balance', '冰面能量平衡'), 'SICE_HTF · SF_MELT · BDYLYR7A.dk:1010, 1075',
+          { fam: 'atm', cond: L('atmosphere, every step', '大气，每步') }),
+        P('i3', L('Split the incoming fluxes', '分配进入的通量'), 'Init_Ocean_Ice · OCN_CTL.dk:280–300', { p: ['L_SEAICE'] }),
+        V('lead', L('Fluxes over ice and over leads', '冰面和冰间水道上的通量')),
+        P('i4', L('Drift', '漂移'), 'ICEDRIFT · ICE_CTL.dk:429',
+          { p: ['L_ICESIMPLE', 'AH_ICE'], d: L('Advect ice depth, snow depth and concentration with the surface currents (GFDL-type scheme); diffuse ice depth.', '用表层流平流冰厚、雪深和密集度（GFDL 型方案）；对冰厚做扩散。') }),
+        V('dyn', L('Changes from drift and diffusion', '漂移和扩散带来的变化')),
+        P('i5', L('Thermodynamics', '热力学'), 'ICEFLOE · ICE_CTL.dk:453',
+          { p: ['EDDYDIFFN', 'EDDYDIFFS', 'H0', 'HICEMIN', 'AICEMIN', 'SALICE'], d: L('Semtner zero-layer model with leads: grow or melt from the atmospheric fluxes and the ocean heat flux.', '带冰间水道的 Semtner 零层模式：由大气通量和海洋热通量让冰增长或融化。') }),
+        V('oh', L('Ocean-to-ice heat flux ∝ EDDYDIFF × (T₁ − T_freeze)', '海洋向冰热通量 ∝ EDDYDIFF × (T₁ − T_冰点)')),
+        V('th', L('Changes from growth and melt', '增长和融化带来的变化')),
+        P('i6', L('Concentration cap', '密集度上限'), 'AMX · OSETCON.dk:1163–1171', { p: ['AMXNORTH', 'AMXSOUTH'] }),
+        O('oalb', 'rad', L('Sea-ice albedo', '海冰反照率')),
+        O('ocpl', 'cpl', L('Daily means of top melt, conductive flux, sublimation', '顶部融化、传导通量、升华的日平均')),
+        O('oatm', 'cpl', L('Ice fraction, ice depth, snow depth for day n + 1', '第 n + 1 天的海冰比例、冰厚、雪深')),
+        O('oocn', 'ocn', L('Heat, salt, fresh water into the top layer', '进入顶层的热量、盐分、淡水'))
+      ],
+      seq: 'i1>i2>i3>i4>i5>i6',
+      e: 'ts>i1 st>i1,i2,i4 i1>oalb i2>ocpl cflx>i3 i3>lead lead>i5 cur>i4 i4>dyn dyn>i5 t1,new>i5 i5>oh,th oh>oocn i5>oocn th>i6 i6>oatm'
+    }
+  };
+
+  /* ================================================================ UI text */
+  const UI = {
+    en: {
+      kinds: { proc: 'Process', var: 'Variable', in: 'Enters', out: 'Leaves', par: 'Parameters' },
+      comp: { state: 'model state', file: 'file or start-up setting', stash: 'diagnostics (STASH)' },
+      from: 'from', to: 'to',
+      legend: [['proc', 'process (number = call order)'], ['var', 'variable inside the component'], ['in', 'enters from another component'], ['out', 'leaves to another component'], ['par', 'parameters of a process'], ['seq', 'call order'], ['data', 'data'], ['pline', 'parameter use']],
+      zoomIn: 'Zoom in', zoomOut: 'Zoom out', fit: 'Fit width',
+      reads: 'Reads', writes: 'Writes', params: 'Parameters', usedBy: 'Used by', writtenBy: 'Written by', readBy: 'Read by',
+      next: 'Next', prev: 'Previous', open: 'Open', value: 'Value',
+      hint: 'Point at a box to light up its connections; click to pin it and see the details. Parameters are linked to the table below.',
+      empty: 'Click any box in the network to see what it reads, what it writes and which parameters it uses.',
+      nolib: 'The network layout needs the dagre library from cdnjs.cloudflare.com, which did not load. Check the connection and reload.',
+      thead: ['Parameter', 'tdaah value', 'Used in', 'Meaning'],
+      clear: 'Clear'
+    },
+    zh: {
+      kinds: { proc: '过程', var: '变量', in: '进入', out: '离开', par: '参数' },
+      comp: { state: '模式状态', file: '文件或启动设置', stash: '诊断输出（STASH）' },
+      from: '来自', to: '去往',
+      legend: [['proc', '过程（编号 = 调用顺序）'], ['var', '分量内部变量'], ['in', '来自其他分量'], ['out', '去往其他分量'], ['par', '某个过程的参数'], ['seq', '调用顺序'], ['data', '数据'], ['pline', '参数作用']],
+      zoomIn: '放大', zoomOut: '缩小', fit: '适应宽度',
+      reads: '读入', writes: '写出', params: '参数', usedBy: '用于', writtenBy: '由谁写出', readBy: '被谁读入',
+      next: '下一步', prev: '上一步', open: '打开', value: '取值',
+      hint: '鼠标移到方框上会点亮它的连接；点击可固定并查看详情。参数与下方表格联动。',
+      empty: '点击网络中的任一方框，查看它读入什么、写出什么、用到哪些参数。',
+      nolib: '网络布局需要从 cdnjs.cloudflare.com 加载 dagre 库，但加载失败。请检查网络后刷新。',
+      thead: ['参数', 'tdaah 取值', '用在哪一步', '含义'],
+      clear: '清除'
+    }
+  };
+
+  /* ================================================================ helpers */
+  let MODS = [], LANG = 'en', OPEN = () => {};
+  const S = {};                       // per-module render state
+  const tx = o => (o && typeof o === 'object') ? (o[LANG] || o.en) : (o == null ? '' : String(o));
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const modOf = k => MODS.find(m => m.key === k);
+  const compName = k => modOf(k) ? modOf(k).name : (UI[LANG].comp[k] || k);
+  const famOf = (k, own) => k === 'state' ? own : (modOf(k) ? modOf(k).fam : 'neutral');
+
+  function graph(key) {
+    const m = modOf(key), net = NETS[key];
+    const nodes = new Map(), edges = [];
+    const params = new Map(m.params.map(r => [r[0], r]));
+    net.nodes.forEach(n => nodes.set(n.id, Object.assign({}, n)));
+    const add = (a, b, kind) => {
+      if (!nodes.has(a) || !nodes.has(b)) throw new Error(`HadNet ${key}: unknown node in edge ${a}>${b}`);
+      if (!edges.some(e => e.a === a && e.b === b)) edges.push({ a, b, kind });
+    };
+    net.seq.split(';').forEach(ch => { const ids = ch.split('>').map(s => s.trim()); for (let i = 0; i < ids.length - 1; i++) add(ids[i], ids[i + 1], 'seq'); });
+    net.e.trim().split(/\s+/).forEach(tok => { const [l, r] = tok.split('>'); l.split(',').forEach(a => r.split(',').forEach(b => add(a, b, 'data'))); });
+    let num = 0;
+    net.nodes.forEach(n => { if (n.k === 'proc') nodes.get(n.id).num = ++num; });
+    /* one dashed parameter box per process, listing every parameter that process uses */
+    net.nodes.filter(n => n.k === 'proc' && n.p && n.p.length).forEach(n => {
+      const rows = n.p.map(name => {
+        if (!params.has(name)) throw new Error(`HadNet ${key}: parameter ${name} not in the page table`);
+        return params.get(name);
+      });
+      const id = 'G:' + n.id;
+      nodes.set(id, { id, k: 'par', of: n.id, rows });
+      add(id, n.id, 'par');
+    });
+    return { m, nodes, edges };
+  }
+
+  /* text measuring and wrapping */
+  const ctx = document.createElement('canvas').getContext('2d');
+  function fonts() {
+    const body = getComputedStyle(document.body).fontFamily;
+    const mono = getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim() || 'monospace';
+    return { t: `600 13px ${body}`, b: `12.5px ${body}`, s: `11px ${body}`, m: `11px ${mono}`, mb: `500 11px ${mono}` };
+  }
+  function wrap(text, font, max) {
+    ctx.font = font;
+    const toks = String(text).match(/[⺀-鿿豈-﫿＀-￯]|[^\s⺀-鿿豈-﫿＀-￯]+|\s+/g) || [''];
+    const lines = []; let cur = '';
+    toks.forEach(t => {
+      const tryLine = cur + t;
+      if (cur.trim() && ctx.measureText(tryLine.trimEnd()).width > max) { lines.push(cur.trimEnd()); cur = t.trimStart(); }
+      else cur = tryLine;
+    });
+    if (cur.trim() || !lines.length) lines.push(cur.trim());
+    return lines.map(s => ({ s, w: ctx.measureText(s).width }));
+  }
+
+  /* node boxes: lines of {s, w, cls, h} */
+  function box(n, F, own) {
+    const L = [];
+    const push = (arr, cls, h) => arr.forEach(x => L.push({ s: x.s, w: x.w, cls, h }));
+    let padL = 10, padR = 10, min = 60;
+    if (n.k === 'proc') {
+      padL = 34; padR = 12; min = 120;
+      push(wrap(tx(n.t), F.t, 190), 't1', 17);
+      push(wrap(n.r, F.m, 205), 'mono', 14);
+      const tag = [n.loop ? tx(n.loop) : '', n.cond ? tx(n.cond) : ''].filter(Boolean).join(' · ');
+      if (tag) push(wrap(tag, F.s, 205), 'tag', 14);
+    } else if (n.k === 'par') {
+      padL = 8; padR = 8; min = 40;
+      n.rows.forEach(r => {
+        const v = r[3] || r[1];
+        ctx.font = F.mb; const w1 = ctx.measureText(r[0]).width;
+        ctx.font = F.m; const w2 = ctx.measureText(' = ' + v).width;
+        L.push({ s: r[0], w: Math.min(w1 + w2, 250), cls: 'pname', h: 16, val: v, p: r });
+      });
+    } else {
+      push(wrap(tx(n.t), F.b, 160), 'lab', 16);
+      if (n.k === 'in' || n.k === 'out') push(wrap(`${n.k === 'in' ? '↘ ' + UI[LANG].from : '↗ ' + UI[LANG].to} ${compName(n.c)}`, F.s, 160), 'cap', 14);
+    }
+    const w = Math.max(min, Math.ceil(Math.max(...L.map(l => l.w)) + padL + padR));
+    const h = Math.ceil(L.reduce((a, l) => a + l.h, 0) + (n.k === 'par' ? 8 : 14));
+    return { w, h, L, padL, fam: n.k === 'proc' ? (n.fam || own) : (n.k === 'in' || n.k === 'out') ? famOf(n.c, own) : 'neutral' };
+  }
+
+  /* smooth path through dagre points */
+  function pathD(p) {
+    if (p.length < 3) return `M${p[0].x},${p[0].y}L${p[p.length - 1].x},${p[p.length - 1].y}`;
+    let d = `M${p[0].x.toFixed(1)},${p[0].y.toFixed(1)}`;
+    for (let i = 0; i < p.length - 1; i++) {
+      const a = p[i - 1] || p[i], b = p[i], c = p[i + 1], e = p[i + 2] || c;
+      d += `C${(b.x + (c.x - a.x) / 6).toFixed(1)},${(b.y + (c.y - a.y) / 6).toFixed(1)} ${(c.x - (e.x - b.x) / 6).toFixed(1)},${(c.y - (e.y - b.y) / 6).toFixed(1)} ${c.x.toFixed(1)},${c.y.toFixed(1)}`;
+    }
+    return d;
+  }
+
+  /* ================================================================ panel HTML */
+  function panel(m) {
+    if (!NETS[m.key]) return '';
+    const U = UI[LANG];
+    const leg = U.legend.map(([k, t]) => `<span class="nl-${k}"><i></i>${t}</span>`).join('');
+    let G; try { G = graph(m.key); } catch (err) { return `<p class="net-nolib">${esc(err.message)}</p>`; }
+    S[m.key] = { G, drawn: false, scale: 1, fit: true, pin: null };
+    const used = {};
+    G.nodes.forEach(n => { if (n.k === 'par') { const pr = G.nodes.get(n.of); n.rows.forEach(r => (used[r[0]] = used[r[0]] || []).push(pr)); } });
+    const rows = m.params.map(r => `<tr data-p="${esc(r[0])}" tabindex="0"><td class="k">${r[0]}</td><td class="v">${r[1]}</td><td class="u">${(used[r[0]] || []).map(n => `<span class="ul"><span class="ub">${n.num}</span>${esc(tx(n.t))}</span>`).join('')}</td><td>${r[2]}</td></tr>`).join('');
+    return `<div class="netbox" data-key="${m.key}">
+      <div class="net-top"><div class="net-legend">${leg}</div>
+        <div class="net-tools"><button type="button" class="btn sm" data-z="out" aria-label="${U.zoomOut}">−</button><button type="button" class="btn sm" data-z="fit">${U.fit}</button><button type="button" class="btn sm" data-z="in" aria-label="${U.zoomIn}">+</button></div></div>
+      <p class="mf-hint">${U.hint}</p>
+      <div class="net-stage"><div class="net-scroll"><div class="net" id="net-${m.key}"></div></div>
+        <aside class="net-card" aria-live="polite"><p class="nc-empty">${U.empty}</p></aside></div>
+    </div>
+    <div class="tablewrap"><table class="ptab"><thead><tr>${U.thead.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  /* ================================================================ drawing */
+  function draw(key) {
+    const st = S[key]; if (!st || st.drawn) return;
+    const host = document.getElementById('net-' + key); if (!host) return;
+    if (!window.dagre) { host.innerHTML = `<p class="net-nolib">${UI[LANG].nolib}</p>`; return; }
+    const { G, m } = { G: st.G, m: st.G.m };
+    const F = fonts();
+    const g = new dagre.graphlib.Graph();
+    g.setGraph({ rankdir: 'TB', nodesep: 14, ranksep: 30, edgesep: 8, marginx: 14, marginy: 14 });
+    g.setDefaultEdgeLabel(() => ({}));
+    const B = new Map();
+    G.nodes.forEach(n => { const b = box(n, F, m.fam); B.set(n.id, b); g.setNode(n.id, { width: b.w, height: b.h }); });
+    G.edges.forEach(e => g.setEdge(e.a, e.b, { weight: e.kind === 'seq' ? 8 : e.kind === 'par' ? 2 : 1, minlen: 1 }));
+    dagre.layout(g);
+    const W = Math.ceil(g.graph().width), H = Math.ceil(g.graph().height);
+    const id = s => `${key}-${s}`;
+    let h = `<svg class="netsvg" viewBox="0 0 ${W} ${H}" data-w="${W}" data-h="${H}" role="group" aria-label="${esc(m.name)}">`;
+    h += `<defs>${['a', 's', 'h'].map(k => `<marker id="${id(k)}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="mk-${k}"/></marker>`).join('')}</defs>`;
+    h += '<g class="edges">';
+    G.edges.forEach((e, i) => {
+      const pts = g.edge(e.a, e.b).points;
+      h += `<g class="ne ${e.kind}" data-a="${esc(e.a)}" data-b="${esc(e.b)}"><path d="${pathD(pts)}" marker-end="url(#${id(e.kind === 'seq' ? 's' : 'a')})"/></g>`;
+    });
+    h += '</g><g class="nodes">';
+    G.nodes.forEach(n => {
+      const b = B.get(n.id), p = g.node(n.id), x = p.x - b.w / 2, y = p.y - b.h / 2;
+      const cls = ['nn', n.k, 'fam-' + b.fam, n.cond ? 'cond' : '', n.off ? 'off' : ''].join(' ');
+      const label = n.k === 'par' ? n.rows.map(r => `${r[0]} = ${r[1]}`).join('; ') : n.k === 'proc' ? `${n.num}. ${tx(n.t)}` : tx(n.t);
+      h += `<g class="${cls}" data-id="${esc(n.id)}" tabindex="0" role="button" aria-label="${esc(label)}" transform="translate(${x.toFixed(1)},${y.toFixed(1)})">`;
+      h += `<rect width="${b.w}" height="${b.h}" rx="${n.k === 'proc' ? 8 : n.k === 'par' ? 4 : 11}"/>`;
+      if (n.k === 'proc') h += `<circle class="nb" cx="17" cy="${b.h / 2}" r="10"/><text class="nbt" x="17" y="${b.h / 2 + 4}" text-anchor="middle">${n.num}</text>`;
+      let yy = n.k === 'par' ? 4 : 7;
+      b.L.forEach(l => {
+        if (l.p) {
+          h += `<g class="pl" data-p="${esc(l.p[0])}"><title>${esc(l.p[0] + ' = ' + l.p[1] + ' — ' + l.p[2])}</title><rect class="plbg" x="3" y="${yy}" width="${b.w - 6}" height="${l.h}" rx="3"/>`;
+          h += `<text x="${b.padL}" y="${yy + l.h - 4}"><tspan class="pname">${esc(l.s)}</tspan><tspan class="pval"> = ${esc(l.val)}</tspan></text></g>`;
+          yy += l.h; return;
+        }
+        yy += l.h;
+        h += `<text class="${l.cls}" x="${b.padL}" y="${yy - 3}">${esc(l.s)}</text>`;
+      });
+      h += '</g>';
+    });
+    h += '</g></svg>';
+    host.innerHTML = h;
+    st.drawn = true; st.W = W; st.H = H;
+    fit(key);
+    wire(key);
+  }
+
+  function setScale(key, s) {
+    const st = S[key], svg = document.querySelector(`#net-${key} svg`); if (!svg) return;
+    st.scale = Math.max(0.2, Math.min(2, s));
+    svg.setAttribute('width', Math.round(st.W * st.scale));
+    svg.setAttribute('height', Math.round(st.H * st.scale));
+  }
+  /* readable: open at ≥ 80 % and pan; overview: shrink the whole network into the box */
+  function fit(key, overview) {
+    const st = S[key], sc = document.querySelector(`#net-${key}`); if (!sc || !st.W) return;
+    const avail = sc.parentElement.clientWidth - 12;
+    st.fit = !overview;
+    const s = avail > 0 ? Math.min(1, avail / st.W) : 1;
+    setScale(key, overview ? s : Math.max(0.8, s));
+  }
+
+  /* highlighting and the detail card */
+  function neighbours(G, nid) {
+    const ns = new Set([nid]), es = [];
+    G.edges.forEach((e, i) => { if (e.a === nid || e.b === nid) { ns.add(e.a); ns.add(e.b); es.push(i); } });
+    return { ns, es };
+  }
+  function light(key, nid) {
+    const host = document.getElementById('net-' + key), svg = host && host.querySelector('svg'); if (!svg) return;
+    const G = S[key].G;
+    svg.classList.toggle('focus', !!nid);
+    const { ns } = nid ? neighbours(G, nid) : { ns: new Set() };
+    svg.querySelectorAll('.nn').forEach(el => { el.classList.toggle('lit', ns.has(el.dataset.id)); el.classList.toggle('me', el.dataset.id === nid); });
+    svg.querySelectorAll('.ne').forEach(el => {
+      const on = !!nid && (el.dataset.a === nid || el.dataset.b === nid);
+      el.classList.toggle('lit', on);
+      const p = el.querySelector('path');
+      p.setAttribute('marker-end', `url(#${key}-${on ? 'h' : el.classList.contains('seq') ? 's' : 'a'})`);
+    });
+  }
+  function card(key, nid) {
+    const st = S[key], G = st.G, U = UI[LANG];
+    const el = document.querySelector(`.netbox[data-key="${key}"] .net-card`); if (!el) return;
+    if (!nid) { el.innerHTML = `<p class="nc-empty">${U.empty}</p>`; return; }
+    const n = G.nodes.get(nid);
+    const name = x => x.k === 'par' ? `${U.kinds.par} · ${G.nodes.get(x.of).num}. ${tx(G.nodes.get(x.of).t)}` : x.k === 'proc' ? `${x.num}. ${tx(x.t)}` : tx(x.t);
+    const link = x => `<button type="button" class="nc-link k-${x.k}" data-go="${esc(x.id)}">${esc(name(x))}</button>`;
+    const ins = G.edges.filter(e => e.b === nid).map(e => G.nodes.get(e.a));
+    const outs = G.edges.filter(e => e.a === nid).map(e => G.nodes.get(e.b));
+    const list = (title, arr) => arr.length ? `<div class="nc-sec"><h5>${title}</h5>${arr.map(link).join('')}</div>` : '';
+    let h = `<div class="nc-kind k-${n.k}">${U.kinds[n.k]}</div><h4>${esc(name(n))}</h4>`;
+    if (n.k === 'proc') {
+      h += `<div class="nc-r">${esc(n.r)}</div>`;
+      const tag = [n.loop ? tx(n.loop) : '', n.cond ? tx(n.cond) : ''].filter(Boolean).join(' · ');
+      if (tag) h += `<div class="nc-tag">${esc(tag)}</div>`;
+      if (n.d) h += `<p>${esc(tx(n.d))}</p>`;
+      const prevs = ins.filter(x => x.k === 'proc'), nexts = outs.filter(x => x.k === 'proc');
+      h += list(U.reads, ins.filter(x => x.k === 'in' || x.k === 'var'));
+      h += list(U.params, ins.filter(x => x.k === 'par'));
+      h += list(U.writes, outs.filter(x => x.k !== 'proc'));
+      h += list(U.prev, prevs) + list(U.next, nexts);
+    } else if (n.k === 'par') {
+      h += `<div class="nc-sec">${n.rows.map(r => `<button type="button" class="nc-link k-par" data-p="${esc(r[0])}">${esc(r[0])} = ${r[1]}</button><p class="nc-mean">${r[2]}</p>`).join('')}</div>` + list(U.usedBy, outs);
+    } else {
+      if (n.k === 'in' || n.k === 'out') {
+        const c = n.c, can = !!modOf(c) && c !== st.G.m.key;
+        h += `<div class="nc-comp">${n.k === 'in' ? U.from : U.to} <b>${esc(compName(c))}</b>${can ? ` <button type="button" class="nc-open" data-open="${c}">${U.open} ↗</button>` : ''}</div>`;
+      }
+      h += list(U.writtenBy, ins) + list(U.readBy, outs);
+    }
+    h += `<button type="button" class="nc-clear">${U.clear}</button>`;
+    el.innerHTML = h;
+  }
+  function pin(key, nid) { S[key].pin = nid; light(key, nid); card(key, nid); }
+
+  function wire(key) {
+    const box = document.querySelector(`.netbox[data-key="${key}"]`), host = document.getElementById('net-' + key);
+    if (!box || box.dataset.wired) return; box.dataset.wired = '1';
+    const nodeOf = e => e.target.closest && e.target.closest('.nn');
+    /* drag the background with the mouse to pan */
+    const sc = host.parentElement; let drag = null, moved = false;
+    sc.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'mouse' || e.button !== 0 || nodeOf(e)) return;
+      drag = { x: e.clientX, y: e.clientY, l: sc.scrollLeft, t: sc.scrollTop }; moved = false;
+      sc.setPointerCapture(e.pointerId); sc.classList.add('dragging');
+    });
+    sc.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
+      sc.scrollLeft = drag.l - dx; sc.scrollTop = drag.t - dy;
+    });
+    const end = () => { drag = null; sc.classList.remove('dragging'); };
+    sc.addEventListener('pointerup', end); sc.addEventListener('pointercancel', end);
+    host.addEventListener('mouseover', e => { const n = nodeOf(e); if (n) light(key, n.dataset.id); });
+    host.addEventListener('mouseout', e => { const n = nodeOf(e); if (n) light(key, S[key].pin); });
+    host.addEventListener('click', e => {
+      if (moved) { moved = false; return; }
+      const n = nodeOf(e); pin(key, n ? n.dataset.id : null);
+    });
+    host.addEventListener('keydown', e => {
+      const n = nodeOf(e); if (!n) return;
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); pin(key, n.dataset.id); }
+      else if (e.key === 'Escape') pin(key, null);
+    });
+    host.addEventListener('focusin', e => { const n = nodeOf(e); if (n) light(key, n.dataset.id); });
+    box.addEventListener('click', e => {
+      const z = e.target.closest('[data-z]');
+      if (z) { const st = S[key]; if (z.dataset.z === 'fit') fit(key, true); else { st.fit = false; setScale(key, st.scale * (z.dataset.z === 'in' ? 1.2 : 1 / 1.2)); } return; }
+      const go = e.target.closest('[data-go]');
+      if (go) { pin(key, go.dataset.go); const el = host.querySelector(`.nn[data-id="${CSS.escape(go.dataset.go)}"]`); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); return; }
+      const op = e.target.closest('[data-open]'); if (op) { OPEN(op.dataset.open); return; }
+      if (e.target.closest('.nc-clear')) pin(key, null);
+    });
+  }
+
+  let rt = null;
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => Object.keys(S).forEach(k => { if (S[k].drawn && S[k].fit) fit(k); }), 150); });
+
+  function show(key) {
+    if (!S[key]) return;
+    const go = () => { draw(key); if (S[key].drawn && S[key].fit) fit(key); };
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go();
+  }
+  function init(mods, lang, open) { MODS = mods; LANG = lang; if (open) OPEN = open; }
+
+  window.HadNet = { init, panel, show, NETS, graph, _box: box, _wrap: wrap };
+})();
+</script>
+<script>
+(function () {
+  const LANG = 'zh';
+  const ALL = ['sun','rad','dyn','moist','bl','eng','gwd','cpl','land','veg','ice','ocn'];
+  const ATMOS = ['dyn','rad','moist','bl','eng','gwd','land'];
+
+  /* ---------------- 步骤 ---------------- */
+  const STEPS = [
+    { cols:['init'], rows:['dyn','rad','phys','slow','cpl','ocn','ice'], nodes:ALL, cur:[], edges:[], tab:null,
+      chips:['启动','1850-12-01','只运行一次'],
+      title:'启动：读入 dump、辅助文件和 namelist',
+      call:'CALL INITIAL', src:'U_MODEL1.dk:826',
+      in:['初始 dump <code>$RUNID.astart</code> 和 <code>.ostart</code>，由 <code>standard.atmos.ver01</code> 和 <code>standard.ocean.ver01</code>（HadCM3B-M2.1aD）重配置得到','<code>bristol_ancils/preind2</code> 中的辅助文件：海陆掩膜、地形、土壤、植被、臭氧 …','UMUI 写出的 namelist：CNTLALL、CNTLGEN、CNTLATM、CNTLOCN、SIZES'],
+      calc:['建立 D1（存放全部预报场的那个大数组）及其指针','设置 STASH：哪些诊断量要累积、何时累积','由 <code>&amp;NLSTSOLAR</code> 计算一次轨道参数（ORBPRM）','SETGRCTL：两个子模式都完成了 0 组，所以先跑大气'],
+      out:['模式起始时刻（MODEL_BASIS_TIME）的状态，采用 360 天日历'],
+      note:'之后的一切都以耦合日为单位：大气先跑完一整天，海洋再把同一天补上。' },
+
+    { cols:['a1'], rows:['dyn'], nodes:['dyn'], cur:['dyn'], edges:[], tab:'dyn',
+      chips:['大气第 1 步','00:00 → 00:30','每步'],
+      title:'动力（一）：三个调整步',
+      call:'INCRTIME → SETTSCTL → ATM_STEP → ATM_DYN → ADJ_CTL', src:'U_MODEL1.dk:863–872 · ATMSTEP1.dk:278 · ATMDYN1.dk:656',
+      in:['96 × 73 × 19 网格上的 p*、θ、q、云水、u、v，即上一步结束时的状态'],
+      calc:['SETTSCTL 先设定本步的开关：MOD(STEP − 1, 6) = 0，所以第 1 步是辐射步','把 p*、θ、u、v 积分 A_ADJSTEPS = 3 个 10 分钟的调整步：气压梯度力、科氏力、重力波','在经线汇聚的高纬地区用傅里叶滤波去掉最快的波'],
+      out:['调整后的 p*、θ、u、v，以及供平流用的质量加权速度'],
+      note:'分裂显式动力框架：快速的重力波项用短的调整步，较慢的平流用完整的 30 分钟。' },
+
+    { cols:['a1'], rows:['dyn'], nodes:['dyn'], cur:['dyn'], edges:[], tab:'dyn',
+      chips:['大气第 1 步','00:00 → 00:30','每步'],
+      title:'动力（二）：平流、扩散、滤波',
+      call:'ADV_CTL → DIF_CTL → QT_POS_CTL → FILT_UV', src:'ATMDYN1.dk:2138, 2380, 2410, 2515',
+      in:['质量加权速度和调整后的场'],
+      calc:['在完整的 30 分钟内平流 u、v、θ<sub>l</sub>、q<sub>t</sub>，并加上垂直运动引起的科氏项','水平扩散：第 1–18 层用 ∇⁶，顶层用 ∇²','去掉负湿度；在极区附近对 u、v 滤波'],
+      out:['30 分钟后、尚未经过任何物理过程的动力状态'],
+      note:'在动力部分，水汽以液水位温 θ<sub>l</sub> 和总水 q<sub>t</sub> 的形式输送，到物理部分再拆回 θ、q 和云水。' },
+
+    { cols:['a1'], rows:['phys'], nodes:['moist','eng','dyn'], cur:['moist','eng'], edges:['e-dyn-moist'], tab:'cloud',
+      chips:['大气第 1 步','00:00 → 00:30','每步'],
+      title:'物理开始：大尺度云，然后加能量订正增量',
+      call:'ATM_PHYS → CLD_CTL → ADD_ENG_CORR', src:'ATMSTEP1.dk:396 · ATMPHY1.dk:420, 485',
+      in:['动力部分给出的 θ<sub>l</sub>、q<sub>t</sub>（θ 先换算成温度）','前一天结束时算出的能量订正率'],
+      calc:['由 q<sub>t</sub> 和由 RHcrit 决定的次网格湿度分布诊断云量和云水（最低层 0.95，第 4 层及以上 0.70）','加上能量订正：一个全球均一的温度增量，每个格点都相同'],
+      out:['云量和云水 → 辐射与降水','订正后的 θ'],
+      note:'能量订正用来弥补动力框架不守恒的那部分能量。它每天算一次（第 48 步），在下一天的每一步中平均施加。' },
+
+    { cols:['a1'], rows:['rad'], nodes:['rad','sun','moist','bl'], cur:['rad'], edges:['e-sun','e-rad-bl'], tab:'rad',
+      chips:['大气第 1 步','00:00 → 00:30','每 6 步（3 小时）'],
+      title:'辐射：完整的短波和长波计算',
+      call:'RAD_CTL → SOLPOS, SOLANG → 短波与长波方案', src:'ATMPHY1.dk:591 · SETTSCT1.dk:508–510',
+      in:['太阳位置：由固定的轨道算赤纬和日地距离（SOLPOS），再得各点天顶角（SOLANG）','云、温度、湿度；CO₂ 280 ppm、CH₄ 760 ppb、N₂O 270 ppb 为固定混合比；臭氧气候态；气候态气溶胶','地表反照率：开阔海面、海冰（随冰温变化）、MOSES 陆面 tile、积雪'],
+      calc:['Edwards–Slingo 二流方案，短波 6 个波段，长波 8 个波段','各层的加热率，以及地面和大气顶的净通量'],
+      out:['短波、长波加热率，存下来供后 5 步使用','地面短波、长波 → 边界层；净太阳辐射和蓝光部分 → 耦合器','大气顶通量 → 能量订正'],
+      note:'这是轨道进入 HadCM3 的唯一位置。CO₂ 是 namelist 里的一个固定数：在 HadCM3 中它是强迫，从来不是响应。' },
+
+    { cols:['a1'], rows:['phys'], nodes:['bl','land','veg','dyn'], cur:['bl'], edges:['e-bl-land','e-dyn-bl'], tab:'bl',
+      chips:['大气第 1 步','00:00 → 00:30','每步'],
+      title:'边界层与地表交换（MOSES 2.1）',
+      call:'BL_CTL', src:'ATMPHY1.dk:687',
+      in:['RAD_CTL 给出的地表辐射','陆地：每个格点 9 种地表类型（5 种植物功能型、城市、内陆水体、裸土、冰），土壤水分和温度，积雪','海洋：最近一次从海洋收到的 SST、海冰比例和冰厚'],
+      calc:['在每个陆面 tile 上分别算地表能量平衡和交换系数；在植物 tile 上算光合与呼吸','海冰表面能量平衡：表面温度、顶部融化、穿过冰层的热传导','在最低 BL_LEVELS = 5 层内做热量、水汽和动量的湍流混合'],
+      out:['感热、潜热、蒸发、风应力','融雪、冠层和土壤蒸发 → 水文；植物碳通量 → TRIFFID','对当天耦合平均量（τ、热量、蒸发、冰融化）的贡献'],
+      note:'海冰表面的能量平衡由大气来解。它算出的融化和升华量在这一天结束时交给海洋里的海冰模式。' },
+
+    { cols:['a1'], rows:['phys'], nodes:['moist','bl','dyn'], cur:['moist'], edges:['e-dyn-moist'], tab:'conv',
+      chips:['大气第 1 步','00:00 → 00:30','每步'],
+      title:'先大尺度降水，再对流',
+      call:'LSPP_CTL → CONV_CTL', src:'ATMPHY1.dk:828, 973',
+      in:['CLD_CTL 给出的云水和云冰','经过边界层后的温湿廓线，以及边界层给出的 T、q 扰动（用来启动对流气块）'],
+      calc:['大尺度雨雪：云水超过阈值后自动转化（陆地阈值更高）、冰晶下落、云下雨滴蒸发','质量通量对流方案，含下沉气流和对流动量输送，每步都运行'],
+      out:['大尺度和对流的雨、雪 → 陆面水文和耦合器','加热、干燥和动量增量；对流云 → 下一次辐射调用'],
+      note:'大尺度降水在对流之前运行，二者又都在陆面水文之前，因为水文需要它们给出的雨雪。' },
+
+    { cols:['a1'], rows:['phys'], nodes:['land','gwd','moist','bl'], cur:['land','gwd'], edges:['e-moist-land','e-bl-land'], tab:'hydro',
+      chips:['大气第 1 步','00:00 → 00:30','每步'],
+      title:'陆面水文、重力波拖曳、诊断输出',
+      call:'HYDR_CTL → GWAV_CTL → ST_DIAG1/2 → STASH', src:'ATMPHY1.dk:1047, 1173 · ATMSTEP1.dk:570–633',
+      in:['LSPP_CTL 和 CONV_CTL 给出的雨雪；边界层给出的蒸发和融雪','次网格地形统计量（用于拖曳）'],
+      calc:['冠层截留、积雪、下渗；4 层土壤中的水和热；地表与地下径流','对 u、v 施加地形重力波和背风波拖曳','STASH 累积所需的诊断量，其中包括耦合场'],
+      out:['土壤水分和积雪；快速与慢速径流 → 耦合器','本步最终的 u、v、θ、q'],
+      note:'耦合场（风应力、热量和水通量、径流）就是普通的 STASH 诊断量，只是带了一个特殊标记，在一天内累积。' },
+
+    { cols:['a2-6'], rows:['dyn','rad','phys'], nodes:ATMOS, cur:['dyn','moist','bl','gwd','land'], edges:['e-dyn-moist','e-dyn-bl','e-bl-land','e-moist-land','e-rad-bl'], tab:'rad',
+      chips:['大气第 2–6 步','00:30 → 03:00','无完整辐射'],
+      title:'第 2–6 步：除完整辐射外全部照常',
+      call:'ATM_STEP × 5，L_SW_RADIATE = L_LW_RADIATE = .FALSE.', src:'SETTSCT1.dk:508–510 · ATMPHY1.dk:528 · CLDCTL1.dk:303–312, 750–990',
+      in:['第 1 步存下的短波和长波加热率'],
+      calc:['动力和其他所有物理过程都和第 1 步一样运行；RAD_CTL 本身被跳过','在云方案（CLD_CTL）里，存下的短波加热按当前太阳天顶角重新缩放，使日变化保持平滑；长波加热原样沿用'],
+      out:['又走了 5 个 30 分钟步'],
+      note:'完整辐射是物理部分最贵的一项。每 6 步算一次（A_SW_RADSTEP = A_LW_RADSTEP = 6）是最主要的节省。' },
+
+    { cols:['a7','amid'], rows:['dyn','rad','phys'], nodes:ATMOS.concat(['sun']), cur:['rad'], edges:['e-sun','e-rad-bl'], tab:'rad',
+      chips:['大气第 7 步','03:00 → 03:30','每 6 步'],
+      title:'第 7 步：下一次完整辐射',
+      call:'ATM_STEP，L_SW_RADIATE = .TRUE.', src:'SETTSCT1.dk:508',
+      in:['03:00 时的云、温度和湿度'],
+      calc:['与第 1 步顺序相同','完整辐射在第 1、7、13、19、25、31、37、43 步运行：每天 8 次'],
+      out:['新的加热率，供第 8–12 步使用'],
+      note:'第 8–47 步重复这个 6 步的节奏。' },
+
+    { cols:['a48'], rows:['dyn','phys','slow'], nodes:['eng','veg','land','bl','dyn','moist'], cur:['eng','veg'], edges:['e-veg-land'], tab:'eng',
+      chips:['大气第 48 步','23:30 → 24:00','每天一次'],
+      title:'第 48 步：大气这一天结束',
+      call:'ENG_MASS_DIAG → CAL_ENG_MASS_CORR · VEG_CTL', src:'ATMPHY1.dk:1222–1361 · SETTSCT1.dk:424',
+      in:['一天内累计的进入大气的净能量通量','此刻与 24 小时前的大气总能量','边界层累积的植物碳通量'],
+      calc:['能量订正（LENERGY，每 A_ENERGYSTEPS = 48 步）：比较能量变化与净通量，把差值换成明天施加的均一加热率','叶物候（每 PHENOL_PERIOD = 1 天）：更新叶面积','TRIFFID（每 TRIFFID_PERIOD = 10 天）：更新植被碳和 5 种植物功能型的覆盖比例'],
+      out:['明天的能量订正率','叶面积，以及每 10 天一次的新植被比例 → MOSES tile'],
+      note:'此时大气的钟走到了 24:00，海洋的钟还停在 00:00。这一天的平均通量已经可以交出去了。' },
+
+    { cols:['A2O'], rows:['cpl'], nodes:['cpl','bl','land','ocn','ice'], cur:['cpl'], edges:['e-a2o','e-cpl-ocn','e-cpl-ice','e-river'], tab:'cpl',
+      chips:['大气第 48 步之后','24:00','每天一次'],
+      title:'SWAP_A2O：把大气的一天交给海洋',
+      call:'SETGRCTL → SWAP_A2O → TRANSA2O', src:'U_MODEL1.dk:1483, 1525 · SWAPA2O2.dk:521',
+      in:['96 × 73 大气网格上的日平均量：风应力 τx、τy；风混合能；净太阳辐射及其蓝光（可穿透）部分；长波、感热、蒸发；大尺度和对流的雨、雪','海冰顶部融化、底部融化和升华；海冰比例','陆地格点上的快速和慢速径流'],
+      calc:['插值到 288 × 144 海洋网格（每个大气格子覆盖 3 × 2 个海洋格子），并在海岸线处订正','合成净热通量、P − E 和降雪；把径流送到海岸上的河口点'],
+      out:['第 n 天全天的海洋强迫：τ、热通量、P − E、风混合、太阳辐射、降雪、冰融化、河流入海'],
+      note:'海洋看不到大气的日变化和单次天气过程，只看到日平均。CO₂ 不传递（L_CO2_INTERACTIVE = .FALSE.）。' },
+
+    { cols:['o1'], rows:['ocn'], nodes:['ocn','cpl'], cur:['ocn'], edges:['e-cpl-ocn'], tab:'ocn',
+      chips:['海洋第 1 步','00:00 → 01:00','每步'],
+      title:'海洋第 1 步：逐行算动量',
+      call:'OCN_STEP → OCN_FOR_STEP → OCN_CTL → OCN_FRST → ROW_CTL → ROWCALC → CLINIC', src:'U_MODEL1.dk:994 · OCN_CTL.dk:314, 351 · ROWCALC.dk:1265',
+      in:['两个时间层（蛙跳）上的 T、S、u、v，以及正压流函数','耦合器给出的当天风应力'],
+      calc:['OCN_FRST 计步。MOD(ITT, NMIX = 24) = 1，所以这是当天的混合步（Euler 后差），用来抑制蛙跳格式的计算模态','逐行扫描 j = 1 … 144：先算状态方程，再用 CLINIC 算随深度变化的（斜压）速度：平流、科氏力、气压梯度、黏性、顶部风应力'],
+      out:['逐行更新的斜压 u、v'],
+      note:'在刚盖近似下，速度分成随深度变化的部分（这里逐行计算）和深度平均的部分（所有行算完后在全球一起求解）。' },
+
+    { cols:['o1'], rows:['ocn'], nodes:['ocn','cpl','ice'], cur:['ocn'], edges:['e-cpl-ocn','e-ocn-ice'], tab:'ocn',
+      chips:['海洋第 1 步','00:00 → 01:00','每步'],
+      title:'海洋第 1 步：温度和盐度',
+      call:'ROWCALC → TRACER', src:'ROWCALC.dk:1330 · TRACER.dk:1885–2879',
+      in:['热通量、P − E、太阳辐射、风混合能、河流入海 ← 耦合器','海冰过程带来的热量和盐分'],
+      calc:['平流；带 Gent–McWilliams 涡致输送的等密度面扩散（Visbeck 可变系数）；隐式垂直扩散','地表通量（SFCADD，含 water-fix 场）；冰–海热通量；穿透性太阳辐射','结冰：冷却到冰点以下的海水生成新冰','由风混合能驱动的 Kraus–Turner 混合层；对流调整（全球用 Rahmstorf 完整方案，北欧海一块区域再加 Roussenov 方案）','极区傅里叶滤波'],
+      out:['该行新的 T 和 S'],
+      note:'在刚盖海洋里，淡水以虚盐通量的形式进入，按参考盐度 SALREF = 35 psu 计算。' },
+
+    { cols:['o1'], rows:['ocn'], nodes:['ocn'], cur:['ocn'], edges:[], tab:'ocn',
+      chips:['海洋第 1 步','00:00 → 01:00','每步'],
+      title:'海洋第 1 步：深度平均流',
+      call:'OCN_CTL → TROP_CTL → RELAX', src:'OCN_CTL.dk:424 · TROP_CTL.dk:183',
+      in:['从所有行收集的垂直积分强迫'],
+      calc:['刚盖：用超松弛迭代（SOR = 1.775，最多 MXSCAN = 500 次扫描，容差 CRIT = 4 × 10⁻⁵）求解正压流函数的椭圆方程','为 NISLE = 6 个岛屿单独计算绕岛环流'],
+      out:['正压 u、v，叠加到斜压部分上'],
+      note:'刚盖滤掉了快速的表面重力波，海洋因此可以用 1 小时的步长。' },
+
+    { cols:['o1'], rows:['ice'], nodes:['ice','ocn','cpl'], cur:['ice'], edges:['e-ocn-ice','e-cpl-ice'], tab:'ice',
+      chips:['海洋第 1 步','00:00 → 01:00','每步'],
+      title:'海冰：先漂移，后热力学',
+      call:'OCN_CTL → ICE_CTL → ICEDRIFT → ICEFLOE', src:'OCN_CTL.dk:474 · ICE_CTL.dk:429, 453',
+      in:['海洋表层流','顶部融化、底部融化、升华和降雪 ← 耦合器','海洋传给冰的热通量'],
+      calc:['ICEDRIFT：让海冰随表层流移动（L_ICESIMPLE），并对冰厚做扩散','ICEFLOE：带冰间水道的零层热力学（Semtner 1976），增长或融化冰厚与密集度','密集度上限：北半球 0.995，南半球 0.98'],
+      out:['海冰密集度、冰厚、冰上雪深','与海洋顶层交换的热量、盐分和淡水'],
+      note:'没有海冰流变学：没有内应力，只随表层流输送。' },
+
+    { cols:['o2-23','o24'], rows:['ocn','ice'], nodes:['ocn','ice','cpl'], cur:['ocn','ice'], edges:['e-cpl-ocn','e-ocn-ice','e-cpl-ice'], tab:'ocn',
+      chips:['海洋第 2–24 步','01:00 → 24:00','蛙跳'],
+      title:'海洋第 2–24 步：同一份日强迫',
+      call:'OCN_STEP × 23', src:'U_MODEL1.dk:994',
+      in:['第 n 天每一步都用同一组耦合场'],
+      calc:['蛙跳时间积分；下一个混合步是明天的第 1 步','每小时都是：逐行计算 → 正压求解 → 海冰'],
+      out:['24:00 时的海洋和海冰状态'],
+      note:'至此两个子模式都走到了第 n 天的终点。' },
+
+    { cols:['O2A'], rows:['cpl'], nodes:['cpl','ocn','ice','bl'], cur:['cpl'], edges:['e-o2a','e-cpl-ocn','e-cpl-ice'], tab:'cpl',
+      chips:['海洋第 24 步之后','24:00','每天一次'],
+      title:'SWAP_O2A：把海洋表面交回大气',
+      call:'SETGRCTL → SWAP_O2A → TRANSO2A', src:'U_MODEL1.dk:1541 · SWAPO2A2.dk:433',
+      in:['SST（海洋顶层）和表层流','海冰密集度、冰厚、冰上雪深'],
+      calc:['从海洋网格映射到大气网格'],
+      out:['大气网格上的海表温度、海冰比例、冰厚、雪深和洋流，在第 n + 1 天全天保持不变'],
+      note:'大气看到的海洋表面每天更新一次。第 n + 1 天从大气第 49 步开始。' },
+
+    { cols:['next'], rows:[], nodes:ALL, cur:[], edges:[], tab:null,
+      chips:['第 n + 1 天 …','重复','循环'],
+      title:'同样的一天每年重复 360 次',
+      call:'GOTO 1（回到组循环开头）', src:'U_MODEL1.dk:1569',
+      in:['第 n 天结束时的状态'],
+      calc:['1 年 = 360 天 = 17 280 个大气步 + 8 640 个海洋步 + 720 次交换','TRIFFID 每 10 天一次；臭氧等随时间变化的辅助场由 UP_ANCIL 更新','每 30 天写一次 dump：DUMPFREQ = 1440 个大气步、720 个海洋步'],
+      out:['每 30 天的 dump；PP 文件中的 STASH 诊断量'],
+      note:'一百年的控制试验大约是 170 万个大气步。' },
+
+    { cols:['end'], rows:['dyn','rad','phys','slow','cpl','ocn','ice'], nodes:ALL, cur:[], edges:[], tab:null,
+      chips:['运行结束','RUN_TARGET_END','只运行一次'],
+      title:'结束：写最终 dump，可以接着跑',
+      call:'DUMPCTL → EXITCHEK', src:'U_MODEL1.dk:1058, 1243',
+      in:['RUN_TARGET_END 时的状态（本作业为 100 年零 1 个月）'],
+      calc:['写出最后的大气和海洋 dump，关闭输出文件'],
+      out:['续跑（CRUN）或新试验可以从这些 dump 开始'],
+      note:'扰动试验（比如换一个轨道）通常从已经 spin-up 的控制试验 dump 出发，只改 <code>&amp;NLSTSOLAR</code> 或 CO2_MMR。' }
+  ];
+
+  /* ---------------- 分量 ----------------
+     flow：分量内部的调用顺序。每个阶段：t 标题，r 子程序，at 源码行，d 做什么，p 用到的参数（params 的键），
+     inn 进入的数据，out 离开的数据，cond 何时运行（虚线框），off 本作业中关闭，fam 颜色，
+     loop [说明, n]：本阶段及之后共 n 个阶段循环。params：[名称, 取值, 含义, 标签上显示的简短取值] */
+  const MODS = [
+    { key:'dyn', fam:'atm', name:'动力', full:'大气动力框架 · 第 10–13 节（A10_1C、A12_1C、A13_1C）· 96 × 73 × 19',
+      freq:['每个大气步','48 次 / 天','Δt = 30 分钟，调整 3 × 10 分钟'],
+      lead:'在规则的 2.5° × 3.75° 网格（Arakawa B 网格）和 19 层混合 σ–p 坐标上求解静力原始方程。采用分裂显式：快速的重力波调整用短的子步，平流用完整步长。',
+      flow:[
+        { t:'设定时间步长', r:'ATM_DYN', at:'ATMDYN1.dk:350–426', d:'动力步长 = 1800 s ÷ A_SWEEPS_DYN；调整步长 = 再 ÷ A_ADJSTEPS = 600 s。L_HALF_TIMESTEP_DYN 关闭，所以始终只扫描一次。', p:['STEPS_PER_PERIODim','A_SWEEPS_DYN','L_HALF_TIMESTEP_DYN','A_ADJSTEPS'], inn:['p*、θ、q、云水、u、v ← 上一步的物理部分'] },
+        { t:'极区滤波设置', r:'SET_FIL', at:'ATMDYN1.dk:472', d:'逐行找出对 600 s 调整步来说太快、需要滤掉的纬向波数', p:['A_NSET_FILTER','GRAV_WAVE_SPEED','FILTERING_SAFETY_FACTOR'] },
+        { t:'调整', r:'ADJ_CTL', at:'ATMDYN1.dk:656', loop:'× A_ADJSTEPS', d:'针对重力波积分 p*、θ、u、v（气压梯度力、科氏力）；在高纬用傅里叶滤波去掉快波；在各子步之间做时间平滑', p:['A_ADJSTEPS','ADJ_TIME_SMOOTHING_COEFF'] },
+        { t:'换成 θl 和 qt', r:'THETL_QT', at:'ATMDYN1.dk:771', d:'把 θ、q 和云水合成液水位温 θl 和总水 qt，二者在平流中守恒' },
+        { t:'平流', r:'ADV_CTL → MASS_UWT', at:'ATMDYN1.dk:2138–2232', d:'在完整步长内平流质量加权的 u、v、θl、qt，并加上垂直运动引起的科氏项；然后去掉质量加权', p:['NU_BASIC','DIV_DAMP_COEFF_FC'] },
+        { t:'水平扩散', r:'DIF_CTL', at:'ATMDYN1.dk:2380', d:'对 θ、u、v 和 qt 做尺度选择性扩散', p:['DIFF_COEFF','DIFF_EXP','DIFF_COEFF_Q','DIFF_EXP_Q'] },
+        { t:'去掉负湿度', r:'QT_POS_CTL', at:'ATMDYN1.dk:2410', d:'补上平流留下的负 qt', p:['L_QT_POS_LOCAL'] },
+        { t:'u、v 极区滤波', r:'FILT_UV', at:'ATMDYN1.dk:2515', d:'对风增量做质量加权的傅里叶滤波和极点平均', out:['p*、θl、qt、u、v → 物理（先进入云方案）','ω 诊断量 → STASH'] }
+      ],
+      params:[['STEPS_PER_PERIODim','每天 48 步','每 86 400 s 的大气步数：Δt = 1800 s','48 / 天'],['A_SWEEPS_DYN','1','每个物理步的动力扫描次数'],['L_HALF_TIMESTEP_DYN','.FALSE.','风很强时也不把动力拆成两次扫描'],['A_ADJSTEPS','3','每个平流步内的调整子步数：每个 600 s'],['A_NSET_FILTER','1','每步都重新计算极区滤波设置'],['GRAV_WAVE_SPEED','350 m s⁻¹','滤波要控制的最快重力波速度'],['FILTERING_SAFETY_FACTOR','0.01','选择滤波波数时的安全裕量'],['ADJ_TIME_SMOOTHING_COEFF','0.05','调整子步之间的时间平滑强度（权重 1, −2, 1）；0 表示关闭'],['NU_BASIC','0.166667','平流格式中的 ν 项；为 0 时退回普通二阶差分'],['DIV_DAMP_COEFF_FC','各层均为 0','预报模式下的散度阻尼：关闭','0'],['DIFF_COEFF','5.47×10⁸（第 1–18 层），4×10⁶（顶层）','θ、u、v 的水平扩散系数','5.47×10⁸'],['DIFF_EXP','3（第 1–18 层），1（顶层）','扩散阶数：∇ 的 2 × DIFF_EXP 次方，即 ∇⁶，顶层 ∇²','3'],['DIFF_COEFF_Q','5.47×10⁸（1–13），1.5×10⁸（14–18），4×10⁶（顶层）','水汽的水平扩散系数','5.47×10⁸ …'],['DIFF_EXP_Q','3（1–13），2（14–18），1（顶层）','水汽的扩散阶数：低层 ∇⁶，第 14–18 层 ∇⁴','3 …'],['L_QT_POS_LOCAL','.TRUE.','负湿度用局地订正，而不是全球重标定']],
+      rel:'风和风应力都是在动力部分产生的。cGENIE 里二者都是从文件读入的固定场，所以新轨道下 HadCM3 环流的变化，只有在你显式传过去风或风应力时才会影响 cGENIE。',
+      had:'cGENIE 没有动力框架：EMBM 只用给定的风对 T 和 q 做平流和扩散。',
+      src:['ATMSTEP1.dk:278（ATM_DYN）','ATMDYN1.dk','SETTSCT1.dk:506（L_SET_FILTER）'] },
+
+    { key:'rad', fam:'atm', name:'辐射', full:'Edwards–Slingo 二流辐射 · 第 1–2 节（A01_3A、A02_3A）',
+      freq:['每 6 个大气步','8 次 / 天','Δt = 3 小时'],
+      lead:'每天第 1、7、13 … 步做完整的短波和长波计算。其他步根本不调用 RAD_CTL：由云方案读回存下的加热率，把短波部分按当前太阳高度角重新缩放后再加上。',
+      flow:[
+        { t:'这一步是辐射步吗？', r:'SETTSCTL', at:'SETTSCT1.dk:508–510', d:'MOD(STEP − 1, 6) = 0 时 L_SW_RADIATE 和 L_LW_RADIATE 为真：第 1、7、13 … 43 步', p:['A_SW_RADSTEP','A_LW_RADSTEP'] },
+        { t:'找对流层顶', r:'TROPIN', at:'RAD_CTL1.dk:757', cond:'辐射步', d:'确定每个气柱的对流层顶位置' },
+        { t:'太阳位置', r:'SOLPOS', at:'RAD_CTL1.dk:843', cond:'辐射步', d:'由轨道算当天的太阳赤纬和日地距离因子', p:['L_SEC_VAR'], inn:['轨道 e、γ、τ₀、sin(黄赤交角)，启动时由 &NLSTSOLAR 算一次'] },
+        { t:'天顶角', r:'SOLANG', at:'RAD_CTL1.dk:886', cond:'辐射步', d:'每个格点未来 3 小时的平均 cos(天顶角) 和日照比例', p:['A_SW_RADSTEP'] },
+        { t:'地表反照率', r:'FTSA', at:'RAD_CTL1.dk:990–1026', cond:'辐射步', d:'开阔海面、海冰（由冰面温度决定）和积雪的反照率', p:['ALPHAC','ALPHAM','DTICE'], inn:['海冰比例、地表温度、积雪','陆面反照率 ← MOSES tile'] },
+        { t:'短波', r:'R2_SWRAD', at:'RAD_CTL1.dk:1399', cond:'辐射步', d:'对所有日照点用 Edwards–Slingo 二流方案计算', p:['H_SWBANDS','SC','CO2_MMR','O2MMR','L_CLIMAT_AEROSOL','A_SW_SEGMENTS'], inn:['T、q、大尺度云和对流云','臭氧气候态（qrclim.ozone_CMIP7clim）'], out:['地面净短波和蓝光短波 → 耦合器（经 STASH）'] },
+        { t:'长波', r:'R2_LWRAD', at:'RAD_CTL1.dk:1985', cond:'辐射步', d:'Edwards–Slingo 长波，含水汽、CO₂、CH₄、N₂O 和臭氧', p:['H_LWBANDS','CO2_MMR','CH4MMR','N2OMMR','L_CLIMAT_AEROSOL','A_LW_SEGMENTS'], out:['地面向下长波 → 边界层'] },
+        { t:'存下并施加', r:'BUFFOUT · FLUX_DIAG', at:'RAD_CTL1.dk:1555–1660, 2120', cond:'辐射步', d:'存下供后 5 步使用的加热率（短波按单位日照存），并按本 30 分钟步的太阳高度角缩放后加到 θ 上', out:['辐射加热 → θ','净辐射加热 → 能量订正'] },
+        { t:'其他步沿用', r:'CLD_CTL §9.1、§9.4 → SOLPOS、SOLANG、RAD_MOSES', at:'CLDCTL1.dk:303–312, 750–990', cond:'其他步', d:'读回存下的加热率，短波按本步天顶角重新缩放，长波原样加上；更新每个 MOSES tile 的地表辐射', out:['辐射加热 → θ','各 tile 地表辐射 → 边界层'] }
+      ],
+      params:[['A_SW_RADSTEP','6','每 6 步（3 小时）一次完整短波'],['A_LW_RADSTEP','6','每 6 步（3 小时）一次完整长波'],['L_SEC_VAR','.FALSE.','整个运行中轨道固定（启动时由 ORBPRM 算一次）'],['ALPHAC','0.80','冷海冰的反照率'],['ALPHAM','0.50','处于融点的海冰反照率'],['DTICE','10 K','融点以下的一个温度区间，海冰反照率在其中从 ALPHAC 变到 ALPHAM'],['H_SWBANDS','6','短波波段数'],['SC','1365 W m⁻²','太阳常数，再乘日地距离因子'],['CO2_MMR','4.25418×10⁻⁴','CO₂ 质量混合比 = 280 ppmv','280 ppm'],['O2MMR','0.2314','O₂ 质量混合比（短波）'],['L_CLIMAT_AEROSOL','.TRUE.','两个方案都用气候态气溶胶'],['A_SW_SEGMENTS','4','日照点分块计算以节省内存'],['H_LWBANDS','8','长波波段数'],['CH4MMR','4.209×10⁻⁷','≈ 760 ppbv CH₄','760 ppb'],['N2OMMR','4.102×10⁻⁷','≈ 270 ppbv N₂O','270 ppb'],['A_LW_SEGMENTS','4','长波计算的分块数']],
+      rel:'轨道只在这里起作用，通过日射和太阳高度角。Bristol 的 CALC_SOLAR mod 根据 <code>&amp;NLSTSOLAR</code> 用 ORBPRM（Berger 1978）算一次轨道，ORB_ARRAY 可以直接覆盖 e、γ、τ₀ 和 sin(黄赤交角)。CO₂ 就是固定的 CO2_MMR：在 HadCM3 里是强迫，从来不是响应。',
+      had:'cGENIE 把这些全换成了“日射 × (1 − 反照率)”和一个带 ln(CO₂) 项的长波出射公式。',
+      src:['ATMPHY1.dk:528–591（只在辐射步调用 RAD_CTL）','RAD_CTL1.dk','CLDCTL1.dk:303–312, 750–990','merge_BriSciModN048_01：CALC_SOLAR（SOLPOS、ORBPRM）'] },
+
+    { key:'cloud', fam:'atm', name:'云与降水', full:'大尺度云和降水 · 第 9 节和第 4 节（A09_1A、A04_2E）',
+      freq:['每个大气步','48 次 / 天','Δt = 30 分钟'],
+      lead:'云量每步都由总水量和临界相对湿度重新诊断，之后大尺度降水把一部分云水变成雨或雪。在没有完整辐射的步上，云方案还负责把存下的辐射加热加回去。',
+      flow:[
+        { t:'读回存下的辐射', r:'CLD_CTL §9.1', at:'CLDCTL1.dk:303–312', cond:'无完整辐射的步', d:'读回上一个辐射步存下的加热率' },
+        { t:'云量和凝结物', r:'GLUE_CLD → LS_CLD', at:'CLDCTL1.dk:316–347', d:'假定宽度由 RHcrit 决定的次网格湿度分布，把 qt、θl 拆成 q、θ、云中液水和云冰', p:['L_RHCPT','RHCRIT','L_CLD_AREA','L_LSPICE'], inn:['θl、qt ← 动力'], out:['云量、液水和冰水 → 辐射'] },
+        { t:'加回辐射', r:'CLD_CTL §9.4', at:'CLDCTL1.dk:750–990', cond:'无完整辐射的步', d:'加上存下的加热率，短波按本步太阳高度角缩放（见“辐射”）', out:['辐射加热 → θ'] },
+        { t:'大尺度降水', r:'LSPP_CTL → GLUE_LSPP', at:'LSPP_CT1.dk:221', d:'自上而下：冰晶下落、云中液水超过阈值后自动转化、云下雨雪蒸发', p:['CW_SEA','CW_LAND','RHCRIT'], out:['大尺度雨、雪 → 陆面水文和耦合器','大尺度降水的潜热 → 能量订正'] }
+      ],
+      params:[['L_RHCPT','.FALSE.','不诊断 RHcrit，用固定的 RHCRIT 廓线'],['RHCRIT','0.95, 0.90, 0.85, 之后 0.70','临界相对湿度：第 1–3 层，第 4 层及以上','0.95 … 0.70'],['L_CLD_AREA','.FALSE.','没有单独的面积云量'],['L_LSPICE','.FALSE.','没有预报云冰：液态与冰相按温度划分'],['CW_SEA','5.0×10⁻⁵','海洋上自动转化的云水阈值'],['CW_LAND','2.0×10⁻⁴','陆地上的阈值：更高，因为气溶胶多、云滴小']],
+      rel:'HadCM3 中云会响应轨道变化并改变地表能量收支。cGENIE 没有云，所以云的作用只能通过你给它的 HadCM3 场间接进入。',
+      had:'EMBM 把超过饱和比湿固定比例的水汽直接降掉；没有云，也没有云辐射效应。',
+      src:['ATMPHY1.dk:420（CLD_CTL）、828（LSPP_CTL）','CLDCTL1.dk','LSPP_CT1.dk'] },
+
+    { key:'conv', fam:'atm', name:'对流', full:'质量通量对流 · 第 5 节（A05_3C）',
+      freq:['每个大气步','48 次 / 天','A_CONV_STEP = 1'],
+      lead:'整体质量通量方案（Gregory and Rowntree 1990），含下沉气流和对流动量输送。每步都运行，在每个气柱上从下往上逐层计算。',
+      flow:[
+        { t:'该做对流了吗？', r:'SETTSCTL', at:'SETTSCT1.dk:512', d:'L_CONVECT = MOD(STEP − 1, A_CONV_STEP) = 0', p:['A_CONV_STEP'] },
+        { t:'分块', r:'CONV_CTL → GLUE_CONV', at:'CONV_CT1.dk:585', d:'把气柱分块处理', p:['A_CONVECT_SEGMENTS'], inn:['经过边界层和大尺度降水后的 T、q、u、v','T₁、q₁ 扰动 ← 边界层'] },
+        { t:'气柱准备', r:'CONVECT：QSAT、FLAG_WET', at:'CONVEC3C.dk:633–664', d:'各层饱和比湿；凝结物是水还是冰；气块初始动量', p:['L_MOM'] },
+        { t:'触发检验', r:'LAYER_CN · DQS_DTH', at:'CONVEC3C.dk:797–907', loop:['对每一层 k，从地面往上', 4], d:'卷入、卷出率；在从 k 到 k + 1 足够不稳定处启动气块' },
+        { t:'抬升气块', r:'LIFT_PAR', at:'CONVEC3C.dk:1198–1434', d:'带卷入地把气块从 k 抬到 k + 1 并检验浮力；不再有浮力的点卷出', p:['L_MOM'] },
+        { t:'云及其作用', r:'CONVEC2', at:'CONVEC3C.dk:1809', d:'凝结与降水、对流云水、强迫卷出；质量通量对 θ、q、u、v 的增量', p:['MPARWTR','UD_FACTOR','L_CCW','L_MOM'] },
+        { t:'闭合与下沉气流', r:'DD_CALL', at:'CONVEC3C.dk:1990–2098', d:'对在本层终止的云：确定云底质量通量，然后计算下沉气流和降水蒸发', p:['L_CAPE','L_PHASE_LIM'] },
+        { t:'能量平衡', r:'COR_ENGY', at:'CONVEC3C.dk:2190', d:'订正温度，使气柱的湿静力能守恒' },
+        { t:'三维对流云', r:'CALC_3D_CCA', at:'CONVEC3C.dk:2194', off:true, cond:'关闭：L_3D_CCA = .FALSE.', d:'本可把对流云按砧状和塔状分布到各层；这里每柱只有一个云量', p:['L_3D_CCA','ANVIL_FACTOR','TOWER_FACTOR'] },
+        { t:'施加增量', r:'CONV_CTL', at:'CONV_CT1.dk:659–1193', d:'加上 θ、q 增量，把 u、v 增量插到风点，累计雨雪', out:['对流雨、雪 → 水文、耦合器','潜热 → 能量订正','对流云量、云底、云顶 → 辐射'] }
+      ],
+      params:[['A_CONV_STEP','1','每 A_CONV_STEP 步做一次对流：这里每步都做'],['A_CONVECT_SEGMENTS','3','气柱分块处理以节省内存'],['L_MOM','.TRUE.','气块携带动量：对流动量输送'],['MPARWTR','1.0×10⁻³','每层保留的对流云水（kg kg⁻¹），多出的变成降水'],['UD_FACTOR','1.0','辐射所见对流水路径中的上升气流因子；只在 L_CCW 时使用'],['L_CCW','.FALSE.','该水路径不包含降水'],['L_CAPE','.FALSE.','不用 CAPE 闭合'],['L_PHASE_LIM','.TRUE.','限制下沉气流中降水的融化和冻结，使潜热不会把温度推过 0 °C'],['L_3D_CCA','.FALSE.','对流云以每柱一个云量表示'],['ANVIL_FACTOR','0.0','三维对流云的砧状部分（仅 L_3D_CCA 时）'],['TOWER_FACTOR','0.0','三维对流云的塔状部分（仅 L_3D_CCA 时）']],
+      rel:'热带对流决定在哪里下雨、下多少。当轨道改变季风时，HadCM3 的降水和径流响应就是在这里产生的。',
+      had:'EMBM 没有对流方案。',
+      src:['ATMPHY1.dk:973（CONV_CTL）','CONVEC3C.dk（CONVECT）'] },
+
+    { key:'bl', fam:'atm', name:'边界层', full:'边界层与地表交换 · 第 3 节（A03_7A，MOSES 2.1）',
+      freq:['每个大气步','48 次 / 天','Δt = 30 分钟'],
+      lead:'MOSES 2.1 在每个陆地格子里对 9 种地表类型分别求解地表能量平衡：阔叶树、针叶树、C3 草、C4 草、灌木、城市、内陆水体、裸土和冰。一阶湍流方案在最低 5 层内混合热量、水汽和动量，与地表一起隐式求解。',
+      flow:[
+        { t:'tile 列表', r:'BL_INTCT → TILEPTS', at:'BL_IC7A.dk:667', d:'按当前比例列出每种地表类型对应的陆地点', p:['LMOSES'], inn:['地表类型比例 ← TRIFFID'] },
+        { t:'植物生理', r:'PHYSIOL', at:'BL_IC7A.dk:686', d:'5 种植物功能型的气孔导度、光合与呼吸', p:['CO2_MMR','L_CO2_INTERACTIVE'], inn:['光合有效辐射 ← 辐射','土壤水分 ← 水文'], out:['NPP 和呼吸 → TRIFFID 累加器'] },
+        { t:'地表交换', r:'BDY_LAYR → SF_EXCH', at:'BDYLYR7A.dk:770', d:'海面、海冰和每个陆面 tile 的粗糙度、整体 Richardson 数、交换系数和显式通量', p:['L_Z0_OROG'], inn:['SST、海冰比例、冰厚 ← 耦合器（最近一次交换）','地表短波、长波 ← 辐射'] },
+        { t:'混合系数', r:'KMKH', at:'BDYLYR7A.dk:825', d:'最低几层上动量和热量的湍流扩散系数', p:['BL_LEVELS'] },
+        { t:'T、q 隐式求解', r:'EX_FLUX_TQ → IM_CAL_TQ', at:'BDYLYR7A.dk:917–970', d:'先算显式通量，再把地表与边界层各层耦合起来隐式求解', p:['BL_LEVELS'] },
+        { t:'海冰热通量', r:'SICE_HTF', at:'BDYLYR7A.dk:1010', d:'由冰面温度和冰厚算穿过冰层的热传导', out:['传导热通量和顶部融化热通量 → 耦合器'] },
+        { t:'蒸发限制', r:'SF_EVAP', at:'BDYLYR7A.dk:1061', d:'从冠层、土壤、湖泊和积雪中取蒸发，受可用水量限制' },
+        { t:'融雪', r:'SF_MELT', at:'BDYLYR7A.dk:1075', d:'地表达到 0 °C 的 tile 上融雪', out:['融雪、升华、蒸发 → 水文'] },
+        { t:'风与应力', r:'IM_CAL_UV', at:'BDYLYR7A.dk:1166', d:'u、v 隐式求解；地面风应力', out:['τ、感热、潜热、蒸发 → 耦合器（日平均）','地表感热 → 能量订正'] }
+      ],
+      params:[['LMOSES','.TRUE.','MOSES 陆面；section 版本 A03_7A 即带 tile 的 MOSES 2.1'],['CO2_MMR','4.25418×10⁻⁴','光合作用看到的 CO₂：同样固定为 280 ppm','280 ppm'],['L_CO2_INTERACTIVE','.FALSE.','用固定的 CO2_MMR，而不是三维 CO₂ 场'],['L_Z0_OROG','.TRUE.','由次网格地形加上地形粗糙度'],['BL_LEVELS','5','有湍流混合的层数']],
+      rel:'进入海洋的风应力和地表热量、淡水通量就在这里产生，并在一天内平均。它们是 HadCM3 中最接近 cGENIE 海洋所需边界条件的量。',
+      had:'cGENIE 的 surflux 用整体公式做同样的事，每格只有一种地表，每个海洋步算一次。',
+      src:['ATMPHY1.dk:687（BL_CTL）','BL_IC7A.dk','BDYLYR7A.dk'] },
+
+    { key:'hydro', fam:'land', name:'陆面水文', full:'土壤、积雪与径流 · 第 8 节（A08_7A，MOSES 2.1）',
+      freq:['每个大气步','48 次 / 天','Δt = 30 分钟'],
+      lead:'雨雪在这里落到地面：冠层截留、积雪、下渗、4 层土壤，以及每天交给海洋一次的径流。',
+      flow:[
+        { t:'土壤导热率', r:'HYD_INTCTL → HYDROL → HEAT_CON', at:'HYDR_CT1.dk:321 · HYDROL7A.dk:210', d:'由各层土壤的含水量和含冰量计算', p:['ST_LEVELS'] },
+        { t:'积雪', r:'SFSNOW', at:'HYDROL7A.dk:215', d:'加上降雪，减去融化和升华，更新雪量', inn:['降雪（大尺度 + 对流）← 降水','融雪、升华 ← 边界层'] },
+        { t:'冠层和地表径流', r:'SURF_HYD', at:'HYDROL7A.dk:244', d:'每个 tile 上的截留和穿透降水；土壤吸收不了的水形成径流', p:['L_VEG_FRACS'], inn:['降雨（大尺度 + 对流）← 降水'], out:['快速（地表）径流 → 耦合器'] },
+        { t:'土壤水', r:'SOIL_HYD', at:'HYDROL7A.dk:254', d:'各层之间的水流、根系吸水、从最底层排出', p:['SM_LEVELS'], inn:['蒸腾和土壤蒸发 ← 边界层'], out:['慢速（地下）径流 → 耦合器'] },
+        { t:'土壤温度', r:'SOIL_HTC · 陆冰点用 ICE_HTC', at:'HYDROL7A.dk:263–273', d:'土壤各层的热传导', p:['ST_LEVELS'], inn:['地表热通量 ← 边界层'] },
+        { t:'土壤水分合计', r:'SOILMC', at:'HYDROL7A.dk:286', d:'整柱土壤水分', out:['土壤水分 → 下一步的蒸发和光合'] }
+      ],
+      params:[['L_VEG_FRACS','.TRUE.','按 tile、用植被比例计算水文'],['SM_LEVELS','4','土壤水分层数'],['ST_LEVELS','4','土壤温度层数']],
+      rel:'径流把陆地那一份淡水收支送进海洋。cGENIE 里 ROKGEM 会让河流带去风化产物；HadCM3 的河流只带水。',
+      had:'不开 ENTS 时，cGENIE 的陆地不储水：落在陆地上的降水直接作为径流流到海岸。',
+      src:['ATMPHY1.dk:1047（HYDR_CTL）','HYDROL7A.dk'] },
+
+    { key:'veg', fam:'land', name:'植被', full:'TRIFFID 动态植被与叶物候 · 第 19 节（A19_2A）',
+      freq:['叶物候每天','TRIFFID 每 10 天','在大气第 48 步'],
+      lead:'叶物候每天更新一次叶面积。TRIFFID 每 10 天更新植被碳和 5 种植物功能型的覆盖比例，进而改变 MOSES tile 及其反照率和粗糙度。',
+      flow:[
+        { t:'计步', r:'ATM_PHYS', at:'ATMPHY1.dk:1229', d:'距上次调用 TRIFFID 的步数加一' },
+        { t:'叶物候', r:'VEG_CTL → VEG → PHENOL', at:'VEG2A.dk:324–344', cond:'每 PHENOL_PERIOD', d:'由温度得到落叶率，更新各植物功能型的叶面积', p:['L_PHENOL','PHENOL_PERIOD'], inn:['当天累积的落叶 ← 边界层'] },
+        { t:'平均通量', r:'VEG', at:'VEG2A.dk:375–410', cond:'每 TRIFFID_PERIOD', d:'把累积的 NPP、植物和土壤呼吸以及落叶换算成这段时间的平均速率', p:['L_TRIFFID','TRIFFID_PERIOD'], inn:['NPP、植物和土壤呼吸 ← 边界层累加器'] },
+        { t:'扰动', r:'VEG', at:'VEG2A.dk:422', cond:'每 TRIFFID_PERIOD', d:'由被扰动比例得到农业扰动率：本 PI 作业中为零', inn:['被扰动比例 ← qrfrac.disturb.nodisturb'] },
+        { t:'TRIFFID', r:'TRIFFID', at:'VEG2A.dk:457', cond:'每 TRIFFID_PERIOD', d:'各植物功能型的碳收支、空间竞争（Lotka–Volterra）、凋落物进入土壤碳', p:['L_TRIF_EQ'], out:['5 种植物功能型和裸土的新比例'] },
+        { t:'更新 tile', r:'TILEPTS', at:'VEG2A.dk:469', cond:'每 TRIFFID_PERIOD', d:'重建 tile 列表，累加器清零' },
+        { t:'地表参数', r:'SPARM', at:'VEG2A.dk:508', d:'由叶面积和冠层高度得到每个 tile 的反照率、粗糙度和冠层持水量', out:['tile 参数、叶面积、冠层高度 → 边界层和水文'] }
+      ],
+      params:[['L_PHENOL','.TRUE.','交互式叶物候'],['PHENOL_PERIOD','1 天','每 48 步一次叶物候'],['L_TRIFFID','.TRUE.','动态植被'],['TRIFFID_PERIOD','10 天','每 480 步一次 TRIFFID；通量按这段时间平均'],['L_TRIF_EQ','.FALSE.','动态时间积分，不是平衡模式']],
+      rel:'植被响应轨道气候，并通过反照率和蒸发反馈回去。它的碳不进入大气：因为 L_CO2_INTERACTIVE = .FALSE.，CO₂ 始终是 CO2_MMR。',
+      had:'cGENIE 中对应的是 ENTS；CBSR 配置里它是关闭的，此时完全没有植被。',
+      src:['ATMPHY1.dk:1222–1251（VEG_CTL）','VEG2A.dk','merge_MOSES2.1_01，ABX5F406（TRIFFID 计步器）'] },
+
+    { key:'gwd', fam:'atm', name:'重力波拖曳', full:'地形重力波拖曳 · 第 6 节（A06_3A）',
+      freq:['每个大气步','48 次 / 天','Δt = 30 分钟'],
+      lead:'次网格山地激发的重力波在高空破碎，使气流减速。方案还包含近地面的水跃拖曳和陷波（背风波）拖曳。',
+      flow:[
+        { t:'地面应力', r:'GWAV_CTL → GWAVE → GW_SURF', at:'GWAV_CT1.dk:326 · GWAVE3A.dk:319', d:'由低层风和稳定度以及次网格地形（标准差和各向异性）计算应力', p:['KAY_GWAVE'], inn:['u、v、θ 廓线','次网格地形 ← qrparm.orog'] },
+        { t:'垂直分布', r:'GW_VERT', at:'GWAVE3A.dk:330', d:'从 START_LEVEL_GWDRAG 层往上检验，在波饱和处释放应力；加上水跃和陷波拖曳', p:['START_LEVEL_GWDRAG','KAY_LEE_GWAVE','KAY_GWAVE'] },
+        { t:'作用到风上', r:'P_TO_UV', at:'GWAVE3A.dk:347–369', d:'把拖曳插到风点，更新 u、v', out:['u、v 增量'] }
+      ],
+      params:[['KAY_GWAVE','2.0×10⁴','地面应力常数（m⁻¹）'],['KAY_LEE_GWAVE','3.0×10⁵','陷波（背风波）常数'],['START_LEVEL_GWDRAG','3','波破碎检验的最低层']],
+      rel:'主要用于调平均态。它影响急流，因而影响风应力，而不是直接影响轨道强迫本身。',
+      had:'cGENIE 中没有对应部分。',
+      src:['ATMPHY1.dk:1173（GWAV_CTL）','GWAVE3A.dk'] },
+
+    { key:'eng', fam:'atm', name:'能量订正', full:'全球能量订正 · 第 14 节（A14_1B）',
+      freq:['每天算一次','每步施加','A_ENERGYSTEPS = 48'],
+      lead:'动力框架不能严格守恒能量。模式每天比较一次大气总能量的变化和净流入的能量，把差值作为均一加热分摊到下一天。',
+      flow:[
+        { t:'当日累计清零', r:'ATM_PHYS', at:'ATMPHY1.dk:470–477 · SETTSCT1.dk:425', cond:'每天第一步（LFLUX_RESET）', d:'把净通量累加器置零', p:['LEMCORR','A_ENERGYSTEPS'] },
+        { t:'施加订正', r:'ADD_ENG_CORR', at:'ATMPHY1.dk:485', d:'加上一个均一的 θ 增量：昨天算出的订正率 × 1800 s', p:['LEMCORR'] },
+        { t:'累计净通量', r:'RAD_CTL、LSPP_CTL、CONV_CTL、BL_CTL 中的 FLUX_DIAG', at:'RAD_CTL1.dk:1587, 2120 · LSPP_CT1.dk:306 · CONV_CT1.dk:1188 · BL_CTL1.dk:1663', d:'各方案把自己给气柱带来的能量加进当天的累计', inn:['净辐射加热 ← 辐射','雨雪潜热 ← 大尺度降水、对流','地表感热 ← 边界层'] },
+        { t:'算出明天的订正', r:'ENG_MASS_DIAG → CAL_ENG_MASS_CORR', at:'ATMPHY1.dk:1338–1361', cond:'第 48 步（LENERGY）', d:'一天的能量变化减去累计净通量就是误差；把它换成下一天的加热率，并对 p* 做干空气质量订正', p:['A_ENERGYSTEPS'], out:['订正率 → 明天的每一步','订正后的 p*'] }
+      ],
+      params:[['LEMCORR','.TRUE.','能量订正开启'],['A_ENERGYSTEPS','48','订正周期：一天']],
+      rel:'它防止长期控制试验因数值能量损失而漂移。因为是全球均一的，不会改变轨道响应的区域分布。',
+      had:'cGENIE 中没有对应部分。',
+      src:['ATMPHY1.dk:470–485, 1338–1361','SETTSCT1.dk:424–425（LENERGY、LFLUX_RESET）'] },
+
+    { key:'cpl', fam:'cpl', name:'耦合器', full:'大气–海洋交换 · SWAP_A2O 和 SWAP_O2A',
+      freq:['每天一次','每个 24 小时组之后','MODEL_HRS_PER_GROUP = 24'],
+      lead:'没有单独的耦合器程序。U_MODEL 在两个子模式之间交替，在每个 24 小时组结束时在内存中交换场。每个大气格子覆盖 3 × 2 个海洋格子。',
+      flow:[
+        { t:'组长度', r:'INITTIME', at:'INITTIM1.dk:581', d:'GROUP = MODEL_HRS_PER_GROUP × 3600 × 每天步数 ÷ 86 400：大气 48 步，海洋 24 步', p:['MODEL_HRS_PER_GROUP','STEPS_PER_PERIODim'] },
+        { t:'累积日平均', r:'STASH（耦合标记 10）', at:'INITA2O1.dk', cond:'每个大气步', d:'大气的耦合场就是普通的 STASH 诊断量，在一组内做时间平均', inn:['τx、τy、风混合能 ← 边界层','净太阳辐射和蓝光、长波 ← 辐射','感热、蒸发、升华、冰融化 ← 边界层','雨、雪 ← 大尺度降水、对流','快速与慢速径流 ← 水文'] },
+        { t:'切换到海洋', r:'SETGRCTL', at:'SETGRCT1.dk:120–140', d:'48 步之后，下一个内部模式是海洋' },
+        { t:'收集并分配径流', r:'SWAP_A2O', at:'U_MODEL1.dk:1525 · SWAPA2O2.dk', d:'把场收集到全球数组；把径流移到海岸上的入海点', p:['L_CO2_INTERACTIVE'] },
+        { t:'大气网格 → 海洋网格', r:'TRANSA2O', at:'TRANA2O1.dk', d:'双线性插值（H_INT_BL）加海岸订正（COAST_AJ、POST_H_INT）；合成净热通量和 P − E', out:['τx、τy、风混合、蓝光、热通量、P − E、河流入海、降雪、升华、海冰热通量 → 海洋（第 n 天）'] },
+        { t:'海洋跑完这一天', r:'OCN_STEP × 24', at:'U_MODEL1.dk:994', d:'24 个海洋步都用同一份强迫' },
+        { t:'海洋网格 → 大气网格', r:'SWAP_O2A → TRANSO2A', at:'U_MODEL1.dk:1541 · TRANO2A1.dk', d:'面积平均（PRE_AREAVER、DO_AREAVER）回到大气网格', inn:['SST、表层流、海冰比例、冰厚、雪深 ← 海洋'], out:['地表温度、海冰比例、冰厚、雪深、洋流 → 大气（第 n + 1 天）'] }
+      ],
+      params:[['MODEL_HRS_PER_GROUP','24','耦合周期（小时）'],['STEPS_PER_PERIODim','每天 48 / 24 步','大气和海洋每天的步数，决定一组有多少步','48 / 24'],['L_CO2_INTERACTIVE','.FALSE.','不交换任何 CO₂ 场']],
+      rel:'半耦合时 cGENIE 要接管的正是这组日平均场：向下的风应力、地表热量和淡水通量，向上的 SST 和海冰。它们的月平均或年平均是喂给 cGENIE 最自然的 HadCM3 输出。',
+      had:'cGENIE 在同一个循环里通过共享接口数组耦合各模块，surflux 每个海洋步（约 3.8 天）重算一次通量。',
+      src:['U_MODEL1.dk:1483–1562','SETGRCT1.dk:80–140','SWAPA2O2.dk、SWAPO2A2.dk、TRANA2O1.dk、TRANO2A1.dk','INITA2O1.dk'] },
+
+    { key:'ocn', fam:'ocn', name:'海洋', full:'Bryan–Cox 刚盖海洋 GCM · 第 30–31 节 · 288 × 144 × 20',
+      freq:['每个海洋步','24 次 / 天','Δt = 1 小时'],
+      lead:'1.25° 网格、20 层、刚盖的 z 坐标海洋。每一步先逐行扫描，算随深度变化的流和示踪物，再在全球求解一个深度平均流的方程。',
+      flow:[
+        { t:'计步', r:'OCN_CTL → OCN_FRST', at:'OCN_CTL.dk:314 · OCN_FRST.dk:60', d:'计步；每天一次的混合步用 Euler 后差代替蛙跳', p:['NMIX'] },
+        { t:'密度', r:'STATED', at:'ROWCALC.dk:1141', loop:['对每一行 j = 1 … 144（ROW_CTL → BLOKCALC → ROWCALC）', 11], d:'本行和下一行的状态方程' },
+        { t:'斜压动量', r:'CLINIC · VERTCOFC', at:'ROWCALC.dk:1265 · CLINIC.dk:1405', d:'平流、科氏力、气压梯度、水平黏性 AM = AM0 + AM1 cos φ、随 Richardson 数变化的垂直黏性；顶部风应力', p:['DTUV','AM0_SI','AM1_SI','ACOR','L_ORICHARD','FNU0_SI','FNUB_SI'], inn:['风应力 τx、τy ← 耦合器'] },
+        { t:'垂直扩散系数', r:'TRACER → VERTCOFT', at:'TRACER.dk:682–700', d:'随 Richardson 数变化的扩散系数，叠加在随深度增大的背景值上；近海表用二次 Large 方案', p:['L_ORICHARD','STABLM_SI','KAPPA0_SI','DKAPPA_DZ_SI','L_OQLARGE','MAX_QLARGE_DEPTH'] },
+        { t:'输送', r:'ISOPYC_M · IPDGMVEL · 平流 · ISOFLUX', at:'TRACER.dk:868–1453', d:'沿等密度面扩散 AHI(z) = AHI2 + (AHI1 − AHI2)·e^(−z/AHI3)；带 Visbeck 系数的 Gent–McWilliams 涡致速度；T、S 平流；隐式垂直扩散', p:['DTTS','L_OISOPYC','L_OISOMOM','AHI1_SI','AHI2_SI','AHI3_SI','L_OISOGM','L_OVISBECK','L_OIMPDIF'] },
+        { t:'地表通量', r:'SFCADD · ICEFLUX', at:'TRACER.dk:1885–1992', d:'热量进入顶层；淡水以虚盐通量进入；加上 water fix；与海冰交换热量', p:['L_FLUXCORR','L_SALFLUXFIX','L_REFSAL','SALREF'], inn:['热通量、P − E、河流入海、降雪 ← 耦合器','water fix ← qrparm.waterfix.hadcm3'] },
+        { t:'穿透性太阳辐射', r:'SOLADD', at:'TRACER.dk:2067–2137', d:'蓝光波段太阳辐射随深度吸收', p:['RSOL','ETA1_SI','ETA2_SI'], inn:['蓝光（可穿透）太阳辐射 ← 耦合器'] },
+        { t:'结冰', r:'FREEZEUP', at:'TRACER.dk:2192', d:'冷却到冰点以下的海水生成新冰', out:['新冰 → 海冰'] },
+        { t:'地中海出流', r:'TRACER', at:'TRACER.dk:2292–2378', d:'在直布罗陀两侧的地中海和大西洋水柱之间交换海水', p:['L_OMEDOUT'] },
+        { t:'混合层', r:'MIXLAY', at:'TRACER.dk:2583', d:'Kraus–Turner：风混合能和对流释放的能量加深混合层', p:['LAMDA','DELTA_SI','EPSILON'], inn:['风混合能 ← 耦合器'] },
+        { t:'对流', r:'CONVADJ · CONVFULL', at:'TRACER.dk:2695–2755', d:'先在固定区域内做 Roussenov 对流，再在全球做 Rahmstorf 完整对流调整', p:['L_OCONVROUS','ISROUS…JEROUS'] },
+        { t:'极区滤波', r:'OFILTR_CNTL', at:'TRACER.dk:2879', d:'对高纬示踪物做傅里叶滤波', p:['L_OFILTER'] },
+        { t:'正压流', r:'TROP_CTL → RELAX', at:'OCN_CTL.dk:424 · TROP_CTL.dk:183', d:'用超松弛迭代求流函数（含绕岛环流），加上深度平均流', p:['L_OFREESFC','DTSF','MXSCAN','SOR','CRIT','ACOR','NISLE'], out:['SST、表层流 → 耦合器','表层流 → 海冰'] },
+        { t:'海冰', r:'ICE_CTL', at:'OCN_CTL.dk:474', fam:'ice', d:'漂移和热力学：见“海冰”标签' }
+      ],
+      params:[['NMIX','24','每 24 步一次混合步（Euler 后差），即每天一次'],['DTUV','3600 s','动量步长'],['AM0_SI','3000 m² s⁻¹','水平黏性的常数部分'],['AM1_SI','3000 m² s⁻¹','水平黏性中随 cos φ 变化的部分'],['ACOR','0.75','科氏项隐式处理的权重（0 为显式）'],['L_ORICHARD','.TRUE.','随 Richardson 数变化的垂直混合'],['FNU0_SI','5.5×10⁻³ m² s⁻¹','随 Richardson 数变化的黏性的最大值'],['FNUB_SI','1×10⁻⁵ m² s⁻¹','背景垂直黏性'],['STABLM_SI','1×10⁻² m² s⁻¹','垂直扩散系数上限'],['KAPPA0_SI','1×10⁻⁵ m² s⁻¹','海表处的背景垂直扩散系数'],['DKAPPA_DZ_SI','2.8×10⁻⁸ m s⁻¹','背景扩散系数随深度每米的增量：5 km 处约 1.5×10⁻⁴ m² s⁻¹'],['L_OQLARGE','.TRUE.','近海表用二次 Large 方案'],['MAX_QLARGE_DEPTH','80 m','二次 Large 方案作用的最大深度'],['DTTS','3600 s','示踪物步长'],['L_OISOPYC','.TRUE.','等密度面扩散'],['L_OISOMOM','.TRUE.','Griffies 形式的等密度面方案（ISOPYC_M、ISOFLUX）'],['AHI1_SI','1000 m² s⁻¹','海表处的等密度面扩散系数'],['AHI2_SI','1000 m² s⁻¹','深层的等密度面扩散系数'],['AHI3_SI','500 m','二者之间的 e 折深度；因为 AHI1 = AHI2，扩散系数实际恒为 1000 m² s⁻¹'],['L_OISOGM','.TRUE.','Gent–McWilliams 涡致输送'],['L_OVISBECK','.TRUE.','Visbeck 可变 GM 系数'],['L_OIMPDIF','.TRUE.','隐式（Crank–Nicolson）垂直扩散'],['L_FLUXCORR','.TRUE.','读入通量订正文件 FLUXCORR = qrparm.waterfix.hadcm3'],['L_SALFLUXFIX','.TRUE.','把其中的热量部分置零，只施加 water fix'],['L_REFSAL','.TRUE.','虚盐通量使用参考盐度'],['SALREF','0.035','参考盐度（35 psu）'],['RSOL','0','第一个太阳波段所占份额：零'],['ETA1_SI','1.0 m⁻¹','第一个太阳波段的衰减率（因 RSOL = 0 未使用）'],['ETA2_SI','0.059 m⁻¹','第二个波段的衰减率：e 折深度约 17 m'],['L_OMEDOUT','.TRUE.','地中海出流参数化'],['LAMDA','0.7','风混合能进入混合层的份额'],['DELTA_SI','100 m','风混合能的衰减深度'],['EPSILON','0.15','对流释放的能量中留给混合的份额'],['L_OCONVROUS','.TRUE.','在固定区域内做 Roussenov 对流'],['ISROUS…JEROUS','列 251–290，行 119–128','Roussenov 区域，约 58–70° N 的北大西洋北部','251–290, 119–128'],['L_OFILTER','.TRUE.','高纬傅里叶滤波'],['L_OFREESFC','.FALSE.','刚盖'],['DTSF','3600 s','流函数步长'],['MXSCAN','500','SOR 最多扫描次数'],['SOR','1.775','超松弛因子'],['CRIT','4×10⁻⁵','收敛判据'],['NISLE','6','单独计算环流的岛屿数']],
+      rel:'在碳循环模式里，决定碳储量的正是海洋温度、盐度和环流（包括 AMOC）。HadCM3 算了这些，但本作业不带碳（L_OCARBON = .FALSE.）。半耦合时，T、S 或环流的月平均、年平均是传给 cGENIE 的候选场。',
+      had:'GOLDSTEIN 是约 10°、16 层、每年 96 步的摩擦地转海洋；HadCM3 分辨率 1.25°，每年 8 640 步。',
+      src:['OCN_CTL.dk','ROWCALC.dk','CLINIC.dk','TRACER.dk','TROP_CTL.dk','OSETCON.dk:505–512（KAPPA 廓线）、1286（AHI 廓线）','SFCADD.dk:112–147'] },
+
+    { key:'ice', fam:'ice', name:'海冰', full:'零层热力学海冰，简单漂移 · 第 32 节',
+      freq:['每个海洋步','24 次 / 天','Δt = 1 小时'],
+      lead:'海冰的计算分在两个子模式里。大气每 30 分钟解一次冰面能量平衡和反照率；海洋这边每小时让海冰随表层流移动，并让它增长或融化。',
+      flow:[
+        { t:'海冰反照率', r:'FTSA（辐射）', at:'RAD_CTL1.dk:990–1026', fam:'atm', cond:'大气，辐射步', d:'冰面温度升到融点以下 DTICE 范围内时，反照率从 ALPHAC 降到 ALPHAM', p:['ALPHAC','ALPHAM','DTICE'] },
+        { t:'冰面能量平衡', r:'BL_CTL → SICE_HTF、SF_MELT', at:'BDYLYR7A.dk:1010, 1075', fam:'atm', cond:'大气，每步', d:'冰面温度、穿过冰层的热传导、顶部融化和升华', inn:['海冰比例、冰厚、雪深 ← 最近一次交换'], out:['顶部融化、传导热通量和升华的日平均 → 耦合器'] },
+        { t:'分配进入的通量', r:'OCN_CTL → Init_Ocean_Ice', at:'OCN_CTL.dk:280–300', cond:'海洋，每步', d:'把热通量和降雪分到冰面和冰间开阔水道', p:['L_SEAICE'], inn:['顶部融化、传导热通量、升华、降雪 ← 耦合器'] },
+        { t:'漂移', r:'ICE_CTL → ICEDRIFT', at:'ICE_CTL.dk:429', d:'用表层流平流冰厚、雪深和密集度（GFDL 型方案）；对冰厚做扩散', p:['L_ICESIMPLE','AH_ICE'], inn:['表层流 ← 海洋'] },
+        { t:'热力学', r:'ICEFLOE', at:'ICE_CTL.dk:453', d:'带冰间水道（Hibler 1979）的 Semtner (1976) 零层模式：由大气通量和与 EDDYDIFF × (T₁ − T_冰点) 成正比的海洋热通量让冰增长或融化', p:['EDDYDIFFN','EDDYDIFFS','H0','HICEMIN','AICEMIN','SALICE'], inn:['顶层水温和新冰 ← 海洋'] },
+        { t:'密集度上限', r:'ICEFLOE（AMX）', at:'OSETCON.dk:1163–1171', d:'北冰洋至少保留 0.5 % 开阔水，南大洋至少 2 %', p:['AMXNORTH','AMXSOUTH'], out:['海冰比例、冰厚、雪深 → 耦合器 → 大气（第 n + 1 天）','热量、盐分和淡水 → 海洋顶层'] }
+      ],
+      params:[['ALPHAC','0.80','冷海冰的反照率'],['ALPHAM','0.50','处于融点的海冰反照率'],['DTICE','10 K','融点以下反照率发生变化的温度区间'],['L_SEAICE','.TRUE.','开海冰'],['L_ICESIMPLE','.TRUE.','随表层流简单漂移'],['AH_ICE','670 m² s⁻¹','冰厚扩散系数'],['EDDYDIFFN','2.5×10⁻⁵','海洋向冰的传热系数，北半球'],['EDDYDIFFS','2.5×10⁻⁵','海洋向冰的传热系数，南半球'],['H0','0.5 m','最小局地冰厚'],['HICEMIN','1×10⁻⁴','最小平均冰厚'],['AICEMIN','0.001','最小密集度'],['SALICE','0.006','海冰盐度（6 psu）'],['AMXNORTH','0.995','北半球最大密集度'],['AMXSOUTH','0.98','南半球最大密集度']],
+      rel:'在 cGENIE 中，海冰覆盖会阻断高纬的海气气体交换。不同轨道下 HadCM3 的海冰比例，适合拿来与 cGENIE 比较，或直接强加给它。',
+      had:'cGENIE 的海冰在性质上类似（厚度加覆盖率、随洋流漂移、无流变学），但在 10° 网格上约每 3.8 天走一步。',
+      src:['OCN_CTL.dk:474（ICE_CTL）','ICE_CTL.dk','ICEDRIFT.dk','ICEFLOE.dk','OSETCON.dk:1163–1171'] },
+
+    { key:'off', fam:'off', name:'未启用', full:'UM vn4.5 中有、但本 PI 作业关闭的选项',
+      lead:'代码里存在、但在 tdaah 中通过 namelist 开关或 section 选择关掉的部分。',
+      table:[['交互式 CO₂','L_CO2_INTERACTIVE, L_CO2_EMITS = .FALSE.','CO₂ 固定为 CO2_MMR；没有三维 CO₂ 示踪物，耦合器也不传 CO₂'],['海洋碳循环（HadOCC）','L_OCARBON, L_OBIOLOGY = .FALSE.','海洋中没有 DIC、碱度和浮游生物'],['硫循环','L_SULPC_SO2 = .FALSE.','改用气候态气溶胶'],['预报云冰','L_LSPICE = .FALSE.','液态和冰相按温度划分'],['自由表面海洋','L_OFREESFC = .FALSE.','刚盖加流函数'],['自由漂移海冰动力','L_ICEFREEDR = .FALSE.','只用随洋流的简单漂移（L_ICESIMPLE）'],['轨道长期变化','L_SEC_VAR = .FALSE.','整个运行中轨道固定'],['三维对流云','L_3D_CCA = .FALSE.','每柱只有一个对流云量'],['垂直扩散、示踪物平流','A07_0A, A11_0A','第 7 节和第 11 节未包含'],['热通量调整','L_SALFLUXFIX = .TRUE.','FLUXCORR 中的热量部分被置零，只施加 water fix']],
+      src:['tdaah：CNTLATM、CNTLOCN、SECT_MODE','SFCADD.dk:112–125'] }
+  ];
+
+  /* ---------------- 工具 ---------------- */
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const ul = arr => '<ul>' + arr.map(x => '<li>' + x + '</li>').join('') + '</ul>';
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const NAME = Object.fromEntries(MODS.map(m => [m.key, m.name]));
+
+  /* 语言和姊妹页链接：本地打开时用相对路径，发布后用 artifact 链接 */
+  if (location.protocol !== 'file:') $$('a.xlink').forEach(a => { if (a.dataset.artifact) a.href = a.dataset.artifact; });
+
+  /* ---------------- 总览刻度 ---------------- */
+  (function buildTicks() {
+    let h = '';
+    for (let i = 0; i < 48; i++) {
+      const x = 56 + i * 8;
+      if (i === 47) h += `<rect class="tk day" x="${x}" y="150" width="6" height="30" rx="1"/>`;
+      else if (i % 6 === 0) h += `<rect class="tk rad" x="${x}" y="150" width="6" height="30" rx="1"/>`;
+      else h += `<rect class="tk atm" x="${x}" y="158" width="6" height="22" rx="1"/>`;
+    }
+    $('#aTicks').innerHTML = h;
+    h = '';
+    for (let i = 0; i < 24; i++) {
+      const x = 616 + i * 9;
+      if (i === 0) h += `<rect class="tk mix" x="${x}" y="150" width="7" height="30" rx="1"/>`;
+      else h += `<rect class="tk ocn" x="${x}" y="158" width="7" height="22" rx="1"/>`;
+    }
+    $('#oTicks').innerHTML = h;
+  })();
+
+  /* ---------------- 时间线 ---------------- */
+  const COLS = ['init','a1','a2-6','a7','amid','a48','A2O','o1','o2-23','o24','O2A','next','end'];
+  const HEAD = { init:'启动', a1:'1', 'a2-6':'2–6', a7:'7', amid:'…', a48:'48', A2O:'A→O', o1:'1', 'o2-23':'2–23', o24:'24', O2A:'O→A', next:'n+1', end:'结束' };
+  const MID = ['amid','next'];
+  const ATM = ['a1','a2-6','a7','a48'], OCN = ['o1','o2-23','o24'];
+  const ROWS = [
+    { key:'dyn',  label:'动力', fam:'atm', fires: c => ATM.includes(c) },
+    { key:'rad',  label:'完整辐射', fam:'sun', fires: c => (c === 'a1' || c === 'a7') ? 'on' : (c === 'a2-6' ? 'ring' : false) },
+    { key:'phys', label:'其他物理', fam:'atm', fires: c => ATM.includes(c) },
+    { key:'slow', label:'每天 · 每 10 天', fam:'land', fires: c => c === 'a48' },
+    { key:'cpl',  label:'交换', fam:'cpl', fires: c => c === 'A2O' || c === 'O2A' },
+    { key:'ocn',  label:'海洋', fam:'ocn', fires: c => OCN.includes(c) },
+    { key:'ice',  label:'海冰', fam:'ice', fires: c => OCN.includes(c) }
+  ];
+  const colX = i => 160 + i * 44;
+  const rowY = j => 64 + j * 22;
+  (function buildTrack() {
+    const svg = $('#track');
+    let h = '';
+    h += `<text class="grp" x="${colX(3)}" y="14" text-anchor="middle">大气 · 第 n 天</text><line class="grpline" x1="${colX(1) - 16}" y1="20" x2="${colX(5) + 16}" y2="20"/>`;
+    h += `<text class="grp" x="${colX(8)}" y="14" text-anchor="middle">海洋 · 第 n 天</text><line class="grpline" x1="${colX(7) - 16}" y1="20" x2="${colX(9) + 16}" y2="20"/>`;
+    h += '<text class="rowlab" x="8" y="42">步</text>';
+    ROWS.forEach((r, j) => { h += `<text class="rowlab" x="8" y="${rowY(j) + 4}">${r.label}</text>`; });
+    COLS.forEach((c, i) => {
+      const x = colX(i);
+      h += `<g class="col" data-col="${c}" tabindex="0" role="button" aria-label="跳到 ${HEAD[c]}">`;
+      h += `<rect class="colbg" x="${x - 20}" y="26" width="40" height="184" rx="6"/>`;
+      h += `<text class="kh" x="${x}" y="42" text-anchor="middle">${HEAD[c]}</text>`;
+      ROWS.forEach((r, j) => {
+        const y = rowY(j);
+        if (c === 'init' || c === 'end') h += `<circle class="dot ring ${r.fam}" data-row="${r.key}" cx="${x}" cy="${y}" r="5"/>`;
+        else if (MID.includes(c)) h += `<circle class="dot no" cx="${x}" cy="${y}" r="1.6"/>`;
+        else {
+          const f = r.fires(c);
+          if (f === 'ring') h += `<circle class="dot ring ${r.fam}" data-row="${r.key}" cx="${x}" cy="${y}" r="5"/>`;
+          else if (f) h += `<circle class="dot ${r.fam}" data-row="${r.key}" cx="${x}" cy="${y}" r="5.5"/>`;
+          else h += `<circle class="dot no" cx="${x}" cy="${y}" r="2"/>`;
+        }
+      });
+      h += '</g>';
+    });
+    svg.innerHTML = h;
+  })();
+
+  HadNet.init(MODS, LANG, k => openTab(k, { scroll: true }));
+
+  /* ---------------- 标签页 ---------------- */
+  (function buildTabs() {
+    const tabs = $('#tabs'), panels = $('#panels');
+    tabs.innerHTML = MODS.map((m, i) =>
+      `<button class="tab" role="tab" id="tab-${m.key}" aria-controls="pan-${m.key}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}" data-key="${m.key}"><i class="d ${m.fam}"></i>${m.name}</button>`).join('');
+    panels.innerHTML = MODS.map((m, i) => {
+      let body = `<div class="mod-head"><h3>${m.name}</h3><div class="full">${m.full}</div>`;
+      if (m.freq) body += `<div class="meta">${m.freq.map(f => `<span class="chip">${f}</span>`).join('')}</div>`;
+      body += `</div><p class="lead">${m.lead}</p>`;
+      if (m.table) {
+        body += `<div class="tablewrap"><table><thead><tr><th>选项</th><th>开关</th><th>本作业中</th></tr></thead><tbody>${m.table.map(r => `<tr><td>${r[0]}</td><td class="k">${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div>`;
+      } else {
+        body += HadNet.panel(m);
+        body += `<div class="pair"><div class="box rel"><h4>对轨道–CO₂ 问题</h4><p>${m.rel}</p></div><div class="box"><h4>与 cGENIE 对比</h4><p>${m.had}</p></div></div>`;
+      }
+      body += `<div class="srcs">来源：${m.src.join(' · ')}</div>`;
+      return `<div class="mod" role="tabpanel" id="pan-${m.key}" aria-labelledby="tab-${m.key}" tabindex="0" ${i === 0 ? '' : 'hidden'}>${body}</div>`;
+    }).join('');
+  })();
+
+  function openTab(key, opts) {
+    opts = opts || {};
+    $$('.tab').forEach(t => { const on = t.dataset.key === key; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; if (on && opts.focusTab) t.focus(); });
+    $$('.mod').forEach(p => { p.hidden = p.id !== 'pan-' + key; });
+    HadNet.show(key);
+    if (opts.scroll) $('#modules').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  }
+  $('#tabs').addEventListener('click', e => { const t = e.target.closest('.tab'); if (t) openTab(t.dataset.key); });
+  $('#tabs').addEventListener('keydown', e => {
+    const list = $$('.tab'); const i = list.indexOf(document.activeElement);
+    if (i < 0) return;
+    let j = null;
+    if (e.key === 'ArrowRight') j = (i + 1) % list.length;
+    else if (e.key === 'ArrowLeft') j = (i - 1 + list.length) % list.length;
+    else if (e.key === 'Home') j = 0;
+    else if (e.key === 'End') j = list.length - 1;
+    if (j !== null) { e.preventDefault(); e.stopPropagation(); openTab(list[j].dataset.key, { focusTab: true }); }
+  });
+
+  /* 参数标签 ↔ 表格行 */
+  const markParam = (el, cls, on) => {
+    const panel = el.closest('.mod');
+    if (panel) panel.querySelectorAll(`[data-p="${CSS.escape(el.dataset.p)}"]`).forEach(x => x.classList.toggle(cls, on));
+  };
+  const pickParam = el => markParam(el, 'sel', !el.classList.contains('sel'));
+  const panelsEl = $('#panels');
+  panelsEl.addEventListener('click', e => { const t = e.target.closest('[data-p]'); if (t) pickParam(t); });
+  panelsEl.addEventListener('keydown', e => {
+    const t = e.target.closest('tr[data-p]');
+    if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); pickParam(t); }
+  });
+  ['mouseover', 'focusin'].forEach(ev => panelsEl.addEventListener(ev, e => { const t = e.target.closest('[data-p]'); if (t) markParam(t, 'hl', true); }));
+  ['mouseout', 'focusout'].forEach(ev => panelsEl.addEventListener(ev, e => { const t = e.target.closest('[data-p]'); if (t) markParam(t, 'hl', false); }));
+
+  $$('svg .n[data-tab]').forEach(n => {
+    const go = () => openTab(n.dataset.tab, { scroll: true });
+    n.addEventListener('click', go);
+    n.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); go(); } });
+  });
+
+  /* ---------------- 播放器 ---------------- */
+  let idx = 0, playing = false, timer = null;
+  const scrub = $('#scrub');
+  scrub.max = STEPS.length - 1;
+
+  function setMarkers(g, on) {
+    const p = g.querySelector('path');
+    const m = on ? 'url(#ahon)' : 'url(#ah)';
+    p.setAttribute('marker-end', m);
+    if (g.dataset.ends === 'both') p.setAttribute('marker-start', m); else p.removeAttribute('marker-start');
+  }
+
+  function render() {
+    const s = STEPS[idx];
+    $('#count').textContent = (idx + 1) + ' / ' + STEPS.length;
+    scrub.value = idx;
+    $('#sMeta').innerHTML = s.chips.map((c, i) => `<span class="chip${i === 0 ? ' k' : ''}">${c}</span>`).join('');
+    $('#sTitle').textContent = s.title;
+    $('#sCall').innerHTML = s.call + (s.src ? `<br><span class="src">${s.src}</span>` : '');
+    $('#sIn').innerHTML = ul(s.in);
+    $('#sCalc').innerHTML = ul(s.calc);
+    $('#sOut').innerHTML = ul(s.out);
+    const note = $('#sNote');
+    note.hidden = !s.note;
+    note.innerHTML = s.note ? '<b>要点</b>' + s.note : '';
+    const open = $('#sOpen');
+    open.hidden = !s.tab;
+    if (s.tab) { open.textContent = '查看' + NAME[s.tab] + '详情 ↓'; open.dataset.tab = s.tab; }
+
+    $$('#map [data-node]').forEach(n => {
+      n.classList.toggle('on', s.nodes.includes(n.dataset.node));
+      n.classList.toggle('cur', s.cur.includes(n.dataset.node));
+    });
+    $$('#map [data-edge]').forEach(g => {
+      const on = s.edges.includes(g.dataset.edge);
+      g.classList.toggle('on', on);
+      setMarkers(g, on);
+    });
+    $$('#track .col').forEach(c => {
+      const inCol = s.cols.includes(c.dataset.col);
+      c.classList.toggle('on', inCol);
+      c.querySelectorAll('.dot[data-row]').forEach(d => d.classList.toggle('cur', inCol && s.rows.includes(d.dataset.row)));
+    });
+    restartTimerBar();
+  }
+
+  function restartTimerBar() {
+    const bar = $('#timer');
+    bar.classList.remove('run');
+    if (playing && !reduced) { void bar.offsetWidth; bar.style.setProperty('--dur', $('#speed').value + 'ms'); bar.classList.add('run'); }
+  }
+
+  function setPlayUI() {
+    $('#tPlay').textContent = playing ? '暂停' : (idx >= STEPS.length - 1 ? '重新播放' : '播放');
+    $('#bPlay').setAttribute('aria-label', playing ? '暂停' : '播放');
+    $('#iPlay').innerHTML = playing ? '<rect x="3" y="2" width="3.5" height="12"/><rect x="9.5" y="2" width="3.5" height="12"/>' : '<path d="M3 2 L14 8 L3 14 z"/>';
+  }
+  function schedule() {
+    clearTimeout(timer);
+    if (!playing) return;
+    timer = setTimeout(() => {
+      if (idx < STEPS.length - 1) { idx++; render(); schedule(); }
+      else { playing = false; setPlayUI(); restartTimerBar(); }
+    }, +$('#speed').value);
+  }
+  function go(i) { idx = Math.max(0, Math.min(STEPS.length - 1, i)); render(); setPlayUI(); schedule(); }
+  function play() { if (idx >= STEPS.length - 1) idx = 0; playing = true; render(); setPlayUI(); schedule(); }
+  function pause() { playing = false; clearTimeout(timer); setPlayUI(); restartTimerBar(); }
+  const toggle = () => (playing ? pause() : play());
+
+  $('#bPlay').addEventListener('click', toggle);
+  $('#bPrev').addEventListener('click', () => go(idx - 1));
+  $('#bNext').addEventListener('click', () => go(idx + 1));
+  $('#bReset').addEventListener('click', () => { pause(); go(0); });
+  $('#speed').addEventListener('change', () => { if (playing) { render(); schedule(); } });
+  scrub.addEventListener('input', () => go(+scrub.value));
+  $('#sOpen').addEventListener('click', e => openTab(e.currentTarget.dataset.tab, { scroll: true }));
+
+  $$('#track .col').forEach(c => {
+    const jump = () => { const key = c.dataset.col; const i = STEPS.findIndex(s => s.cols.includes(key)); if (i >= 0) go(i); };
+    c.addEventListener('click', jump);
+    c.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); jump(); } });
+  });
+
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t.closest && t.closest('input, select, textarea, [role="tab"]')) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(idx + 1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); go(idx - 1); }
+    else if (e.key === ' ' && !(t.closest && t.closest('button, [role="button"]'))) { e.preventDefault(); toggle(); }
+  });
+
+  /* 深链接：#rad、#ocn … 直接打开对应分量 */
+  const hash = (location.hash || '').slice(1);
+  if (MODS.some(m => m.key === hash)) openTab(hash);
+
+  HadNet.show((document.querySelector('.mod:not([hidden])') || { id: 'pan-' }).id.slice(4));
+  render(); setPlayUI();
+})();
+</script>
+</body>
+</html>

@@ -13,6 +13,19 @@ An interactive, step-by-step walkthrough of how HadCM3 (UM vn4.5, HadCM3B-M2.1aD
 
 Open either file in a browser. They are self-contained apart from Google Fonts. Opened locally, the language switch and the cGENIE companion link point to the sibling files; on the published pages they point to the published artifacts.
 
+## Versions
+
+The two files above are **version 1** (git tag `v1`): each component tab is a linear chart of its routines.
+
+**Version 2** lives in [`v2/`](v2): each component is drawn as a network of its routines (numbered in call order), the variables they pass to each other, the variables entering from or leaving to other components (in that component's colour), and the parameters each routine uses. Point at a box to light up its connections, click to pin it and read what it reads and writes, drag to pan. The rest of the page (overview, step player) is the same as version 1.
+
+| File | Language | Published |
+|---|---|---|
+| [`v2/HadCM3_walkthrough_v2_en.html`](v2/HadCM3_walkthrough_v2_en.html) | English | https://claude.ai/artifact/Lg1UbvqWPZuGRLGoEN2T49 |
+| [`v2/HadCM3_walkthrough_v2_zh.html`](v2/HadCM3_walkthrough_v2_zh.html) | 中文 | https://claude.ai/artifact/MGA4sQtd2KCcZ9YcxvpK9a |
+
+The v2 pages are generated, not edited by hand: `python3 v2/build_v2.py` takes the version 1 pages and replaces their component charts with the networks in `v2/src/hadcm3_net.js` (one bilingual source for both languages) styled by `v2/src/net.css`. To change a network, edit `hadcm3_net.js` and rebuild. The layout uses dagre 0.8.5 from cdnjs, so the networks need an internet connection.
+
 ## Basis
 
 - **Job**: `tdaah`, a standard pre-industrial HadCM3B-M2.1aD job in the shared BRIDGE UMUI jobs (`/projects/public/b56i/ggpjv/work/umui_jobs/tdaah`, dated 2026-06-01): 280 ppm CO₂, `preind2` ancillaries, MOSES 2.1 + TRIFFID, 360-day calendar from 1850-12-01. There is no HadCM3 job under the `xinren.b56u` account on bc5, so this shared job stands in as the PI reference. Parameter values come from its `CNTLALL`, `CNTLGEN`, `CNTLATM`, `CNTLOCN`, `SIZES`, `SECT_MODE` and `INITHIS`.

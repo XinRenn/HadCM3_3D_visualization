@@ -1,0 +1,92 @@
+/* ---------- v2: component networks ---------- */
+.ver { font-size: 14px; color: var(--muted); max-width: 72ch; }
+.vtag { font-family: var(--font-mono); font-size: 12px; color: var(--bg); background: var(--signal); border-radius: 999px; padding: 1px 8px; margin-right: 6px; }
+.netbox { display: grid; gap: 10px; min-width: 0; }
+.net-top { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
+.net-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); }
+.net-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.net-legend i { display: inline-block; width: 18px; height: 12px; border: 1.5px solid var(--muted); border-radius: 6px; background: var(--surface); }
+.net-legend .nl-proc i { border-radius: 3px; border-color: var(--ink); background: var(--surface-2); }
+.net-legend .nl-in i { background: linear-gradient(90deg, var(--atm-soft), var(--ocn-soft)); border-color: var(--atm); }
+.net-legend .nl-out i { background: linear-gradient(90deg, var(--cpl-soft), var(--land-soft)); border-color: var(--cpl); }
+.net-legend .nl-par i { border-style: dashed; border-radius: 2px; }
+.net-legend .nl-seq i, .net-legend .nl-data i, .net-legend .nl-pline i { height: 0; width: 22px; border-width: 1.5px 0 0; border-radius: 0; background: none; }
+.net-legend .nl-seq i { border-top-width: 2.5px; border-color: var(--ink); opacity: 0.6; }
+.net-legend .nl-pline i { border-style: dashed; }
+.net-tools { display: flex; gap: 6px; }
+.btn.sm { height: 30px; min-width: 30px; padding: 0 10px; font-size: 13px; }
+.net-stage { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+@media (max-width: 920px) { .net-stage { grid-template-columns: minmax(0, 1fr); } }
+.net-scroll { overflow: auto; max-height: 80vh; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); min-width: 0; overscroll-behavior: contain; cursor: grab; }
+.net-scroll.dragging { cursor: grabbing; user-select: none; }
+.net { padding: 4px; width: max-content; min-width: 100%; }
+.netsvg { display: block; margin-inline: auto; }
+.net-card { position: sticky; top: 12px; background: var(--surface-2); border-radius: 10px; padding: 14px; display: grid; gap: 8px; align-content: start; font-size: 13.5px; min-width: 0; max-height: 80vh; overflow: auto; }
+.net-card h4 { margin: 0; font-size: 16px; line-height: 1.35; font-family: var(--font-display); }
+.net-card p { margin: 0; }
+.nc-kind { font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.nc-r, .nc-tag { font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.nc-val b { font-family: var(--font-mono); font-weight: 500; }
+.nc-comp b { font-weight: 600; }
+.nc-sec { display: grid; gap: 4px; }
+.nc-sec h5 { margin: 6px 0 0; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+.nc-link { font: inherit; font-size: 13px; line-height: 1.4; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; color: var(--ink); cursor: pointer; overflow-wrap: anywhere; }
+.nc-link.k-par { font-family: var(--font-mono); font-size: 12px; border-style: dashed; }
+.nc-link.k-proc { font-weight: 500; }
+.nc-link:hover, .nc-link:focus-visible { border-color: var(--signal); outline: none; }
+.nc-open, .nc-clear { font: inherit; font-size: 13px; background: none; border: 0; padding: 0; color: var(--signal); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; justify-self: start; }
+.nc-empty { color: var(--muted); }
+.net-nolib { color: var(--signal); padding: 12px; margin: 0; }
+
+.netsvg text { font-family: var(--font-body); fill: var(--ink); }
+.netsvg .t1 { font-size: 13px; font-weight: 600; }
+.netsvg .lab { font-size: 12.5px; }
+.netsvg .mono, .netsvg .pname, .netsvg .pval { font-family: var(--font-mono); font-size: 11px; }
+.netsvg .mono, .netsvg .pval, .netsvg .tag, .netsvg .cap { fill: var(--muted); }
+.netsvg .pname { font-weight: 500; }
+.netsvg .tag, .netsvg .cap { font-size: 11px; }
+.nn { cursor: pointer; transition: opacity 0.2s; }
+.nn rect { stroke-width: 1.4; }
+.nn.proc rect { stroke-width: 1.8; }
+.nn.fam-atm rect { fill: var(--atm-soft); stroke: var(--atm); }
+.nn.fam-ocn rect { fill: var(--ocn-soft); stroke: var(--ocn); }
+.nn.fam-ice rect { fill: var(--ice-soft); stroke: var(--ice); }
+.nn.fam-land rect { fill: var(--land-soft); stroke: var(--land); }
+.nn.fam-cpl rect { fill: var(--cpl-soft); stroke: var(--cpl); }
+.nn.fam-neutral rect { fill: var(--surface-2); stroke: var(--line); }
+.nn.var rect { fill: var(--surface); stroke: var(--muted); }
+.nn.par rect { fill: var(--surface); stroke: var(--muted); stroke-dasharray: 3 2; }
+.nn.cond rect { stroke-dasharray: 6 3; }
+.nn.off rect { fill: var(--surface); stroke: var(--off); stroke-dasharray: 6 3; }
+.nn.off text { fill: var(--off); }
+.nn .nb { fill: var(--ink); }
+.nn .nbt { fill: var(--bg); font-family: var(--font-mono); font-size: 11px; font-weight: 500; }
+.nn.off .nb { fill: var(--off); }
+.nn:focus { outline: none; }
+.nn:focus-visible rect, .nn.me rect { stroke: var(--signal); stroke-width: 3; }
+.pl .plbg { fill: transparent; stroke: none; }
+.pl:hover .plbg, .pl.hl .plbg, .pl.sel .plbg { fill: var(--signal-soft); }
+.pl.sel .pname { fill: var(--signal); }
+.nc-link.hl, .nc-link.sel { border-color: var(--signal); background: var(--signal-soft); }
+.nc-mean { font-size: 12.5px; color: var(--muted); margin: 0 0 4px; }
+.ne path { fill: none; stroke: var(--muted); stroke-width: 1.2; opacity: 0.75; }
+.ne.seq path { stroke: var(--ink); stroke-width: 2; opacity: 0.45; }
+.ne.par path { stroke-dasharray: 3 3; opacity: 0.55; }
+.mk-a { fill: var(--muted); }
+.mk-s { fill: var(--ink); }
+.mk-h { fill: var(--signal); }
+.netsvg .ne, .netsvg .nn { transition: opacity 0.2s; }
+.netsvg.focus .nn:not(.lit) { opacity: 0.18; }
+.netsvg.focus .ne:not(.lit) { opacity: 0.08; }
+.ne.lit path { stroke: var(--signal); opacity: 1; stroke-width: 2.2; }
+
+/* parameter table (shared with version 1) */
+.mf-hint { font-size: 13px; color: var(--muted); margin: 0; }
+.ptab tr { cursor: pointer; }
+.ptab tr.hl td, .ptab tr.sel td { background: var(--signal-soft); }
+.ptab tr.sel td.k { color: var(--signal); }
+.ub { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--ink); color: var(--bg); font-family: var(--font-mono); font-size: 11px; margin-right: 4px; }
+td.u { font-size: 12.5px; }
+td.u span.ul { display: block; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .nn, .netsvg .ne { transition: none; } }
+
