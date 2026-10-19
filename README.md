@@ -4,7 +4,7 @@ An interactive, step-by-step walkthrough of how HadCM3 (UM vn4.5, HadCM3B-M2.1aD
 
 - **Overview flowchart**: one coupled day (48 atmosphere steps of 30 min, swap, 24 ocean steps of 1 h, swap back) and the call order inside one atmosphere step and one ocean step.
 - **Step player**: play, pause or scrub through start-up, the first atmosphere step in detail, the rest of the atmosphere's day, SWAP_A2O, the first ocean step in detail, the rest of the ocean's day and SWAP_O2A; a component map highlights the data exchanged at each step.
-- **Component tabs**: dynamics, radiation, cloud and rain, convection, boundary layer (MOSES 2.1), land hydrology, vegetation (TRIFFID), gravity-wave drag, energy correction, coupler, ocean, sea ice, and the options switched off in this job, each with its tdaah parameter values.
+- **Component tabs**: one flowchart per component (dynamics, radiation, cloud and rain, convection, boundary layer, land hydrology, vegetation, gravity-wave drag, energy correction, coupler, ocean, sea ice) in call order: the routine and source line of each stage, the data entering and leaving it, and every parameter it uses with its tdaah value. Clicking a parameter marks it in the chart and in the parameter table below, whose "Used in" column lists the stages. A last tab lists the options switched off in this job.
 
 | File | Language | Published |
 |---|---|---|

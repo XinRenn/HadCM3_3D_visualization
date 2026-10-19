@@ -250,6 +250,67 @@ td.v { font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: t
 .box.rel h4 { color: var(--signal); }
 .srcs { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
 
+/* ---------- component flowcharts ---------- */
+.mflow { display: grid; min-width: 0; }
+.mf-head, .mf-row, .mf-conn { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.75fr) minmax(0, 1fr); }
+.mf-head { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-bottom: 10px; }
+.mf-head span:first-child { text-align: right; padding-right: 34px; }
+.mf-head span:nth-child(2) { text-align: center; }
+.mf-head span:last-child { padding-left: 34px; }
+.mf-row { align-items: stretch; }
+.mf-in, .mf-out { display: flex; align-items: center; min-width: 0; }
+.mf-in { justify-content: flex-end; }
+.mf-pills { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mf-in .mf-pills { align-items: flex-end; text-align: right; }
+.mf-out .mf-pills { align-items: flex-start; }
+.mf-pill { font-size: 12.5px; line-height: 1.4; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; max-width: 100%; overflow-wrap: anywhere; }
+.mf-arr { flex: 0 0 30px; height: 1.5px; background: var(--muted); position: relative; margin-inline: 2px; }
+.mf-arr::after { content: ""; position: absolute; right: -1px; top: 50%; transform: translateY(-50%); border-style: solid; border-width: 5px 0 5px 7px; border-color: transparent transparent transparent var(--muted); }
+.mf-node { border: 1.5px solid; border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.mf-node.atm { background: var(--atm-soft); border-color: var(--atm); }
+.mf-node.ocn { background: var(--ocn-soft); border-color: var(--ocn); }
+.mf-node.ice { background: var(--ice-soft); border-color: var(--ice); }
+.mf-node.land { background: var(--land-soft); border-color: var(--land); }
+.mf-node.cpl { background: var(--cpl-soft); border-color: var(--cpl); }
+.mf-node.cond { border-style: dashed; }
+.mf-node.off { background: var(--surface); border-color: var(--off); border-style: dashed; }
+.mf-node.off .mf-t, .mf-node.off .mf-d { color: var(--muted); }
+.mf-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.mf-n { font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; color: var(--bg); background: var(--ink); border-radius: 999px; min-width: 20px; height: 20px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; align-self: center; }
+.mf-t { font-weight: 600; font-size: 14.5px; }
+.mf-tag { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); border: 1px dashed var(--muted); border-radius: 999px; padding: 0 7px; }
+.mf-r { font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.mf-d { font-size: 13.5px; margin: 0; }
+.mf-ps { display: flex; flex-wrap: wrap; gap: 5px; }
+.pc { font: inherit; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.5; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 1px 8px; cursor: pointer; display: inline-flex; gap: 6px; max-width: 100%; text-align: left; }
+.pc b { font-weight: 400; color: var(--muted); overflow-wrap: anywhere; }
+.pc:hover, .pc.hl, .pc.sel { border-color: var(--signal); background: var(--signal-soft); }
+.pc.sel b { color: var(--signal); }
+.pc:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.mf-conn > span { grid-column: 2; justify-self: center; width: 1.5px; height: 24px; background: var(--muted); position: relative; }
+.mf-conn > span::after { content: ""; position: absolute; left: 50%; bottom: -1px; transform: translateX(-50%); border-style: solid; border-width: 7px 5px 0 5px; border-color: var(--muted) transparent transparent transparent; }
+.mf-conn.nohead > span::after { display: none; }
+.mf-conn.short > span { height: 12px; }
+.mf-loop { position: relative; border: 1.5px dashed var(--muted); border-radius: 12px; }
+.mf-looplab { position: absolute; top: -10px; left: 14px; background: var(--surface); padding: 0 8px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); max-width: calc(100% - 28px); }
+.mf-hint { font-size: 13px; color: var(--muted); }
+.ptab tr { cursor: pointer; }
+.ptab tr.hl td, .ptab tr.sel td { background: var(--signal-soft); }
+.ptab tr.sel td.k { color: var(--signal); }
+.ub { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--ink); color: var(--bg); font-family: var(--font-mono); font-size: 11px; margin-right: 4px; }
+td.u { font-size: 12.5px; }
+td.u span.ul { display: block; white-space: nowrap; }
+@media (max-width: 720px) {
+  .mf-head { display: none; }
+  .mf-row, .mf-conn { grid-template-columns: minmax(0, 1fr); }
+  .mf-conn > span { grid-column: 1; }
+  .mf-in, .mf-out { justify-content: flex-start; padding-block: 4px; }
+  .mf-in .mf-pills, .mf-out .mf-pills { align-items: flex-start; text-align: left; }
+  .mf-in { order: 0; } .mf-node { order: 1; } .mf-out { order: 2; }
+  .mf-arr { display: none; }
+  .mf-in .mf-pill::before, .mf-out .mf-pill::before { content: "↓ "; color: var(--muted); }
+}
+
 footer { color: var(--muted); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 16px; }
 footer .mono { overflow-wrap: anywhere; }
 
@@ -504,7 +565,7 @@ footer .mono { overflow-wrap: anywhere; }
   <div class="sec-head">
     <div class="eyebrow">Components</div>
     <h2 id="h-mod">What each component computes</h2>
-    <p>Parameter values are read from the tdaah namelists (<code>CNTLATM</code>, <code>CNTLOCN</code>, <code>CNTLALL</code>, <code>CNTLGEN</code>, <code>SIZES</code>, <code>INITHIS</code>). Codes such as A03_7A are the section versions chosen in the UMUI (<code>SECT_MODE</code>).</p>
+    <p>Each tab charts one component in call order: what enters at each stage, what leaves, and every parameter that stage uses. Dashed boxes run only on some steps; grey boxes are switched off in this job. Values are read from the tdaah namelists (<code>CNTLATM</code>, <code>CNTLOCN</code>, <code>CNTLALL</code>, <code>CNTLGEN</code>, <code>SIZES</code>, <code>INITHIS</code>); codes such as A03_7A are the section versions chosen in the UMUI (<code>SECT_MODE</code>).</p>
   </div>
   <div class="tabs" role="tablist" aria-label="Components" id="tabs"></div>
   <div id="panels"></div>
@@ -600,9 +661,9 @@ footer .mono { overflow-wrap: anywhere; }
     { cols:['a2-6'], rows:['dyn','rad','phys'], nodes:ATMOS, cur:['dyn','moist','bl','gwd','land'], edges:['e-dyn-moist','e-dyn-bl','e-bl-land','e-moist-land','e-rad-bl'], tab:'rad',
       chips:['atmos steps 2–6','00:30 → 03:00','no full radiation'],
       title:'Steps 2–6: everything except full radiation',
-      call:'ATM_STEP × 5, with L_SW_RADIATE = L_LW_RADIATE = .FALSE.', src:'SETTSCT1.dk:508–510 · RAD_CTL1.dk:1565–1660, 1787',
+      call:'ATM_STEP × 5, with L_SW_RADIATE = L_LW_RADIATE = .FALSE.', src:'SETTSCT1.dk:508–510 · ATMPHY1.dk:528 · CLDCTL1.dk:303–312, 750–990',
       in:['The SW and LW heating stored at step 1'],
-      calc:['Dynamics and all the other physics run exactly as on step 1','Shortwave heating is rescaled by the current solar zenith angle, so the diurnal cycle stays smooth; longwave heating is reapplied as stored'],
+      calc:['Dynamics and all the other physics run exactly as on step 1; RAD_CTL itself is skipped','Inside the cloud routine (CLD_CTL), the stored shortwave heating is rescaled by the current solar zenith angle, so the diurnal cycle stays smooth; longwave heating is reapplied as stored'],
       out:['Five more 30-minute steps'],
       note:'Full radiation is the most expensive part of the physics. Running it on every 6th step (A_SW_RADSTEP = A_LW_RADSTEP = 6) is the main saving.' },
 
@@ -706,144 +767,223 @@ footer .mono { overflow-wrap: anywhere; }
       note:'A perturbation experiment, such as a new orbit, normally starts from a spun-up control dump and changes only <code>&amp;NLSTSOLAR</code> or CO2_MMR.' }
   ];
 
-  /* ---------------- components ---------------- */
+  /* ---------------- components ----------------
+     flow: the component's internal call order. Each stage: t title, r routine, at source line,
+     d what it does, p parameters used (keys of params), inn data entering, out data leaving,
+     cond when it runs (dashed box), off inactive in this job, fam colour override,
+     loop [label, n]: this stage and the next n − 1 repeat. params: [name, value, meaning, short value for the chip] */
   const MODS = [
-    { key:'dyn', fam:'atm', name:'Dynamics', full:'Atmospheric dynamical core · sections 10–13 (A10_1C, A12_1C, A13_1C)',
+    { key:'dyn', fam:'atm', name:'Dynamics', full:'Atmospheric dynamical core · sections 10–13 (A10_1C, A12_1C, A13_1C) · 96 × 73 × 19',
       freq:['every atmos step','48 / day','Δt = 30 min, adjustment 3 × 10 min'],
       lead:'Hydrostatic primitive equations on a regular 2.5° × 3.75° grid (Arakawa B grid) with 19 hybrid σ–p levels. The scheme is split-explicit: fast gravity-wave adjustment on short sub-steps, then advection over the full step.',
-      in:['p*, θ, q, cloud water, u, v as left by the previous step’s physics'],
-      calc:['ADJ_CTL: 3 adjustment steps for p*, θ, u, v (pressure gradient, Coriolis, gravity waves)','ADV_CTL: advect u, v, θ<sub>l</sub>, q<sub>t</sub>','DIF_CTL: horizontal diffusion, ∇⁶ on levels 1–18 and ∇² on the top level','QT_POS_CTL removes negative humidity; FILT_UV filters near the poles'],
-      out:['Updated p*, θ, q, u, v → physics','Vertical velocity diagnostics'],
-      params:[['ROW_LENGTH × P_ROWS','96 × 73','3.75° × 2.5° grid'],['P_LEVELS / Q_LEVELS','19 / 19','Hybrid σ–p levels; moisture on all of them'],['STEPS_PER_PERIODim','48 per 86 400 s','Atmosphere Δt = 1800 s'],['A_ADJSTEPS','3','Adjustment sub-steps per advection step (600 s each)'],['A_SWEEPS_DYN','1','Dynamics sweeps per physics step'],['DIFF_COEFF / DIFF_EXP','5.47×10⁸ / 3','Horizontal diffusion on levels 1–18; the operator is ∇ to the power 2 × DIFF_EXP'],['GRAV_WAVE_SPEED','350 m s⁻¹','Sets the latitudes and wavenumbers the polar filter removes'],['FILTERING_SAFETY_FACTOR','0.01','Safety margin of the polar filter']],
+      flow:[
+        { t:'Set the time steps', r:'ATM_DYN', at:'ATMDYN1.dk:350–426', d:'Dynamics step = 1800 s ÷ A_SWEEPS_DYN; adjustment step = that ÷ A_ADJSTEPS = 600 s. With L_HALF_TIMESTEP_DYN off there is always one sweep.', p:['STEPS_PER_PERIODim','A_SWEEPS_DYN','L_HALF_TIMESTEP_DYN','A_ADJSTEPS'], inn:['p*, θ, q, cloud water, u, v ← previous step’s physics'] },
+        { t:'Polar-filter set-up', r:'SET_FIL', at:'ATMDYN1.dk:472', d:'For each row, find the zonal wavenumbers that are too fast for a 600 s adjustment step', p:['A_NSET_FILTER','GRAV_WAVE_SPEED','FILTERING_SAFETY_FACTOR'] },
+        { t:'Adjustment', r:'ADJ_CTL', at:'ATMDYN1.dk:656', loop:'× A_ADJSTEPS', d:'Integrate p*, θ, u, v for gravity waves (pressure gradient, Coriolis); Fourier-filter the fast waves at high latitudes; smooth in time across the sub-steps', p:['A_ADJSTEPS','ADJ_TIME_SMOOTHING_COEFF'] },
+        { t:'Convert to θl and qt', r:'THETL_QT', at:'ATMDYN1.dk:771', d:'Combine θ, q and cloud water into liquid-water potential temperature θl and total water qt, which advection conserves' },
+        { t:'Advection', r:'ADV_CTL → MASS_UWT', at:'ATMDYN1.dk:2138–2232', d:'Advect mass-weighted u, v, θl and qt over the full step, adding the Coriolis term from vertical motion; then remove the mass weighting', p:['NU_BASIC','DIV_DAMP_COEFF_FC'] },
+        { t:'Horizontal diffusion', r:'DIF_CTL', at:'ATMDYN1.dk:2380', d:'Scale-selective diffusion of θ, u, v and of qt', p:['DIFF_COEFF','DIFF_EXP','DIFF_COEFF_Q','DIFF_EXP_Q'] },
+        { t:'Remove negative humidity', r:'QT_POS_CTL', at:'ATMDYN1.dk:2410', d:'Fill negative qt left by advection', p:['L_QT_POS_LOCAL'] },
+        { t:'Polar filtering of u, v', r:'FILT_UV', at:'ATMDYN1.dk:2515', d:'Mass-weighted Fourier filtering and polar averaging of the wind increments', out:['p*, θl, qt, u, v → physics (cloud scheme first)','ω diagnostics → STASH'] }
+      ],
+      params:[['STEPS_PER_PERIODim','48 per day','Atmosphere steps per 86 400 s: Δt = 1800 s','48 / day'],['A_SWEEPS_DYN','1','Dynamics sweeps per physics step'],['L_HALF_TIMESTEP_DYN','.FALSE.','Never split the dynamics into two sweeps when winds get strong'],['A_ADJSTEPS','3','Adjustment sub-steps per advection step: 600 s each'],['A_NSET_FILTER','1','Recompute the polar-filter set-up every step'],['GRAV_WAVE_SPEED','350 m s⁻¹','Fastest gravity-wave speed the filter has to control'],['FILTERING_SAFETY_FACTOR','0.01','Safety margin when choosing the filtered wavenumbers'],['ADJ_TIME_SMOOTHING_COEFF','0.05','Time smoothing across the adjustment sub-steps (weights 1, −2, 1); 0 would switch it off'],['NU_BASIC','0.166667','ν term of the advection scheme; 0 would fall back to plain second-order differencing'],['DIV_DAMP_COEFF_FC','0 on all levels','Divergence damping in forecast mode: off','0'],['DIFF_COEFF','5.47×10⁸ (levels 1–18), 4×10⁶ (top)','Horizontal diffusion coefficient for θ, u, v','5.47×10⁸'],['DIFF_EXP','3 (levels 1–18), 1 (top)','Order of diffusion: ∇ to the power 2 × DIFF_EXP, so ∇⁶ and ∇² on the top level','3'],['DIFF_COEFF_Q','5.47×10⁸ (1–13), 1.5×10⁸ (14–18), 4×10⁶ (top)','Horizontal diffusion coefficient for moisture','5.47×10⁸ …'],['DIFF_EXP_Q','3 (1–13), 2 (14–18), 1 (top)','Order of diffusion for moisture: ∇⁶ low down, ∇⁴ on levels 14–18','3 …'],['L_QT_POS_LOCAL','.TRUE.','Correct negative humidity locally rather than with a global rescaling']],
       rel:'The dynamics is where HadCM3 makes its winds and therefore its wind stress. In cGENIE both are fixed fields read from file, so a change in circulation under a new orbit only reaches cGENIE if you pass the winds or wind stress over explicitly.',
       had:'cGENIE has no dynamical core: EMBM only advects and diffuses T and q with prescribed winds.',
-      src:['ATMSTEP1.dk:278 (ATM_DYN)','ATMDYN1.dk:656 (ADJ_CTL), 2138 (ADV_CTL), 2380 (DIF_CTL), 2515 (FILT_UV)'] },
+      src:['ATMSTEP1.dk:278 (ATM_DYN)','ATMDYN1.dk','SETTSCT1.dk:506 (L_SET_FILTER)'] },
 
     { key:'rad', fam:'atm', name:'Radiation', full:'Edwards–Slingo two-stream radiation · sections 1–2 (A01_3A, A02_3A)',
       freq:['every 6 atmos steps','8 / day','Δt = 3 h'],
-      lead:'Full shortwave and longwave calculations on steps 1, 7, 13 … of each day. In between, the stored heating rates are reused: shortwave rescaled by the current solar zenith angle, longwave as it is.',
-      in:['Orbit (fixed for the run) → solar declination and Earth–Sun distance (SOLPOS); zenith angle at each point (SOLANG)','Temperature, humidity, large-scale and convective cloud','Fixed gas mixing ratios, ozone climatology, climatological aerosol','Surface albedo: sea, sea ice, MOSES land tiles, snow'],
-      calc:['6 shortwave and 8 longwave bands','Heating rate in every layer; surface and TOA fluxes','Store the increments for the next 5 steps'],
-      out:['Radiative heating → θ','Surface SW and LW → boundary layer; net and blue-band solar → coupler','TOA fluxes → energy correction'],
-      params:[['A_SW_RADSTEP / A_LW_RADSTEP','6 / 6','Full radiation every 6 steps (3 h)'],['H_SWBANDS / H_LWBANDS','6 / 8','Spectral bands'],['SC','1365 W m⁻²','Solar constant'],['CO2_MMR','4.25418×10⁻⁴','= 280 ppmv CO₂'],['CH4MMR','4.209×10⁻⁷','≈ 760 ppbv CH₄'],['N2OMMR','4.102×10⁻⁷','≈ 270 ppbv N₂O'],['L_SEC_VAR','.FALSE.','Orbit held fixed for the whole run'],['OZONE','qrclim.ozone_CMIP7clim','Ozone climatology (INITHIS)'],['L_CLIMAT_AEROSOL','.TRUE.','Climatological aerosol instead of a sulphur cycle']],
+      lead:'Full shortwave and longwave calculations on steps 1, 7, 13 … of each day. RAD_CTL is not called on the other steps: the cloud routine reads back the stored heating, rescales the shortwave part to the current sun angle and applies it again.',
+      flow:[
+        { t:'Is this a radiation step?', r:'SETTSCTL', at:'SETTSCT1.dk:508–510', d:'L_SW_RADIATE and L_LW_RADIATE are true when MOD(STEP − 1, 6) = 0: steps 1, 7, 13 … 43', p:['A_SW_RADSTEP','A_LW_RADSTEP'] },
+        { t:'Find the tropopause', r:'TROPIN', at:'RAD_CTL1.dk:757', cond:'radiation steps', d:'Locate the tropopause in each column' },
+        { t:'Sun position', r:'SOLPOS', at:'RAD_CTL1.dk:843', cond:'radiation steps', d:'Solar declination and Earth–Sun distance factor for today, from the orbit', p:['L_SEC_VAR'], inn:['Orbit e, γ, τ₀, sin(obliquity), set once at start-up from &NLSTSOLAR'] },
+        { t:'Zenith angle', r:'SOLANG', at:'RAD_CTL1.dk:886', cond:'radiation steps', d:'Mean cos(zenith angle) and sunlit fraction at every point over the next 3 hours', p:['A_SW_RADSTEP'] },
+        { t:'Surface albedo', r:'FTSA', at:'RAD_CTL1.dk:990–1026', cond:'radiation steps', d:'Albedo of open sea, of sea ice (from its surface temperature) and of snow', p:['ALPHAC','ALPHAM','DTICE'], inn:['Ice fraction, surface temperature, snow','Land albedo ← MOSES tiles'] },
+        { t:'Shortwave', r:'R2_SWRAD', at:'RAD_CTL1.dk:1399', cond:'radiation steps', d:'Edwards–Slingo two-stream scheme for all sunlit points', p:['H_SWBANDS','SC','CO2_MMR','O2MMR','L_CLIMAT_AEROSOL','A_SW_SEGMENTS'], inn:['T, q, large-scale and convective cloud','Ozone climatology (qrclim.ozone_CMIP7clim)'], out:['Surface net and blue-band SW → coupler (via STASH)'] },
+        { t:'Longwave', r:'R2_LWRAD', at:'RAD_CTL1.dk:1985', cond:'radiation steps', d:'Edwards–Slingo longwave with water vapour, CO₂, CH₄, N₂O and ozone', p:['H_LWBANDS','CO2_MMR','CH4MMR','N2OMMR','L_CLIMAT_AEROSOL','A_LW_SEGMENTS'], out:['Surface LW down → boundary layer'] },
+        { t:'Store and apply', r:'BUFFOUT · FLUX_DIAG', at:'RAD_CTL1.dk:1555–1660, 2120', cond:'radiation steps', d:'Save the heating for the next 5 steps (shortwave per unit sunlight) and apply it to θ, with shortwave rescaled to this 30-minute step’s sun angle', out:['Radiative heating → θ','Net radiative heating → energy correction'] },
+        { t:'Reuse on the other steps', r:'CLD_CTL §9.1, §9.4 → SOLPOS, SOLANG, RAD_MOSES', at:'CLDCTL1.dk:303–312, 750–990', cond:'other steps', d:'Read the stored heating back, rescale shortwave to this step’s zenith angle, reapply longwave unchanged; update the surface radiation of each MOSES tile', out:['Radiative heating → θ','Surface radiation per tile → boundary layer'] }
+      ],
+      params:[['A_SW_RADSTEP','6','Full shortwave every 6 steps (3 h)'],['A_LW_RADSTEP','6','Full longwave every 6 steps (3 h)'],['L_SEC_VAR','.FALSE.','Orbit fixed for the whole run (set once by ORBPRM)'],['ALPHAC','0.80','Albedo of cold sea ice'],['ALPHAM','0.50','Albedo of sea ice at the melting point'],['DTICE','10 K','Temperature range below melting over which sea-ice albedo goes from ALPHAC to ALPHAM'],['H_SWBANDS','6','Shortwave spectral bands'],['SC','1365 W m⁻²','Solar constant, scaled by the Earth–Sun distance factor'],['CO2_MMR','4.25418×10⁻⁴','CO₂ mass mixing ratio = 280 ppmv','280 ppm'],['O2MMR','0.2314','O₂ mass mixing ratio (shortwave)'],['L_CLIMAT_AEROSOL','.TRUE.','Climatological aerosol in both schemes'],['A_SW_SEGMENTS','4','Sunlit points split into chunks to save memory'],['H_LWBANDS','8','Longwave spectral bands'],['CH4MMR','4.209×10⁻⁷','≈ 760 ppbv CH₄','760 ppb'],['N2OMMR','4.102×10⁻⁷','≈ 270 ppbv N₂O','270 ppb'],['A_LW_SEGMENTS','4','Points split into chunks for the longwave']],
       rel:'The orbit acts only here, through insolation and sun angle. The Bristol CALC_SOLAR mod computes it once with ORBPRM (Berger 1978) from <code>&amp;NLSTSOLAR</code>, and ORB_ARRAY can override e, γ, τ₀ and sin(obliquity). CO₂ is the fixed CO2_MMR: a forcing in HadCM3, never a response.',
       had:'cGENIE replaces all of this with insolation × (1 − albedo) and an outgoing-longwave formula with a ln(CO₂) term.',
-      src:['ATMPHY1.dk:591 (RAD_CTL)','RAD_CTL1.dk:1565–1660 (SW rescaling), 1787 (LW reuse)','SETTSCT1.dk:508–510','merge_BriSciModN048_01: CALC_SOLAR (SOLPOS, ORBPRM)'] },
+      src:['ATMPHY1.dk:528–591 (RAD_CTL only on radiation steps)','RAD_CTL1.dk','CLDCTL1.dk:303–312, 750–990','merge_BriSciModN048_01: CALC_SOLAR (SOLPOS, ORBPRM)'] },
 
     { key:'cloud', fam:'atm', name:'Cloud & rain', full:'Large-scale cloud and precipitation · sections 9 and 4 (A09_1A, A04_2E)',
       freq:['every atmos step','48 / day','Δt = 30 min'],
-      lead:'Cloud is diagnosed afresh on every step from total water and a critical relative humidity. Large-scale precipitation then turns part of the cloud water into rain or snow.',
-      in:['q<sub>t</sub> and θ<sub>l</sub> after the dynamics','The RHcrit profile'],
-      calc:['CLD_CTL: cloud fraction and liquid and ice water, assuming a sub-grid humidity spread set by RHcrit','Liquid and ice split by temperature; there is no prognostic cloud ice','LSPP_CTL: autoconversion above a cloud-water threshold, ice fall-out, evaporation of falling rain'],
-      out:['Cloud amount and water → radiation','Large-scale rain and snow → land hydrology and coupler','Latent heating → θ'],
-      params:[['RHCRIT','0.95, 0.90, 0.85, then 0.70','Critical relative humidity: levels 1–3, then level 4 upward'],['CW_SEA / CW_LAND','5.0×10⁻⁵ / 2.0×10⁻⁴','Cloud-water threshold for autoconversion, sea / land'],['L_LSPICE','.FALSE.','No prognostic cloud ice'],['L_CLD_AREA','.FALSE.','No separate area cloud fraction']],
+      lead:'Cloud is diagnosed afresh on every step from total water and a critical relative humidity; large-scale precipitation then turns part of the cloud water into rain or snow. On steps without full radiation, the cloud routine also puts back the stored radiative heating.',
+      flow:[
+        { t:'Read stored radiation', r:'CLD_CTL §9.1', at:'CLDCTL1.dk:303–312', cond:'steps without full radiation', d:'Read back the heating saved at the last radiation step' },
+        { t:'Cloud fraction and condensate', r:'GLUE_CLD → LS_CLD', at:'CLDCTL1.dk:316–347', d:'Split qt and θl into q, θ, cloud liquid and cloud ice, assuming a sub-grid spread of humidity whose width is set by RHcrit', p:['L_RHCPT','RHCRIT','L_CLD_AREA','L_LSPICE'], inn:['θl, qt ← dynamics'], out:['Cloud fraction, liquid and ice water → radiation'] },
+        { t:'Reapply radiation', r:'CLD_CTL §9.4', at:'CLDCTL1.dk:750–990', cond:'steps without full radiation', d:'Add the stored heating, with shortwave rescaled to this step’s sun angle (see Radiation)', out:['Radiative heating → θ'] },
+        { t:'Large-scale precipitation', r:'LSPP_CTL → GLUE_LSPP', at:'LSPP_CT1.dk:221', d:'From the top down: ice fall-out, autoconversion of cloud liquid above a threshold, evaporation of falling rain and snow below cloud', p:['CW_SEA','CW_LAND','RHCRIT'], out:['LS rain and snow → land hydrology and coupler','Latent heat of LS precipitation → energy correction'] }
+      ],
+      params:[['L_RHCPT','.FALSE.','RHcrit is not diagnosed: the fixed RHCRIT profile is used'],['RHCRIT','0.95, 0.90, 0.85, then 0.70','Critical relative humidity: levels 1–3, then from level 4 up','0.95 … 0.70'],['L_CLD_AREA','.FALSE.','No separate area cloud fraction'],['L_LSPICE','.FALSE.','No prognostic cloud ice: the liquid/ice split follows temperature'],['CW_SEA','5.0×10⁻⁵','Cloud-water threshold for autoconversion over sea'],['CW_LAND','2.0×10⁻⁴','Cloud-water threshold over land: higher, because more aerosol makes smaller droplets']],
       rel:'Clouds respond to an orbital change in HadCM3 and alter the surface energy budget. cGENIE has no clouds, so their effect can only reach it through the HadCM3 fields you prescribe.',
       had:'EMBM removes any humidity above a fixed fraction of saturation as precipitation; there are no clouds and no cloud radiative effect.',
-      src:['ATMPHY1.dk:420 (CLD_CTL), 828 (LSPP_CTL)'] },
+      src:['ATMPHY1.dk:420 (CLD_CTL), 828 (LSPP_CTL)','CLDCTL1.dk','LSPP_CT1.dk'] },
 
     { key:'conv', fam:'atm', name:'Convection', full:'Mass-flux convection · section 5 (A05_3C)',
       freq:['every atmos step','48 / day','A_CONV_STEP = 1'],
-      lead:'A bulk mass-flux scheme (Gregory and Rowntree 1990) with downdraughts and convective momentum transport, called on every step in every column.',
-      in:['Temperature and humidity after the boundary layer and large-scale precipitation','Boundary-layer T and q fluctuations, used to start parcels'],
-      calc:['Test parcel buoyancy from the lowest levels','Updraught entrainment and detrainment, downdraught, precipitation','Convective transport of momentum (L_MOM)'],
-      out:['Heating, drying and momentum increments','Convective rain and snow → hydrology and coupler','Convective cloud amount, base and top → radiation'],
-      params:[['A_CONV_STEP','1','Called on every step'],['L_MOM','.TRUE.','Convective momentum transport'],['L_CAPE','.FALSE.','No CAPE closure'],['L_3D_CCA','.FALSE.','Convective cloud as one amount per column'],['ANVIL_FACTOR / TOWER_FACTOR','0.0 / 0.0','No anvil shape for convective cloud']],
+      lead:'A bulk mass-flux scheme (Gregory and Rowntree 1990) with downdraughts and convective momentum transport. It runs on every step and works up each column one level at a time.',
+      flow:[
+        { t:'Is convection due?', r:'SETTSCTL', at:'SETTSCT1.dk:512', d:'L_CONVECT = MOD(STEP − 1, A_CONV_STEP) = 0', p:['A_CONV_STEP'] },
+        { t:'Split into segments', r:'CONV_CTL → GLUE_CONV', at:'CONV_CT1.dk:585', d:'Process the columns in chunks', p:['A_CONVECT_SEGMENTS'], inn:['T, q, u, v after the boundary layer and LS precipitation','T₁, q₁ fluctuations ← boundary layer'] },
+        { t:'Set up the column', r:'CONVECT: QSAT, FLAG_WET', at:'CONVEC3C.dk:633–664', d:'Saturation humidity on every level; whether condensate forms as water or ice; initial parcel momentum', p:['L_MOM'] },
+        { t:'Initiation test', r:'LAYER_CN · DQS_DTH', at:'CONVEC3C.dk:797–907', loop:['for each level k, from the surface up', 4], d:'Entrainment and detrainment rates; start a parcel where the layer from k to k + 1 is unstable enough' },
+        { t:'Lift the parcel', r:'LIFT_PAR', at:'CONVEC3C.dk:1198–1434', d:'Lift from k to k + 1 with entrainment and test its buoyancy; points that are no longer buoyant detrain', p:['L_MOM'] },
+        { t:'Cloud and its effect', r:'CONVEC2', at:'CONVEC3C.dk:1809', d:'Condensation and precipitation, convective cloud water, forced detrainment; mass-flux increments to θ, q, u and v', p:['MPARWTR','UD_FACTOR','L_CCW','L_MOM'] },
+        { t:'Closure and downdraught', r:'DD_CALL', at:'CONVEC3C.dk:1990–2098', d:'For clouds that stop at this level: fix the cloud-base mass flux, then run the downdraught and evaporate falling precipitation', p:['L_CAPE','L_PHASE_LIM'] },
+        { t:'Energy balance', r:'COR_ENGY', at:'CONVEC3C.dk:2190', d:'Correct temperatures so the column conserves moist static energy' },
+        { t:'3-D convective cloud', r:'CALC_3D_CCA', at:'CONVEC3C.dk:2194', off:true, cond:'off: L_3D_CCA = .FALSE.', d:'Would spread convective cloud over levels with anvil and tower shapes; here it is one amount per column', p:['L_3D_CCA','ANVIL_FACTOR','TOWER_FACTOR'] },
+        { t:'Apply the increments', r:'CONV_CTL', at:'CONV_CT1.dk:659–1193', d:'Add θ and q increments, move u and v increments to wind points, sum rain and snow', out:['Convective rain and snow → hydrology, coupler','Latent heat → energy correction','Convective cloud amount, base, top → radiation'] }
+      ],
+      params:[['A_CONV_STEP','1','Convection every A_CONV_STEP steps: every step here'],['A_CONVECT_SEGMENTS','3','Columns processed in chunks to save memory'],['L_MOM','.TRUE.','Carry momentum in the parcel: convective momentum transport'],['MPARWTR','1.0×10⁻³','Convective cloud water kept in each layer (kg kg⁻¹); the excess falls as precipitation'],['UD_FACTOR','1.0','Updraught factor in the convective water path seen by radiation; only used if L_CCW'],['L_CCW','.FALSE.','Precipitation not included in that water path'],['L_CAPE','.FALSE.','No CAPE closure'],['L_PHASE_LIM','.TRUE.','Limit melting and freezing of precipitation in the downdraught so latent heat cannot push the temperature across 0 °C'],['L_3D_CCA','.FALSE.','Convective cloud as one amount per column'],['ANVIL_FACTOR','0.0','Anvil part of 3-D convective cloud (only with L_3D_CCA)'],['TOWER_FACTOR','0.0','Tower part of 3-D convective cloud (only with L_3D_CCA)']],
       rel:'Tropical convection decides where and how much it rains. When an orbit shifts the monsoons, this is where HadCM3’s rainfall and runoff response is made.',
       had:'EMBM has no convection scheme.',
-      src:['ATMPHY1.dk:973 (CONV_CTL)'] },
+      src:['ATMPHY1.dk:973 (CONV_CTL)','CONVEC3C.dk (CONVECT)'] },
 
     { key:'bl', fam:'atm', name:'Boundary layer', full:'Boundary layer and surface exchange · section 3 (A03_7A, MOSES 2.1)',
       freq:['every atmos step','48 / day','Δt = 30 min'],
-      lead:'MOSES 2.1 solves the surface energy balance separately on 9 surface types in each land box. A first-order turbulence scheme then mixes heat, moisture and momentum through the lowest 5 levels.',
-      in:['Surface radiation and near-surface T, q, u, v','Land: tile fractions from TRIFFID, soil moisture and temperature, snow','Sea and sea ice: SST, ice fraction and depth from the last swap'],
-      calc:['Exchange coefficients and surface fluxes on each tile; photosynthesis and respiration on the 5 plant tiles','Sea-ice surface energy balance: surface temperature, top melt, conduction through the ice','Turbulent mixing through BL_LEVELS = 5 levels'],
-      out:['Sensible and latent heat, evaporation, wind stress','Snowmelt, canopy and soil evaporation → hydrology','Plant carbon fluxes → TRIFFID','Daily-mean τ, heat and water fluxes → coupler'],
-      params:[['LMOSES / A03_7A','.TRUE. / MOSES 2.1','Tiled land-surface exchange'],['surface types','5 + 4','Broadleaf tree, needleleaf tree, C3 grass, C4 grass, shrub; urban, inland water, bare soil, land ice'],['BL_LEVELS','5','Levels with turbulent mixing'],['L_Z0_OROG','.TRUE.','Orographic roughness length'],['SOILTYPE','qrparm.soil.MOSES2','Soil ancillary (preind2)']],
+      lead:'MOSES 2.1 solves the surface energy balance separately on 9 surface types in each land box: broadleaf and needleleaf trees, C3 and C4 grass, shrubs, urban, inland water, bare soil and ice. A first-order turbulence scheme mixes heat, moisture and momentum through the lowest 5 levels, solved implicitly together with the surface.',
+      flow:[
+        { t:'Tile lists', r:'BL_INTCT → TILEPTS', at:'BL_IC7A.dk:667', d:'List the land points of each surface type from the current fractions', p:['LMOSES'], inn:['Surface-type fractions ← TRIFFID'] },
+        { t:'Plant physiology', r:'PHYSIOL', at:'BL_IC7A.dk:686', d:'Stomatal conductance, photosynthesis and respiration of the 5 plant types', p:['CO2_MMR','L_CO2_INTERACTIVE'], inn:['Photosynthetically active radiation ← radiation','Soil moisture ← hydrology'], out:['NPP and respiration → TRIFFID accumulators'] },
+        { t:'Surface exchange', r:'BDY_LAYR → SF_EXCH', at:'BDYLYR7A.dk:770', d:'Roughness, bulk Richardson number, exchange coefficients and explicit fluxes for sea, sea ice and each land tile', p:['L_Z0_OROG'], inn:['SST, ice fraction, ice depth ← coupler (last swap)','Surface SW and LW ← radiation'] },
+        { t:'Mixing coefficients', r:'KMKH', at:'BDYLYR7A.dk:825', d:'Turbulent diffusivities for momentum and heat on the lowest levels', p:['BL_LEVELS'] },
+        { t:'Implicit solve for T and q', r:'EX_FLUX_TQ → IM_CAL_TQ', at:'BDYLYR7A.dk:917–970', d:'Explicit fluxes, then an implicit solution that couples the surface and the boundary-layer levels', p:['BL_LEVELS'] },
+        { t:'Sea-ice heat flux', r:'SICE_HTF', at:'BDYLYR7A.dk:1010', d:'Conduction through the ice from the ice surface temperature and the ice depth', out:['Conductive and top-melt heat flux → coupler'] },
+        { t:'Evaporation limits', r:'SF_EVAP', at:'BDYLYR7A.dk:1061', d:'Take evaporation from canopy, soil, lakes and snow, limited by the water available' },
+        { t:'Snowmelt', r:'SF_MELT', at:'BDYLYR7A.dk:1075', d:'Melt snow on tiles whose surface reaches 0 °C', out:['Snowmelt, sublimation, evaporation → hydrology'] },
+        { t:'Winds and stress', r:'IM_CAL_UV', at:'BDYLYR7A.dk:1166', d:'Implicit solution for u and v; surface wind stress', out:['τ, sensible and latent heat, evaporation → coupler (daily mean)','Surface sensible heat → energy correction'] }
+      ],
+      params:[['LMOSES','.TRUE.','MOSES land surface; section version A03_7A is MOSES 2.1 with tiles'],['CO2_MMR','4.25418×10⁻⁴','CO₂ seen by photosynthesis: the same fixed 280 ppm','280 ppm'],['L_CO2_INTERACTIVE','.FALSE.','Use the fixed CO2_MMR rather than a 3-D CO₂ field'],['L_Z0_OROG','.TRUE.','Add an orographic roughness length from the sub-grid orography'],['BL_LEVELS','5','Levels with turbulent mixing']],
       rel:'The wind stress and surface heat and water fluxes that reach the ocean are made here and averaged over the day. They are the HadCM3 quantities closest to what cGENIE’s ocean needs as boundary conditions.',
       had:'cGENIE’s surflux does this with bulk formulas on one surface type per cell, once per ocean step.',
-      src:['ATMPHY1.dk:687 (BL_CTL)'] },
+      src:['ATMPHY1.dk:687 (BL_CTL)','BL_IC7A.dk','BDYLYR7A.dk'] },
 
     { key:'hydro', fam:'land', name:'Land hydrology', full:'Soil, snow and runoff · section 8 (A08_7A, MOSES 2.1)',
       freq:['every atmos step','48 / day','Δt = 30 min'],
       lead:'Rain and snow reach the land here: canopy interception, snowpack, infiltration, a 4-layer soil, and runoff that goes to the ocean once a day.',
-      in:['Large-scale and convective rain and snow','Evaporation, sublimation and snowmelt from the boundary layer'],
-      calc:['Canopy water and throughfall','Snow mass and melt','Soil water and temperature in 4 layers; surface and sub-surface (fast and slow) runoff'],
-      out:['Soil moisture → next step’s evaporation','Fast and slow runoff → coupler → river-outflow points'],
-      params:[['SM_LEVELS / ST_LEVELS','4 / 4','Soil moisture and soil temperature layers'],['SMCSNOWD','qrclim.smow','Initial soil moisture and snow'],['DSOILTMP','qrclim.slt.MOSES','Deep soil temperature'],['L_VEG_FRACS','.TRUE.','Hydrology uses the vegetation fractions']],
+      flow:[
+        { t:'Soil thermal conductivity', r:'HYD_INTCTL → HYDROL → HEAT_CON', at:'HYDR_CT1.dk:321 · HYDROL7A.dk:210', d:'From the water and ice content of each soil layer', p:['ST_LEVELS'] },
+        { t:'Snow', r:'SFSNOW', at:'HYDROL7A.dk:215', d:'Add snowfall, remove melt and sublimation, update the snow mass', inn:['Snowfall (LS + convective) ← precipitation','Snowmelt, sublimation ← boundary layer'] },
+        { t:'Canopy and surface runoff', r:'SURF_HYD', at:'HYDROL7A.dk:244', d:'Interception and throughfall on each tile; water the soil cannot take runs off', p:['L_VEG_FRACS'], inn:['Rain (LS + convective) ← precipitation'], out:['Fast (surface) runoff → coupler'] },
+        { t:'Soil water', r:'SOIL_HYD', at:'HYDROL7A.dk:254', d:'Flow between the layers, extraction by roots, drainage out of the bottom layer', p:['SM_LEVELS'], inn:['Transpiration and soil evaporation ← boundary layer'], out:['Slow (sub-surface) runoff → coupler'] },
+        { t:'Soil temperature', r:'SOIL_HTC · ICE_HTC on land ice', at:'HYDROL7A.dk:263–273', d:'Heat conduction through the soil layers', p:['ST_LEVELS'], inn:['Surface heat flux ← boundary layer'] },
+        { t:'Soil moisture totals', r:'SOILMC', at:'HYDROL7A.dk:286', d:'Column soil moisture', out:['Soil moisture → next step’s evaporation and photosynthesis'] }
+      ],
+      params:[['L_VEG_FRACS','.TRUE.','Hydrology done per tile, using the vegetation fractions'],['SM_LEVELS','4','Soil moisture layers'],['ST_LEVELS','4','Soil temperature layers']],
       rel:'Runoff carries the land’s share of the freshwater budget to the ocean. In cGENIE, ROKGEM sends weathering products down the rivers; HadCM3 sends only water.',
       had:'Without ENTS, cGENIE stores no water on land: precipitation over land goes straight to the coast as runoff.',
-      src:['ATMPHY1.dk:1047 (HYDR_CTL)'] },
+      src:['ATMPHY1.dk:1047 (HYDR_CTL)','HYDROL7A.dk'] },
 
     { key:'veg', fam:'land', name:'Vegetation', full:'TRIFFID dynamic vegetation and leaf phenology · section 19 (A19_2A)',
       freq:['phenology daily','TRIFFID every 10 days','on atmos step 48'],
       lead:'Phenology updates leaf area once a day. Every 10 days TRIFFID updates vegetation carbon and the cover of the 5 plant types, which changes the MOSES tiles and so their albedo and roughness.',
-      in:['Photosynthesis, respiration and leaf turnover accumulated by the boundary layer','Disturbance ancillary (none in this PI job)'],
-      calc:['Phenology: leaf area from temperature-dependent leaf turnover','TRIFFID: carbon balance of each plant type, competition for space (Lotka–Volterra), soil carbon'],
-      out:['Leaf area and canopy height → MOSES tiles','New vegetation fractions every 10 days'],
-      params:[['L_TRIFFID','.TRUE.','Dynamic vegetation on'],['TRIFFID_PERIOD','10 days','How often TRIFFID runs'],['L_PHENOL / PHENOL_PERIOD','.TRUE. / 1 day','Leaf phenology'],['L_TRIF_EQ','.FALSE.','Dynamic, not equilibrium, mode'],['VEGINIT / FRACINIT','qrfrac.pft / qrfrac.type','Initial plant-type and surface-type fractions'],['DISTURB','qrfrac.disturb.nodisturb','No agricultural disturbance']],
+      flow:[
+        { t:'Count steps', r:'ATM_PHYS', at:'ATMPHY1.dk:1229', d:'Add one to the count of steps since the last TRIFFID call' },
+        { t:'Leaf phenology', r:'VEG_CTL → VEG → PHENOL', at:'VEG2A.dk:324–344', cond:'every PHENOL_PERIOD', d:'Leaf turnover from temperature; update the leaf area of each plant type', p:['L_PHENOL','PHENOL_PERIOD'], inn:['Leaf turnover accumulated over the day ← boundary layer'] },
+        { t:'Mean fluxes', r:'VEG', at:'VEG2A.dk:375–410', cond:'every TRIFFID_PERIOD', d:'Turn the accumulated NPP, plant and soil respiration and leaf turnover into mean rates over the period', p:['L_TRIFFID','TRIFFID_PERIOD'], inn:['NPP, plant and soil respiration ← boundary-layer accumulators'] },
+        { t:'Disturbance', r:'VEG', at:'VEG2A.dk:422', cond:'every TRIFFID_PERIOD', d:'Agricultural disturbance rate from the disturbed fraction: zero in this PI job', inn:['Disturbed fraction ← qrfrac.disturb.nodisturb'] },
+        { t:'TRIFFID', r:'TRIFFID', at:'VEG2A.dk:457', cond:'every TRIFFID_PERIOD', d:'Carbon balance of each plant type, competition for space (Lotka–Volterra), litter into soil carbon', p:['L_TRIF_EQ'], out:['New fractions of the 5 plant types and bare soil'] },
+        { t:'Update tiles', r:'TILEPTS', at:'VEG2A.dk:469', cond:'every TRIFFID_PERIOD', d:'Rebuild the tile lists and reset the accumulators' },
+        { t:'Surface parameters', r:'SPARM', at:'VEG2A.dk:508', d:'Albedo, roughness and canopy water capacity of each tile from leaf area and canopy height', out:['Tile parameters, leaf area, canopy height → boundary layer and hydrology'] }
+      ],
+      params:[['L_PHENOL','.TRUE.','Interactive leaf phenology'],['PHENOL_PERIOD','1 day','Phenology every 48 steps'],['L_TRIFFID','.TRUE.','Dynamic vegetation'],['TRIFFID_PERIOD','10 days','TRIFFID every 480 steps; fluxes are averaged over this period'],['L_TRIF_EQ','.FALSE.','Dynamic, not equilibrium, time stepping']],
       rel:'Vegetation responds to the orbital climate and feeds back on albedo and evaporation. Its carbon never reaches the atmosphere: CO₂ stays at CO2_MMR because L_CO2_INTERACTIVE = .FALSE.',
       had:'cGENIE’s ENTS is the equivalent; it is off in the CBSR configuration, which then has no vegetation at all.',
-      src:['ATMPHY1.dk:1222–1251 (VEG_CTL)','merge_MOSES2.1_01, ABX5F406 (TRIFFID step counter)'] },
+      src:['ATMPHY1.dk:1222–1251 (VEG_CTL)','VEG2A.dk','merge_MOSES2.1_01, ABX5F406 (TRIFFID step counter)'] },
 
     { key:'gwd', fam:'atm', name:'Gravity-wave drag', full:'Orographic gravity-wave drag · section 6 (A06_3A)',
       freq:['every atmos step','48 / day','Δt = 30 min'],
-      lead:'Sub-grid mountains launch gravity waves that break aloft and slow the flow. The scheme also has a lee-wave component.',
-      in:['u, v and θ profiles','Sub-grid orography statistics from the orography ancillary'],
-      calc:['Surface stress from the sub-grid orography','Deposit the stress where the waves saturate, from level START_LEVEL_GWDRAG = 3 upward'],
-      out:['u and v increments'],
-      params:[['KAY_GWAVE','2.0×10⁴','Surface stress constant'],['KAY_LEE_GWAVE','3.0×10⁵','Lee-wave stress constant'],['START_LEVEL_GWDRAG','3','Lowest level that receives drag'],['OROG','qrparm.orog','Orography ancillary (preind2)']],
+      lead:'Sub-grid mountains launch gravity waves that break aloft and slow the flow. The scheme also includes hydraulic-jump and trapped lee-wave drag near the surface.',
+      flow:[
+        { t:'Surface stress', r:'GWAV_CTL → GWAVE → GW_SURF', at:'GWAV_CT1.dk:326 · GWAVE3A.dk:319', d:'Stress from the low-level wind and stability and from the sub-grid orography (standard deviation and anisotropy)', p:['KAY_GWAVE'], inn:['u, v, θ profiles','Sub-grid orography ← qrparm.orog'] },
+        { t:'Vertical distribution', r:'GW_VERT', at:'GWAVE3A.dk:330', d:'Deposit the stress where the wave saturates, testing from START_LEVEL_GWDRAG upward; add hydraulic-jump and trapped lee-wave drag', p:['START_LEVEL_GWDRAG','KAY_LEE_GWAVE','KAY_GWAVE'] },
+        { t:'Apply to the winds', r:'P_TO_UV', at:'GWAVE3A.dk:347–369', d:'Move the drag to wind points and update u and v', out:['u, v increments'] }
+      ],
+      params:[['KAY_GWAVE','2.0×10⁴','Surface stress constant (m⁻¹)'],['KAY_LEE_GWAVE','3.0×10⁵','Trapped lee-wave constant'],['START_LEVEL_GWDRAG','3','Lowest level of the wave-breaking test']],
       rel:'Mainly a tuning of the mean state. It matters for the jets, and so for the wind stress, rather than for the orbital forcing itself.',
       had:'No equivalent in cGENIE.',
-      src:['ATMPHY1.dk:1173 (GWAV_CTL)'] },
+      src:['ATMPHY1.dk:1173 (GWAV_CTL)','GWAVE3A.dk'] },
 
     { key:'eng', fam:'atm', name:'Energy correction', full:'Global energy correction · section 14 (A14_1B)',
       freq:['worked out daily','applied every step','A_ENERGYSTEPS = 48'],
       lead:'The dynamics does not conserve energy exactly. Once a day the model compares the change in total atmospheric energy with the net energy that came in, and spreads the difference over the next day as a uniform heating.',
-      in:['Net downward energy flux, summed through the day','Total atmospheric energy now and at the start of the day'],
-      calc:['Step 48: ENG_MASS_DIAG and CAL_ENG_MASS_CORR compute the correction, plus a dry-mass correction to p*','Every step: ADD_ENG_CORR adds the uniform θ increment'],
-      out:['A small temperature tendency, the same everywhere'],
-      params:[['LEMCORR','.TRUE.','Energy correction on'],['A_ENERGYSTEPS','48','Correction period: one day'],['ADD_ENG_CORR','every step','Applied just after the cloud scheme, before radiation']],
+      flow:[
+        { t:'Reset the daily sum', r:'ATM_PHYS', at:'ATMPHY1.dk:470–477 · SETTSCT1.dk:425', cond:'first step of each day (LFLUX_RESET)', d:'Set the net-flux accumulator to zero', p:['LEMCORR','A_ENERGYSTEPS'] },
+        { t:'Apply the correction', r:'ADD_ENG_CORR', at:'ATMPHY1.dk:485', d:'Add one uniform θ increment: yesterday’s correction rate × 1800 s', p:['LEMCORR'] },
+        { t:'Accumulate the net flux', r:'FLUX_DIAG in RAD_CTL, LSPP_CTL, CONV_CTL, BL_CTL', at:'RAD_CTL1.dk:1587, 2120 · LSPP_CT1.dk:306 · CONV_CT1.dk:1188 · BL_CTL1.dk:1663', d:'Each scheme adds the energy it puts into the column to the daily sum', inn:['Net radiative heating ← radiation','Latent heat of rain and snow ← LS precipitation, convection','Surface sensible heat ← boundary layer'] },
+        { t:'Work out tomorrow’s correction', r:'ENG_MASS_DIAG → CAL_ENG_MASS_CORR', at:'ATMPHY1.dk:1338–1361', cond:'step 48 (LENERGY)', d:'Energy change over the day minus the summed net flux is the error; spread it as a heating rate over the next day, and correct p* for dry-mass drift', p:['A_ENERGYSTEPS'], out:['Correction rate → tomorrow’s steps','Corrected p*'] }
+      ],
+      params:[['LEMCORR','.TRUE.','Energy correction on'],['A_ENERGYSTEPS','48','Correction period: one day']],
       rel:'It stops a long control run from drifting through numerical energy loss. Because it is global and uniform, it does not alter the regional pattern of an orbital response.',
       had:'No equivalent in cGENIE.',
-      src:['ATMPHY1.dk:485 (ADD_ENG_CORR), 1338–1361 (ENG_MASS_DIAG, CAL_ENG_MASS_CORR)','SETTSCT1.dk:424–425 (LENERGY, LFLUX_RESET)'] },
+      src:['ATMPHY1.dk:470–485, 1338–1361','SETTSCT1.dk:424–425 (LENERGY, LFLUX_RESET)'] },
 
     { key:'cpl', fam:'cpl', name:'Coupler', full:'Atmosphere–ocean exchange · SWAP_A2O and SWAP_O2A',
       freq:['once a day','after each 24-hour group','MODEL_HRS_PER_GROUP = 24'],
-      lead:'There is no separate coupler program. U_MODEL alternates between the two submodels and swaps fields in memory at the end of each 24-hour group. The atmosphere’s fields are daily means accumulated by STASH.',
-      in:['Atmosphere → ocean: τx, τy, wind-mixing energy, net and blue solar, longwave, sensible heat, evaporation, large-scale and convective rain and snow, sea-ice top melt, bottom melt and sublimation, ice fraction, fast and slow runoff','Ocean → atmosphere: SST, surface currents, ice fraction, ice depth, snow depth'],
-      calc:['TRANSA2O: atmosphere grid → ocean grid with coastal corrections; net heat flux, P − E, snowfall; runoff to river-outflow points','TRANSO2A: ocean grid → atmosphere grid'],
-      out:['Ocean forcing for day n, held for 24 ocean steps','Atmosphere surface for day n + 1, held for 48 atmosphere steps'],
-      params:[['MODEL_HRS_PER_GROUP','24','Coupling period in hours'],['order','atmosphere first','SETGRCTL runs the atmosphere when both have done the same number of groups'],['L_CO2_INTERACTIVE','.FALSE.','No CO₂ passed either way'],['L_FLUXCORR / FLUXCORR','.TRUE. / qrparm.waterfix.hadcm3','The only flux-correction file: a water-flux field added in SFCADD'],['grids','96 × 73 ↔ 288 × 144','Each atmosphere box covers 3 × 2 ocean boxes']],
+      lead:'There is no separate coupler program. U_MODEL alternates between the two submodels and swaps fields in memory at the end of each 24-hour group. Each atmosphere box covers 3 × 2 ocean boxes.',
+      flow:[
+        { t:'Group length', r:'INITTIME', at:'INITTIM1.dk:581', d:'GROUP = MODEL_HRS_PER_GROUP × 3600 × steps per day ÷ 86 400: 48 atmosphere or 24 ocean steps', p:['MODEL_HRS_PER_GROUP','STEPS_PER_PERIODim'] },
+        { t:'Accumulate daily means', r:'STASH (coupling tag 10)', at:'INITA2O1.dk', cond:'every atmosphere step', d:'The atmosphere’s coupling fields are ordinary STASH diagnostics, time-meaned over the group', inn:['τx, τy, wind-mixing energy ← boundary layer','Net and blue solar, longwave ← radiation','Sensible heat, evaporation, sublimation, ice melt ← boundary layer','Rain and snow ← LS precipitation, convection','Fast and slow runoff ← hydrology'] },
+        { t:'Switch to the ocean', r:'SETGRCTL', at:'SETGRCT1.dk:120–140', d:'After 48 steps the next internal model is the ocean' },
+        { t:'Gather and route runoff', r:'SWAP_A2O', at:'U_MODEL1.dk:1525 · SWAPA2O2.dk', d:'Gather the fields onto global arrays; move runoff to the ocean entry points on the coast', p:['L_CO2_INTERACTIVE'] },
+        { t:'Atmosphere grid → ocean grid', r:'TRANSA2O', at:'TRANA2O1.dk', d:'Bilinear interpolation (H_INT_BL) with coastal corrections (COAST_AJ, POST_H_INT); combine into net heat flux and P − E', out:['τx, τy, wind mixing, blue solar, heat flux, P − E, river outflow, snowfall, sublimation, ice heat fluxes → ocean (day n)'] },
+        { t:'Ocean runs its day', r:'OCN_STEP × 24', at:'U_MODEL1.dk:994', d:'The forcing is held fixed for all 24 ocean steps' },
+        { t:'Ocean grid → atmosphere grid', r:'SWAP_O2A → TRANSO2A', at:'U_MODEL1.dk:1541 · TRANO2A1.dk', d:'Area-average (PRE_AREAVER, DO_AREAVER) back onto the atmosphere grid', inn:['SST, surface currents, ice fraction, ice depth, snow depth ← ocean'], out:['Surface temperature, ice fraction, ice depth, snow depth, currents → atmosphere (day n + 1)'] }
+      ],
+      params:[['MODEL_HRS_PER_GROUP','24','Coupling period in hours'],['STEPS_PER_PERIODim','48 / 24 per day','Atmosphere and ocean steps per day, which set the group length in steps','48 / 24'],['L_CO2_INTERACTIVE','.FALSE.','No CO₂ fields swapped']],
       rel:'These daily-mean fields are the interface a semi-coupled cGENIE would take over: wind stress and surface heat and freshwater fluxes going down, SST and sea ice coming back. Their monthly or annual means are the natural HadCM3 output to feed cGENIE.',
       had:'cGENIE couples its modules through shared interface arrays inside one loop, and surflux recomputes the fluxes on every ocean step (about 3.8 days).',
-      src:['U_MODEL1.dk:1483–1562','SETGRCT1.dk:80–86','SWAPA2O2.dk:521, SWAPO2A2.dk:433, TRANA2O1.dk','INITA2O1.dk (coupling fields found by STASH tag)'] },
+      src:['U_MODEL1.dk:1483–1562','SETGRCT1.dk:80–140','SWAPA2O2.dk, SWAPO2A2.dk, TRANA2O1.dk, TRANO2A1.dk','INITA2O1.dk'] },
 
-    { key:'ocn', fam:'ocn', name:'Ocean', full:'Bryan–Cox rigid-lid ocean GCM · sections 30–31',
+    { key:'ocn', fam:'ocn', name:'Ocean', full:'Bryan–Cox rigid-lid ocean GCM · sections 30–31 · 288 × 144 × 20',
       freq:['every ocean step','24 / day','Δt = 1 h'],
       lead:'A z-level ocean on a 1.25° grid with 20 levels and a rigid lid. Each step sweeps the rows for the depth-varying flow and the tracers, then solves one global equation for the depth-mean flow.',
-      in:['Daily forcing from the coupler: τ, heat flux, P − E, solar, wind mixing, rivers, ice melt','Heat and salt exchange with the sea ice'],
-      calc:['OCN_FRST: step counter, with a mixing (Euler-backward) step once a day','Row by row: density, CLINIC (baroclinic u, v), TRACER (T, S)','TRACER: advection, isopycnal diffusion with Gent–McWilliams, implicit vertical diffusion, surface fluxes, penetrating solar, freezing, Kraus–Turner mixed layer, convective adjustment, polar filter','TROP_CTL: barotropic streamfunction by SOR, with island circulations'],
-      out:['T, S, u, v and the streamfunction','SST and surface currents → coupler; currents → sea ice'],
-      params:[['IMT × JMT × KM','290 × 144 × 20','288 columns plus 2 cyclic ones; 1.25° × 1.25°'],['DTTS / DTUV / DTSF','3600 s','Tracer, momentum and streamfunction steps'],['NMIX','24','Mixing step every 24 steps, once a day'],['L_OFREESFC','.FALSE.','Rigid lid'],['MXSCAN / SOR / CRIT','500 / 1.775 / 4×10⁻⁵','Streamfunction solver'],['NISLE','6','Islands with their own circulation'],['L_OISOGM / L_OVISBECK','.TRUE. / .TRUE.','Gent–McWilliams with the Visbeck variable coefficient'],['AHI1_SI / AHI2_SI / AHI3_SI','1000 / 1000 / 500 m² s⁻¹','Isopycnal diffusivity coefficients'],['KAPPA0_SI / DKAPPA_DZ_SI','1×10⁻⁵ / 2.8×10⁻⁸','Vertical diffusivity at the surface (m² s⁻¹) and its increase per metre of depth: about 1.5×10⁻⁴ m² s⁻¹ at 5 km'],['LAMDA / DELTA_SI / EPSILON','0.7 / 100 m / 0.15','Kraus–Turner mixed-layer constants'],['L_ORICHARD / L_OQLARGE','.TRUE. / .TRUE.','Richardson-number mixing; quadratic Large scheme in the top 80 m'],['L_OMEDOUT','.TRUE.','Mediterranean outflow parametrisation'],['SALREF','0.035 (35 psu)','Reference salinity for the virtual salt flux']],
+      flow:[
+        { t:'Step bookkeeping', r:'OCN_CTL → OCN_FRST', at:'OCN_CTL.dk:314 · OCN_FRST.dk:60', d:'Count the step; on the mixing step, once a day, use Euler-backward instead of leapfrog', p:['NMIX'] },
+        { t:'Density', r:'STATED', at:'ROWCALC.dk:1141', loop:['for each row j = 1 … 144 (ROW_CTL → BLOKCALC → ROWCALC)', 11], d:'Equation of state for this row and the next' },
+        { t:'Baroclinic momentum', r:'CLINIC · VERTCOFC', at:'ROWCALC.dk:1265 · CLINIC.dk:1405', d:'Advection, Coriolis, pressure gradient, lateral viscosity AM = AM0 + AM1 cos φ, Richardson-dependent vertical viscosity; wind stress at the top', p:['DTUV','AM0_SI','AM1_SI','ACOR','L_ORICHARD','FNU0_SI','FNUB_SI'], inn:['Wind stress τx, τy ← coupler'] },
+        { t:'Vertical diffusivity', r:'TRACER → VERTCOFT', at:'TRACER.dk:682–700', d:'Richardson-dependent diffusivity on top of a background that grows with depth; quadratic Large scheme near the surface', p:['L_ORICHARD','STABLM_SI','KAPPA0_SI','DKAPPA_DZ_SI','L_OQLARGE','MAX_QLARGE_DEPTH'] },
+        { t:'Transport', r:'ISOPYC_M · IPDGMVEL · advection · ISOFLUX', at:'TRACER.dk:868–1453', d:'Along-isopycnal diffusion AHI(z) = AHI2 + (AHI1 − AHI2)·e^(−z/AHI3); Gent–McWilliams eddy velocities with the Visbeck coefficient; advection of T and S; implicit vertical diffusion', p:['DTTS','L_OISOPYC','L_OISOMOM','AHI1_SI','AHI2_SI','AHI3_SI','L_OISOGM','L_OVISBECK','L_OIMPDIF'] },
+        { t:'Surface fluxes', r:'SFCADD · ICEFLUX', at:'TRACER.dk:1885–1992', d:'Heat into the top layer; fresh water as a virtual salt flux; the water fix added; heat exchanged with the ice', p:['L_FLUXCORR','L_SALFLUXFIX','L_REFSAL','SALREF'], inn:['Heat flux, P − E, river outflow, snowfall ← coupler','Water fix ← qrparm.waterfix.hadcm3'] },
+        { t:'Penetrating solar', r:'SOLADD', at:'TRACER.dk:2067–2137', d:'Absorb the blue-band solar with depth', p:['RSOL','ETA1_SI','ETA2_SI'], inn:['Blue (penetrating) solar ← coupler'] },
+        { t:'Freezing', r:'FREEZEUP', at:'TRACER.dk:2192', d:'Water cooled below the freezing point forms new ice', out:['New ice → sea ice'] },
+        { t:'Mediterranean outflow', r:'TRACER', at:'TRACER.dk:2292–2378', d:'Exchange water between Mediterranean and Atlantic columns at Gibraltar', p:['L_OMEDOUT'] },
+        { t:'Mixed layer', r:'MIXLAY', at:'TRACER.dk:2583', d:'Kraus–Turner: wind-mixing energy and energy released by convection deepen the mixed layer', p:['LAMDA','DELTA_SI','EPSILON'], inn:['Wind-mixing energy ← coupler'] },
+        { t:'Convection', r:'CONVADJ · CONVFULL', at:'TRACER.dk:2695–2755', d:'Roussenov convection in a fixed box, then Rahmstorf’s complete convective adjustment everywhere', p:['L_OCONVROUS','ISROUS…JEROUS'] },
+        { t:'Polar filter', r:'OFILTR_CNTL', at:'TRACER.dk:2879', d:'Fourier-filter the tracers at high latitudes', p:['L_OFILTER'] },
+        { t:'Barotropic flow', r:'TROP_CTL → RELAX', at:'OCN_CTL.dk:424 · TROP_CTL.dk:183', d:'Solve for the streamfunction by successive over-relaxation, with island circulations, and add the depth-mean flow', p:['L_OFREESFC','DTSF','MXSCAN','SOR','CRIT','ACOR','NISLE'], out:['SST, surface currents → coupler','Surface currents → sea ice'] },
+        { t:'Sea ice', r:'ICE_CTL', at:'OCN_CTL.dk:474', fam:'ice', d:'Drift and thermodynamics: see the Sea ice tab' }
+      ],
+      params:[['NMIX','24','Mixing (Euler-backward) step every 24 steps: once a day'],['DTUV','3600 s','Momentum time step'],['AM0_SI','3000 m² s⁻¹','Constant part of the lateral viscosity'],['AM1_SI','3000 m² s⁻¹','Part of the lateral viscosity that scales with cos φ'],['ACOR','0.75','Weight of the implicit Coriolis treatment (0 = explicit)'],['L_ORICHARD','.TRUE.','Richardson-number-dependent vertical mixing'],['FNU0_SI','5.5×10⁻³ m² s⁻¹','Maximum of the Richardson-dependent viscosity'],['FNUB_SI','1×10⁻⁵ m² s⁻¹','Background vertical viscosity'],['STABLM_SI','1×10⁻² m² s⁻¹','Upper limit of the vertical diffusivity'],['KAPPA0_SI','1×10⁻⁵ m² s⁻¹','Background vertical diffusivity at the surface'],['DKAPPA_DZ_SI','2.8×10⁻⁸ m s⁻¹','Increase of the background diffusivity per metre of depth: about 1.5×10⁻⁴ m² s⁻¹ at 5 km'],['L_OQLARGE','.TRUE.','Quadratic Large scheme near the surface'],['MAX_QLARGE_DEPTH','80 m','Deepest reach of the quadratic Large scheme'],['DTTS','3600 s','Tracer time step'],['L_OISOPYC','.TRUE.','Isopycnal diffusion'],['L_OISOMOM','.TRUE.','Griffies form of the isopycnal scheme (ISOPYC_M, ISOFLUX)'],['AHI1_SI','1000 m² s⁻¹','Isopycnal diffusivity at the surface'],['AHI2_SI','1000 m² s⁻¹','Isopycnal diffusivity at depth'],['AHI3_SI','500 m','E-folding depth between the two; as AHI1 = AHI2 the diffusivity is a constant 1000 m² s⁻¹'],['L_OISOGM','.TRUE.','Gent–McWilliams eddy transport'],['L_OVISBECK','.TRUE.','Visbeck variable GM coefficient'],['L_OIMPDIF','.TRUE.','Implicit (Crank–Nicolson) vertical diffusion'],['L_FLUXCORR','.TRUE.','Read the flux-correction file FLUXCORR = qrparm.waterfix.hadcm3'],['L_SALFLUXFIX','.TRUE.','Zero its heat part, so only the water fix is applied'],['L_REFSAL','.TRUE.','Virtual salt flux uses the reference salinity'],['SALREF','0.035','Reference salinity (35 psu)'],['RSOL','0','Share of penetrating solar in the first band: none'],['ETA1_SI','1.0 m⁻¹','Decay rate of the first solar band (unused, since RSOL = 0)'],['ETA2_SI','0.059 m⁻¹','Decay rate of the second band: e-folding depth about 17 m'],['L_OMEDOUT','.TRUE.','Mediterranean outflow parametrisation'],['LAMDA','0.7','Share of the wind-mixing energy that enters the mixed layer'],['DELTA_SI','100 m','Decay depth of the wind-mixing energy'],['EPSILON','0.15','Share of the energy released by convection that remains for mixing'],['L_OCONVROUS','.TRUE.','Roussenov convection in a fixed box'],['ISROUS…JEROUS','cols 251–290, rows 119–128','The Roussenov box, about 58–70° N in the northern North Atlantic','251–290, 119–128'],['L_OFILTER','.TRUE.','Fourier filtering at high latitudes'],['L_OFREESFC','.FALSE.','Rigid lid'],['DTSF','3600 s','Streamfunction time step'],['MXSCAN','500','Maximum number of SOR sweeps'],['SOR','1.775','Over-relaxation factor'],['CRIT','4×10⁻⁵','Convergence criterion'],['NISLE','6','Islands with their own circulation']],
       rel:'Ocean temperature, salinity and circulation, the AMOC included, are what set carbon storage in a carbon-cycle model. HadCM3 computes them but carries no carbon in this job (L_OCARBON = .FALSE.). For semi-coupling, monthly or annual means of T, S or the circulation are the candidate fields to pass to cGENIE.',
       had:'GOLDSTEIN is a frictional-geostrophic ocean at about 10° with 16 levels and 96 steps a year. HadCM3 resolves 1.25° and takes 8 640 steps a year.',
-      src:['OCN_CTL.dk:314 (OCN_FRST), 351 (ROW_CTL), 424 (TROP_CTL)','ROWCALC.dk:1265 (CLINIC), 1330 (TRACER)','TRACER.dk','TROP_CTL.dk:183 (RELAX)','OCN_FRST.dk:60 (NMIX)'] },
+      src:['OCN_CTL.dk','ROWCALC.dk','CLINIC.dk','TRACER.dk','TROP_CTL.dk','OSETCON.dk:505–512 (KAPPA profile), 1286 (AHI profile)','SFCADD.dk:112–147'] },
 
     { key:'ice', fam:'ice', name:'Sea ice', full:'Zero-layer thermodynamic sea ice with simple drift · section 32',
       freq:['every ocean step','24 / day','Δt = 1 h'],
-      lead:'Sea ice belongs to the ocean submodel, but its surface energy balance is solved by the atmosphere. The ocean side moves the ice with the surface currents and grows or melts it from the fluxes it receives.',
-      in:['Surface ocean currents','Top melt, bottom melt, sublimation and snowfall ← coupler, from the atmosphere’s ice surface','Ocean heat flux into the ice'],
-      calc:['ICEDRIFT: move the ice with the surface currents (L_ICESIMPLE) and diffuse ice depth','ICEFLOE: Semtner (1976) zero-layer thermodynamics with leads (Hibler 1979)','Cap the concentration at 0.995 in the north and 0.98 in the south'],
-      out:['Ice fraction, ice depth, snow depth → coupler → atmosphere','Heat, salt and fresh water into the top ocean layer'],
-      params:[['L_SEAICE / L_ICESIMPLE','.TRUE. / .TRUE.','Sea ice on; simple drift with the currents'],['AMXNORTH / AMXSOUTH','0.995 / 0.98','Maximum ice concentration'],['AICEMIN / HICEMIN','0.001 / 1×10⁻⁴','Minimum ice concentration and depth'],['H0','0.5 m','Minimum local ice depth'],['SALICE','0.006','Ice salinity (6 psu)'],['AH_ICE','670 m² s⁻¹','Diffusion of ice depth'],['ALPHAC / ALPHAM / DTICE','0.80 / 0.50 / 10 K','Sea-ice albedo when cold and when melting, and the temperature range between them (used by the atmosphere)']],
+      lead:'Sea ice is split between the two submodels. The atmosphere solves the ice surface energy balance and the albedo every 30 minutes; the ocean side moves the ice with the surface currents and grows or melts it every hour.',
+      flow:[
+        { t:'Ice albedo', r:'FTSA (radiation)', at:'RAD_CTL1.dk:990–1026', fam:'atm', cond:'atmosphere, radiation steps', d:'Albedo falls from ALPHAC to ALPHAM as the ice surface warms through the last DTICE below melting', p:['ALPHAC','ALPHAM','DTICE'] },
+        { t:'Ice surface energy balance', r:'BL_CTL → SICE_HTF, SF_MELT', at:'BDYLYR7A.dk:1010, 1075', fam:'atm', cond:'atmosphere, every step', d:'Ice surface temperature, conduction through the ice, top melt and sublimation', inn:['Ice fraction, ice depth, snow depth ← last swap'], out:['Daily means of top melt, conductive heat flux and sublimation → coupler'] },
+        { t:'Split the incoming fluxes', r:'OCN_CTL → Init_Ocean_Ice', at:'OCN_CTL.dk:280–300', cond:'ocean, every step', d:'Divide heat fluxes and snowfall between the ice and the open-water leads', p:['L_SEAICE'], inn:['Top melt, conductive heat flux, sublimation, snowfall ← coupler'] },
+        { t:'Drift', r:'ICE_CTL → ICEDRIFT', at:'ICE_CTL.dk:429', d:'Advect ice depth, snow depth and concentration with the surface currents (GFDL-type scheme); diffuse ice depth', p:['L_ICESIMPLE','AH_ICE'], inn:['Surface currents ← ocean'] },
+        { t:'Thermodynamics', r:'ICEFLOE', at:'ICE_CTL.dk:453', d:'Semtner (1976) zero-layer model with leads (Hibler 1979): grow or melt the ice from the atmospheric fluxes and an ocean heat flux proportional to EDDYDIFF × (T₁ − T_freeze)', p:['EDDYDIFFN','EDDYDIFFS','H0','HICEMIN','AICEMIN','SALICE'], inn:['Top-layer temperature and new ice ← ocean'] },
+        { t:'Concentration cap', r:'ICEFLOE (AMX)', at:'OSETCON.dk:1163–1171', d:'Keep at least 0.5 % open water in the Arctic and 2 % in the Antarctic', p:['AMXNORTH','AMXSOUTH'], out:['Ice fraction, ice depth, snow depth → coupler → atmosphere (day n + 1)','Heat, salt and fresh water → top ocean layer'] }
+      ],
+      params:[['ALPHAC','0.80','Albedo of cold sea ice'],['ALPHAM','0.50','Albedo of sea ice at the melting point'],['DTICE','10 K','Temperature range below melting over which the albedo changes'],['L_SEAICE','.TRUE.','Sea ice on'],['L_ICESIMPLE','.TRUE.','Simple drift with the surface currents'],['AH_ICE','670 m² s⁻¹','Diffusion of ice depth'],['EDDYDIFFN','2.5×10⁻⁵','Ocean-to-ice heat transfer coefficient, northern hemisphere'],['EDDYDIFFS','2.5×10⁻⁵','Ocean-to-ice heat transfer coefficient, southern hemisphere'],['H0','0.5 m','Minimum local ice depth'],['HICEMIN','1×10⁻⁴','Minimum mean ice depth'],['AICEMIN','0.001','Minimum ice concentration'],['SALICE','0.006','Ice salinity (6 psu)'],['AMXNORTH','0.995','Maximum concentration in the north'],['AMXSOUTH','0.98','Maximum concentration in the south']],
       rel:'In cGENIE, sea-ice cover blocks air–sea gas exchange at high latitudes. HadCM3’s ice fraction under each orbit is a useful field to compare with cGENIE, or to impose on it.',
       had:'cGENIE’s sea ice is similar in kind (thickness and cover, drift with the currents, no rheology) but steps about every 3.8 days on a 10° grid.',
-      src:['OCN_CTL.dk:474 (ICE_CTL)','ICE_CTL.dk:429 (ICEDRIFT), 453 (ICEFLOE)','ICEFLOE.dk'] },
+      src:['OCN_CTL.dk:474 (ICE_CTL)','ICE_CTL.dk','ICEDRIFT.dk','ICEFLOE.dk','OSETCON.dk:1163–1171'] },
 
     { key:'off', fam:'off', name:'Not enabled', full:'Present in UM vn4.5 but switched off in this PI job',
       lead:'Options that exist in the code but are turned off in tdaah, by namelist switch or by section choice.',
-      table:[['Interactive CO₂','L_CO2_INTERACTIVE, L_CO2_EMITS = .FALSE.','CO₂ fixed at CO2_MMR; no 3-D CO₂ tracer and no CO₂ through the coupler'],['Ocean carbon cycle (HadOCC)','L_OCARBON, L_OBIOLOGY = .FALSE.','No DIC, alkalinity or plankton in the ocean'],['Sulphur cycle','L_SULPC_SO2 = .FALSE.','Climatological aerosol instead'],['Prognostic cloud ice','L_LSPICE = .FALSE.','Liquid and ice split by temperature'],['Free-surface ocean','L_OFREESFC = .FALSE.','Rigid lid with a streamfunction'],['Free-drift ice dynamics','L_ICEFREEDR = .FALSE.','Only the simple drift with the currents (L_ICESIMPLE)'],['Secular orbital change','L_SEC_VAR = .FALSE.','Orbit fixed for the whole run'],['Vertical diffusion, tracer advection','A07_0A, A11_0A','Sections 7 and 11 not included'],['Heat-flux adjustment','—','The only flux-correction file is the water fix; HadCM3 runs without heat-flux adjustment']],
-      src:['tdaah: CNTLATM, CNTLOCN, SECT_MODE'] }
+      table:[['Interactive CO₂','L_CO2_INTERACTIVE, L_CO2_EMITS = .FALSE.','CO₂ fixed at CO2_MMR; no 3-D CO₂ tracer and no CO₂ through the coupler'],['Ocean carbon cycle (HadOCC)','L_OCARBON, L_OBIOLOGY = .FALSE.','No DIC, alkalinity or plankton in the ocean'],['Sulphur cycle','L_SULPC_SO2 = .FALSE.','Climatological aerosol instead'],['Prognostic cloud ice','L_LSPICE = .FALSE.','Liquid and ice split by temperature'],['Free-surface ocean','L_OFREESFC = .FALSE.','Rigid lid with a streamfunction'],['Free-drift ice dynamics','L_ICEFREEDR = .FALSE.','Only the simple drift with the currents (L_ICESIMPLE)'],['Secular orbital change','L_SEC_VAR = .FALSE.','Orbit fixed for the whole run'],['3-D convective cloud','L_3D_CCA = .FALSE.','One convective cloud amount per column'],['Vertical diffusion, tracer advection','A07_0A, A11_0A','Sections 7 and 11 not included'],['Heat-flux adjustment','L_SALFLUXFIX = .TRUE.','The heat part of FLUXCORR is set to zero; only the water fix is applied']],
+      src:['tdaah: CNTLATM, CNTLOCN, SECT_MODE','SFCADD.dk:112–125'] }
   ];
 
   /* ---------------- helpers ---------------- */
@@ -920,6 +1060,44 @@ footer .mono { overflow-wrap: anywhere; }
     svg.innerHTML = h;
   })();
 
+  /* ---------------- component flowcharts ---------------- */
+  const T = { enters:'Enters here', inside:'Inside the component, in call order', leaves:'Leaves here',
+    hint:'Click a parameter in the chart or a row in the table to mark it in both places.',
+    param:'Parameter', value:'tdaah value', used:'Used in step', meaning:'Meaning' };
+  const attr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+  function flowHTML(m) {
+    const P = Object.fromEntries(m.params.map(r => [r[0], r]));
+    const chip = k => `<button type="button" class="pc" data-p="${attr(k)}" title="${attr(P[k][2])}">${k}<b>${P[k][3] || P[k][1]}</b></button>`;
+    const pills = a => `<div class="mf-pills">${a.map(x => `<span class="mf-pill">${x}</span>`).join('')}</div>`;
+    const conn = c => `<div class="mf-conn${c ? ' ' + c : ''}" aria-hidden="true"><span></span></div>`;
+    let h = `<div class="mflow"><div class="mf-head" aria-hidden="true"><span>${T.enters}</span><span>${T.inside}</span><span>${T.leaves}</span></div>`;
+    let left = 0;
+    m.flow.forEach((s, i) => {
+      const last = i === m.flow.length - 1;
+      if (Array.isArray(s.loop)) { h += `<div class="mf-loop"><div class="mf-looplab">↻ ${s.loop[0]}</div>` + conn('short nohead'); left = s.loop[1]; }
+      const cls = ['mf-node', s.fam || m.fam, s.cond ? 'cond' : '', s.off ? 'off' : ''].join(' ');
+      const tags = (typeof s.loop === 'string' ? `<span class="mf-tag">${s.loop}</span>` : '') + (s.cond ? `<span class="mf-tag">${s.cond}</span>` : '');
+      h += '<div class="mf-row">';
+      h += `<div class="mf-in">${s.inn ? pills(s.inn) + '<i class="mf-arr"></i>' : ''}</div>`;
+      h += `<div class="${cls}"><div class="mf-top"><span class="mf-n">${i + 1}</span><span class="mf-t">${s.t}</span>${tags}</div><div class="mf-r">${s.r} · ${s.at}</div>`;
+      if (s.d) h += `<p class="mf-d">${s.d}</p>`;
+      if (s.p && s.p.length) h += `<div class="mf-ps">${s.p.map(chip).join('')}</div>`;
+      h += '</div>';
+      h += `<div class="mf-out">${s.out ? '<i class="mf-arr"></i>' + pills(s.out) : ''}</div></div>`;
+      if (left > 0 && --left === 0) h += conn('short nohead') + '</div>';
+      if (!last) h += conn('');
+    });
+    return h + '</div>';
+  }
+
+  function paramTable(m) {
+    const used = {};
+    m.flow.forEach((s, i) => (s.p || []).forEach(k => { (used[k] = used[k] || []).push(i); }));
+    const rows = m.params.map(r => `<tr data-p="${attr(r[0])}" tabindex="0"><td class="k">${r[0]}</td><td class="v">${r[1]}</td><td class="u">${(used[r[0]] || []).map(i => `<span class="ul"><span class="ub">${i + 1}</span>${m.flow[i].t}</span>`).join('')}</td><td>${r[2]}</td></tr>`).join('');
+    return `<p class="mf-hint">${T.hint}</p><div class="tablewrap"><table class="ptab"><thead><tr><th>${T.param}</th><th>${T.value}</th><th>${T.used}</th><th>${T.meaning}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
   /* ---------------- tabs ---------------- */
   (function buildTabs() {
     const tabs = $('#tabs'), panels = $('#panels');
@@ -932,8 +1110,7 @@ footer .mono { overflow-wrap: anywhere; }
       if (m.table) {
         body += `<div class="tablewrap"><table><thead><tr><th>Option</th><th>Switch</th><th>In this job</th></tr></thead><tbody>${m.table.map(r => `<tr><td>${r[0]}</td><td class="k">${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div>`;
       } else {
-        body += `<div class="cols3"><div class="box"><h4>Reads</h4>${ul(m.in)}</div><div class="box"><h4>Does</h4>${ul(m.calc)}</div><div class="box"><h4>Writes</h4>${ul(m.out)}</div></div>`;
-        body += `<div class="tablewrap"><table><thead><tr><th>Parameter</th><th>tdaah value</th><th>Meaning</th></tr></thead><tbody>${m.params.map(r => `<tr><td class="k">${r[0]}</td><td class="v">${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div>`;
+        body += flowHTML(m) + paramTable(m);
         body += `<div class="pair"><div class="box rel"><h4>For the orbital–CO₂ question</h4><p>${m.rel}</p></div><div class="box"><h4>Compared with cGENIE</h4><p>${m.had}</p></div></div>`;
       }
       body += `<div class="srcs">Source: ${m.src.join(' · ')}</div>`;
@@ -958,6 +1135,21 @@ footer .mono { overflow-wrap: anywhere; }
     else if (e.key === 'End') j = list.length - 1;
     if (j !== null) { e.preventDefault(); e.stopPropagation(); openTab(list[j].dataset.key, { focusTab: true }); }
   });
+
+  /* parameter chips ↔ table rows */
+  const markParam = (el, cls, on) => {
+    const panel = el.closest('.mod');
+    if (panel) panel.querySelectorAll(`[data-p="${CSS.escape(el.dataset.p)}"]`).forEach(x => x.classList.toggle(cls, on));
+  };
+  const pickParam = el => markParam(el, 'sel', !el.classList.contains('sel'));
+  const panelsEl = $('#panels');
+  panelsEl.addEventListener('click', e => { const t = e.target.closest('[data-p]'); if (t) pickParam(t); });
+  panelsEl.addEventListener('keydown', e => {
+    const t = e.target.closest('tr[data-p]');
+    if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); pickParam(t); }
+  });
+  ['mouseover', 'focusin'].forEach(ev => panelsEl.addEventListener(ev, e => { const t = e.target.closest('[data-p]'); if (t) markParam(t, 'hl', true); }));
+  ['mouseout', 'focusout'].forEach(ev => panelsEl.addEventListener(ev, e => { const t = e.target.closest('[data-p]'); if (t) markParam(t, 'hl', false); }));
 
   $$('svg .n[data-tab]').forEach(n => {
     const go = () => openTab(n.dataset.tab, { scroll: true });

@@ -250,6 +250,67 @@ td.v { font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: t
 .box.rel h4 { color: var(--signal); }
 .srcs { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
 
+/* ---------- component flowcharts ---------- */
+.mflow { display: grid; min-width: 0; }
+.mf-head, .mf-row, .mf-conn { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.75fr) minmax(0, 1fr); }
+.mf-head { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-bottom: 10px; }
+.mf-head span:first-child { text-align: right; padding-right: 34px; }
+.mf-head span:nth-child(2) { text-align: center; }
+.mf-head span:last-child { padding-left: 34px; }
+.mf-row { align-items: stretch; }
+.mf-in, .mf-out { display: flex; align-items: center; min-width: 0; }
+.mf-in { justify-content: flex-end; }
+.mf-pills { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mf-in .mf-pills { align-items: flex-end; text-align: right; }
+.mf-out .mf-pills { align-items: flex-start; }
+.mf-pill { font-size: 12.5px; line-height: 1.4; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; max-width: 100%; overflow-wrap: anywhere; }
+.mf-arr { flex: 0 0 30px; height: 1.5px; background: var(--muted); position: relative; margin-inline: 2px; }
+.mf-arr::after { content: ""; position: absolute; right: -1px; top: 50%; transform: translateY(-50%); border-style: solid; border-width: 5px 0 5px 7px; border-color: transparent transparent transparent var(--muted); }
+.mf-node { border: 1.5px solid; border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.mf-node.atm { background: var(--atm-soft); border-color: var(--atm); }
+.mf-node.ocn { background: var(--ocn-soft); border-color: var(--ocn); }
+.mf-node.ice { background: var(--ice-soft); border-color: var(--ice); }
+.mf-node.land { background: var(--land-soft); border-color: var(--land); }
+.mf-node.cpl { background: var(--cpl-soft); border-color: var(--cpl); }
+.mf-node.cond { border-style: dashed; }
+.mf-node.off { background: var(--surface); border-color: var(--off); border-style: dashed; }
+.mf-node.off .mf-t, .mf-node.off .mf-d { color: var(--muted); }
+.mf-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.mf-n { font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; color: var(--bg); background: var(--ink); border-radius: 999px; min-width: 20px; height: 20px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; align-self: center; }
+.mf-t { font-weight: 600; font-size: 14.5px; }
+.mf-tag { font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); border: 1px dashed var(--muted); border-radius: 999px; padding: 0 7px; }
+.mf-r { font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.mf-d { font-size: 13.5px; margin: 0; }
+.mf-ps { display: flex; flex-wrap: wrap; gap: 5px; }
+.pc { font: inherit; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.5; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 1px 8px; cursor: pointer; display: inline-flex; gap: 6px; max-width: 100%; text-align: left; }
+.pc b { font-weight: 400; color: var(--muted); overflow-wrap: anywhere; }
+.pc:hover, .pc.hl, .pc.sel { border-color: var(--signal); background: var(--signal-soft); }
+.pc.sel b { color: var(--signal); }
+.pc:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.mf-conn > span { grid-column: 2; justify-self: center; width: 1.5px; height: 24px; background: var(--muted); position: relative; }
+.mf-conn > span::after { content: ""; position: absolute; left: 50%; bottom: -1px; transform: translateX(-50%); border-style: solid; border-width: 7px 5px 0 5px; border-color: var(--muted) transparent transparent transparent; }
+.mf-conn.nohead > span::after { display: none; }
+.mf-conn.short > span { height: 12px; }
+.mf-loop { position: relative; border: 1.5px dashed var(--muted); border-radius: 12px; }
+.mf-looplab { position: absolute; top: -10px; left: 14px; background: var(--surface); padding: 0 8px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); max-width: calc(100% - 28px); }
+.mf-hint { font-size: 13px; color: var(--muted); }
+.ptab tr { cursor: pointer; }
+.ptab tr.hl td, .ptab tr.sel td { background: var(--signal-soft); }
+.ptab tr.sel td.k { color: var(--signal); }
+.ub { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--ink); color: var(--bg); font-family: var(--font-mono); font-size: 11px; margin-right: 4px; }
+td.u { font-size: 12.5px; }
+td.u span.ul { display: block; white-space: nowrap; }
+@media (max-width: 720px) {
+  .mf-head { display: none; }
+  .mf-row, .mf-conn { grid-template-columns: minmax(0, 1fr); }
+  .mf-conn > span { grid-column: 1; }
+  .mf-in, .mf-out { justify-content: flex-start; padding-block: 4px; }
+  .mf-in .mf-pills, .mf-out .mf-pills { align-items: flex-start; text-align: left; }
+  .mf-in { order: 0; } .mf-node { order: 1; } .mf-out { order: 2; }
+  .mf-arr { display: none; }
+  .mf-in .mf-pill::before, .mf-out .mf-pill::before { content: "↓ "; color: var(--muted); }
+}
+
 footer { color: var(--muted); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 16px; }
 footer .mono { overflow-wrap: anywhere; }
 
@@ -501,7 +562,7 @@ footer .mono { overflow-wrap: anywhere; }
   <div class="sec-head">
     <div class="eyebrow">分量</div>
     <h2 id="h-mod">各分量算什么</h2>
-    <p>参数值读自 tdaah 的 namelist（<code>CNTLATM</code>、<code>CNTLOCN</code>、<code>CNTLALL</code>、<code>CNTLGEN</code>、<code>SIZES</code>、<code>INITHIS</code>）。A03_7A 这类代码是在 UMUI 里选定的 section 版本（见 <code>SECT_MODE</code>）。</p>
+    <p>每个标签按调用顺序画出一个分量：每个阶段进入什么、离开什么，以及这一阶段用到的每个参数。虚线框只在部分步运行；灰色框在本作业中关闭。参数值读自 tdaah 的 namelist（<code>CNTLATM</code>、<code>CNTLOCN</code>、<code>CNTLALL</code>、<code>CNTLGEN</code>、<code>SIZES</code>、<code>INITHIS</code>）；A03_7A 这类代码是在 UMUI 里选定的 section 版本（见 <code>SECT_MODE</code>）。</p>
   </div>
   <div class="tabs" role="tablist" aria-label="分量" id="tabs"></div>
   <div id="panels"></div>
@@ -597,9 +658,9 @@ footer .mono { overflow-wrap: anywhere; }
     { cols:['a2-6'], rows:['dyn','rad','phys'], nodes:ATMOS, cur:['dyn','moist','bl','gwd','land'], edges:['e-dyn-moist','e-dyn-bl','e-bl-land','e-moist-land','e-rad-bl'], tab:'rad',
       chips:['大气第 2–6 步','00:30 → 03:00','无完整辐射'],
       title:'第 2–6 步：除完整辐射外全部照常',
-      call:'ATM_STEP × 5，L_SW_RADIATE = L_LW_RADIATE = .FALSE.', src:'SETTSCT1.dk:508–510 · RAD_CTL1.dk:1565–1660, 1787',
+      call:'ATM_STEP × 5，L_SW_RADIATE = L_LW_RADIATE = .FALSE.', src:'SETTSCT1.dk:508–510 · ATMPHY1.dk:528 · CLDCTL1.dk:303–312, 750–990',
       in:['第 1 步存下的短波和长波加热率'],
-      calc:['动力和其他所有物理过程都和第 1 步一样运行','短波加热按当前太阳天顶角重新缩放，使日变化保持平滑；长波加热原样沿用'],
+      calc:['动力和其他所有物理过程都和第 1 步一样运行；RAD_CTL 本身被跳过','在云方案（CLD_CTL）里，存下的短波加热按当前太阳天顶角重新缩放，使日变化保持平滑；长波加热原样沿用'],
       out:['又走了 5 个 30 分钟步'],
       note:'完整辐射是物理部分最贵的一项。每 6 步算一次（A_SW_RADSTEP = A_LW_RADSTEP = 6）是最主要的节省。' },
 
@@ -703,144 +764,222 @@ footer .mono { overflow-wrap: anywhere; }
       note:'扰动试验（比如换一个轨道）通常从已经 spin-up 的控制试验 dump 出发，只改 <code>&amp;NLSTSOLAR</code> 或 CO2_MMR。' }
   ];
 
-  /* ---------------- 分量 ---------------- */
+  /* ---------------- 分量 ----------------
+     flow：分量内部的调用顺序。每个阶段：t 标题，r 子程序，at 源码行，d 做什么，p 用到的参数（params 的键），
+     inn 进入的数据，out 离开的数据，cond 何时运行（虚线框），off 本作业中关闭，fam 颜色，
+     loop [说明, n]：本阶段及之后共 n 个阶段循环。params：[名称, 取值, 含义, 标签上显示的简短取值] */
   const MODS = [
-    { key:'dyn', fam:'atm', name:'动力', full:'大气动力框架 · 第 10–13 节（A10_1C、A12_1C、A13_1C）',
+    { key:'dyn', fam:'atm', name:'动力', full:'大气动力框架 · 第 10–13 节（A10_1C、A12_1C、A13_1C）· 96 × 73 × 19',
       freq:['每个大气步','48 次 / 天','Δt = 30 分钟，调整 3 × 10 分钟'],
       lead:'在规则的 2.5° × 3.75° 网格（Arakawa B 网格）和 19 层混合 σ–p 坐标上求解静力原始方程。采用分裂显式：快速的重力波调整用短的子步，平流用完整步长。',
-      in:['上一步物理部分留下的 p*、θ、q、云水、u、v'],
-      calc:['ADJ_CTL：对 p*、θ、u、v 做 3 个调整步（气压梯度力、科氏力、重力波）','ADV_CTL：平流 u、v、θ<sub>l</sub>、q<sub>t</sub>','DIF_CTL：水平扩散，第 1–18 层 ∇⁶，顶层 ∇²','QT_POS_CTL 去掉负湿度；FILT_UV 做极区滤波'],
-      out:['更新后的 p*、θ、q、u、v → 物理','垂直速度诊断量'],
-      params:[['ROW_LENGTH × P_ROWS','96 × 73','3.75° × 2.5° 网格'],['P_LEVELS / Q_LEVELS','19 / 19','混合 σ–p 层；每层都有水汽'],['STEPS_PER_PERIODim','每 86 400 s 48 步','大气 Δt = 1800 s'],['A_ADJSTEPS','3','每个平流步内的调整子步数（每个 600 s）'],['A_SWEEPS_DYN','1','每个物理步的动力扫描次数'],['DIFF_COEFF / DIFF_EXP','5.47×10⁸ / 3','第 1–18 层的水平扩散；算子为 ∇ 的 2 × DIFF_EXP 次方'],['GRAV_WAVE_SPEED','350 m s⁻¹','决定极区滤波作用的纬度和波数'],['FILTERING_SAFETY_FACTOR','0.01','极区滤波的安全裕量']],
+      flow:[
+        { t:'设定时间步长', r:'ATM_DYN', at:'ATMDYN1.dk:350–426', d:'动力步长 = 1800 s ÷ A_SWEEPS_DYN；调整步长 = 再 ÷ A_ADJSTEPS = 600 s。L_HALF_TIMESTEP_DYN 关闭，所以始终只扫描一次。', p:['STEPS_PER_PERIODim','A_SWEEPS_DYN','L_HALF_TIMESTEP_DYN','A_ADJSTEPS'], inn:['p*、θ、q、云水、u、v ← 上一步的物理部分'] },
+        { t:'极区滤波设置', r:'SET_FIL', at:'ATMDYN1.dk:472', d:'逐行找出对 600 s 调整步来说太快、需要滤掉的纬向波数', p:['A_NSET_FILTER','GRAV_WAVE_SPEED','FILTERING_SAFETY_FACTOR'] },
+        { t:'调整', r:'ADJ_CTL', at:'ATMDYN1.dk:656', loop:'× A_ADJSTEPS', d:'针对重力波积分 p*、θ、u、v（气压梯度力、科氏力）；在高纬用傅里叶滤波去掉快波；在各子步之间做时间平滑', p:['A_ADJSTEPS','ADJ_TIME_SMOOTHING_COEFF'] },
+        { t:'换成 θl 和 qt', r:'THETL_QT', at:'ATMDYN1.dk:771', d:'把 θ、q 和云水合成液水位温 θl 和总水 qt，二者在平流中守恒' },
+        { t:'平流', r:'ADV_CTL → MASS_UWT', at:'ATMDYN1.dk:2138–2232', d:'在完整步长内平流质量加权的 u、v、θl、qt，并加上垂直运动引起的科氏项；然后去掉质量加权', p:['NU_BASIC','DIV_DAMP_COEFF_FC'] },
+        { t:'水平扩散', r:'DIF_CTL', at:'ATMDYN1.dk:2380', d:'对 θ、u、v 和 qt 做尺度选择性扩散', p:['DIFF_COEFF','DIFF_EXP','DIFF_COEFF_Q','DIFF_EXP_Q'] },
+        { t:'去掉负湿度', r:'QT_POS_CTL', at:'ATMDYN1.dk:2410', d:'补上平流留下的负 qt', p:['L_QT_POS_LOCAL'] },
+        { t:'u、v 极区滤波', r:'FILT_UV', at:'ATMDYN1.dk:2515', d:'对风增量做质量加权的傅里叶滤波和极点平均', out:['p*、θl、qt、u、v → 物理（先进入云方案）','ω 诊断量 → STASH'] }
+      ],
+      params:[['STEPS_PER_PERIODim','每天 48 步','每 86 400 s 的大气步数：Δt = 1800 s','48 / 天'],['A_SWEEPS_DYN','1','每个物理步的动力扫描次数'],['L_HALF_TIMESTEP_DYN','.FALSE.','风很强时也不把动力拆成两次扫描'],['A_ADJSTEPS','3','每个平流步内的调整子步数：每个 600 s'],['A_NSET_FILTER','1','每步都重新计算极区滤波设置'],['GRAV_WAVE_SPEED','350 m s⁻¹','滤波要控制的最快重力波速度'],['FILTERING_SAFETY_FACTOR','0.01','选择滤波波数时的安全裕量'],['ADJ_TIME_SMOOTHING_COEFF','0.05','调整子步之间的时间平滑强度（权重 1, −2, 1）；0 表示关闭'],['NU_BASIC','0.166667','平流格式中的 ν 项；为 0 时退回普通二阶差分'],['DIV_DAMP_COEFF_FC','各层均为 0','预报模式下的散度阻尼：关闭','0'],['DIFF_COEFF','5.47×10⁸（第 1–18 层），4×10⁶（顶层）','θ、u、v 的水平扩散系数','5.47×10⁸'],['DIFF_EXP','3（第 1–18 层），1（顶层）','扩散阶数：∇ 的 2 × DIFF_EXP 次方，即 ∇⁶，顶层 ∇²','3'],['DIFF_COEFF_Q','5.47×10⁸（1–13），1.5×10⁸（14–18），4×10⁶（顶层）','水汽的水平扩散系数','5.47×10⁸ …'],['DIFF_EXP_Q','3（1–13），2（14–18），1（顶层）','水汽的扩散阶数：低层 ∇⁶，第 14–18 层 ∇⁴','3 …'],['L_QT_POS_LOCAL','.TRUE.','负湿度用局地订正，而不是全球重标定']],
       rel:'风和风应力都是在动力部分产生的。cGENIE 里二者都是从文件读入的固定场，所以新轨道下 HadCM3 环流的变化，只有在你显式传过去风或风应力时才会影响 cGENIE。',
       had:'cGENIE 没有动力框架：EMBM 只用给定的风对 T 和 q 做平流和扩散。',
-      src:['ATMSTEP1.dk:278（ATM_DYN）','ATMDYN1.dk:656（ADJ_CTL）、2138（ADV_CTL）、2380（DIF_CTL）、2515（FILT_UV）'] },
+      src:['ATMSTEP1.dk:278（ATM_DYN）','ATMDYN1.dk','SETTSCT1.dk:506（L_SET_FILTER）'] },
 
     { key:'rad', fam:'atm', name:'辐射', full:'Edwards–Slingo 二流辐射 · 第 1–2 节（A01_3A、A02_3A）',
       freq:['每 6 个大气步','8 次 / 天','Δt = 3 小时'],
-      lead:'每天第 1、7、13 … 步做完整的短波和长波计算。其间沿用存下来的加热率：短波按当前太阳天顶角重新缩放，长波原样使用。',
-      in:['轨道（整个运行中固定）→ 太阳赤纬和日地距离（SOLPOS）；各点天顶角（SOLANG）','温度、湿度、大尺度云和对流云','固定的气体混合比、臭氧气候态、气候态气溶胶','地表反照率：海面、海冰、MOSES 陆面 tile、积雪'],
-      calc:['短波 6 个、长波 8 个波段','各层加热率；地面和大气顶通量','存下增量供后 5 步使用'],
-      out:['辐射加热 → θ','地面短波、长波 → 边界层；净太阳辐射和蓝光 → 耦合器','大气顶通量 → 能量订正'],
-      params:[['A_SW_RADSTEP / A_LW_RADSTEP','6 / 6','每 6 步（3 小时）做一次完整辐射'],['H_SWBANDS / H_LWBANDS','6 / 8','光谱波段数'],['SC','1365 W m⁻²','太阳常数'],['CO2_MMR','4.25418×10⁻⁴','= 280 ppmv CO₂'],['CH4MMR','4.209×10⁻⁷','≈ 760 ppbv CH₄'],['N2OMMR','4.102×10⁻⁷','≈ 270 ppbv N₂O'],['L_SEC_VAR','.FALSE.','整个运行中轨道固定'],['OZONE','qrclim.ozone_CMIP7clim','臭氧气候态（INITHIS）'],['L_CLIMAT_AEROSOL','.TRUE.','用气候态气溶胶，不用硫循环']],
+      lead:'每天第 1、7、13 … 步做完整的短波和长波计算。其他步根本不调用 RAD_CTL：由云方案读回存下的加热率，把短波部分按当前太阳高度角重新缩放后再加上。',
+      flow:[
+        { t:'这一步是辐射步吗？', r:'SETTSCTL', at:'SETTSCT1.dk:508–510', d:'MOD(STEP − 1, 6) = 0 时 L_SW_RADIATE 和 L_LW_RADIATE 为真：第 1、7、13 … 43 步', p:['A_SW_RADSTEP','A_LW_RADSTEP'] },
+        { t:'找对流层顶', r:'TROPIN', at:'RAD_CTL1.dk:757', cond:'辐射步', d:'确定每个气柱的对流层顶位置' },
+        { t:'太阳位置', r:'SOLPOS', at:'RAD_CTL1.dk:843', cond:'辐射步', d:'由轨道算当天的太阳赤纬和日地距离因子', p:['L_SEC_VAR'], inn:['轨道 e、γ、τ₀、sin(黄赤交角)，启动时由 &NLSTSOLAR 算一次'] },
+        { t:'天顶角', r:'SOLANG', at:'RAD_CTL1.dk:886', cond:'辐射步', d:'每个格点未来 3 小时的平均 cos(天顶角) 和日照比例', p:['A_SW_RADSTEP'] },
+        { t:'地表反照率', r:'FTSA', at:'RAD_CTL1.dk:990–1026', cond:'辐射步', d:'开阔海面、海冰（由冰面温度决定）和积雪的反照率', p:['ALPHAC','ALPHAM','DTICE'], inn:['海冰比例、地表温度、积雪','陆面反照率 ← MOSES tile'] },
+        { t:'短波', r:'R2_SWRAD', at:'RAD_CTL1.dk:1399', cond:'辐射步', d:'对所有日照点用 Edwards–Slingo 二流方案计算', p:['H_SWBANDS','SC','CO2_MMR','O2MMR','L_CLIMAT_AEROSOL','A_SW_SEGMENTS'], inn:['T、q、大尺度云和对流云','臭氧气候态（qrclim.ozone_CMIP7clim）'], out:['地面净短波和蓝光短波 → 耦合器（经 STASH）'] },
+        { t:'长波', r:'R2_LWRAD', at:'RAD_CTL1.dk:1985', cond:'辐射步', d:'Edwards–Slingo 长波，含水汽、CO₂、CH₄、N₂O 和臭氧', p:['H_LWBANDS','CO2_MMR','CH4MMR','N2OMMR','L_CLIMAT_AEROSOL','A_LW_SEGMENTS'], out:['地面向下长波 → 边界层'] },
+        { t:'存下并施加', r:'BUFFOUT · FLUX_DIAG', at:'RAD_CTL1.dk:1555–1660, 2120', cond:'辐射步', d:'存下供后 5 步使用的加热率（短波按单位日照存），并按本 30 分钟步的太阳高度角缩放后加到 θ 上', out:['辐射加热 → θ','净辐射加热 → 能量订正'] },
+        { t:'其他步沿用', r:'CLD_CTL §9.1、§9.4 → SOLPOS、SOLANG、RAD_MOSES', at:'CLDCTL1.dk:303–312, 750–990', cond:'其他步', d:'读回存下的加热率，短波按本步天顶角重新缩放，长波原样加上；更新每个 MOSES tile 的地表辐射', out:['辐射加热 → θ','各 tile 地表辐射 → 边界层'] }
+      ],
+      params:[['A_SW_RADSTEP','6','每 6 步（3 小时）一次完整短波'],['A_LW_RADSTEP','6','每 6 步（3 小时）一次完整长波'],['L_SEC_VAR','.FALSE.','整个运行中轨道固定（启动时由 ORBPRM 算一次）'],['ALPHAC','0.80','冷海冰的反照率'],['ALPHAM','0.50','处于融点的海冰反照率'],['DTICE','10 K','融点以下的一个温度区间，海冰反照率在其中从 ALPHAC 变到 ALPHAM'],['H_SWBANDS','6','短波波段数'],['SC','1365 W m⁻²','太阳常数，再乘日地距离因子'],['CO2_MMR','4.25418×10⁻⁴','CO₂ 质量混合比 = 280 ppmv','280 ppm'],['O2MMR','0.2314','O₂ 质量混合比（短波）'],['L_CLIMAT_AEROSOL','.TRUE.','两个方案都用气候态气溶胶'],['A_SW_SEGMENTS','4','日照点分块计算以节省内存'],['H_LWBANDS','8','长波波段数'],['CH4MMR','4.209×10⁻⁷','≈ 760 ppbv CH₄','760 ppb'],['N2OMMR','4.102×10⁻⁷','≈ 270 ppbv N₂O','270 ppb'],['A_LW_SEGMENTS','4','长波计算的分块数']],
       rel:'轨道只在这里起作用，通过日射和太阳高度角。Bristol 的 CALC_SOLAR mod 根据 <code>&amp;NLSTSOLAR</code> 用 ORBPRM（Berger 1978）算一次轨道，ORB_ARRAY 可以直接覆盖 e、γ、τ₀ 和 sin(黄赤交角)。CO₂ 就是固定的 CO2_MMR：在 HadCM3 里是强迫，从来不是响应。',
       had:'cGENIE 把这些全换成了“日射 × (1 − 反照率)”和一个带 ln(CO₂) 项的长波出射公式。',
-      src:['ATMPHY1.dk:591（RAD_CTL）','RAD_CTL1.dk:1565–1660（短波重新缩放）、1787（长波沿用）','SETTSCT1.dk:508–510','merge_BriSciModN048_01：CALC_SOLAR（SOLPOS、ORBPRM）'] },
+      src:['ATMPHY1.dk:528–591（只在辐射步调用 RAD_CTL）','RAD_CTL1.dk','CLDCTL1.dk:303–312, 750–990','merge_BriSciModN048_01：CALC_SOLAR（SOLPOS、ORBPRM）'] },
 
     { key:'cloud', fam:'atm', name:'云与降水', full:'大尺度云和降水 · 第 9 节和第 4 节（A09_1A、A04_2E）',
       freq:['每个大气步','48 次 / 天','Δt = 30 分钟'],
-      lead:'云量每步都由总水量和临界相对湿度重新诊断。之后大尺度降水把一部分云水变成雨或雪。',
-      in:['动力之后的 q<sub>t</sub> 和 θ<sub>l</sub>','RHcrit 廓线'],
-      calc:['CLD_CTL：假定宽度由 RHcrit 决定的次网格湿度分布，诊断云量以及液态和冰相云水','液态与冰相按温度划分，没有预报的云冰','LSPP_CTL：云水超过阈值后自动转化、冰晶下落、雨滴下落途中蒸发'],
-      out:['云量和云水 → 辐射','大尺度雨、雪 → 陆面水文和耦合器','潜热加热 → θ'],
-      params:[['RHCRIT','0.95, 0.90, 0.85, 之后 0.70','临界相对湿度：第 1–3 层，第 4 层及以上'],['CW_SEA / CW_LAND','5.0×10⁻⁵ / 2.0×10⁻⁴','自动转化的云水阈值，海洋 / 陆地'],['L_LSPICE','.FALSE.','没有预报云冰'],['L_CLD_AREA','.FALSE.','没有单独的面积云量']],
+      lead:'云量每步都由总水量和临界相对湿度重新诊断，之后大尺度降水把一部分云水变成雨或雪。在没有完整辐射的步上，云方案还负责把存下的辐射加热加回去。',
+      flow:[
+        { t:'读回存下的辐射', r:'CLD_CTL §9.1', at:'CLDCTL1.dk:303–312', cond:'无完整辐射的步', d:'读回上一个辐射步存下的加热率' },
+        { t:'云量和凝结物', r:'GLUE_CLD → LS_CLD', at:'CLDCTL1.dk:316–347', d:'假定宽度由 RHcrit 决定的次网格湿度分布，把 qt、θl 拆成 q、θ、云中液水和云冰', p:['L_RHCPT','RHCRIT','L_CLD_AREA','L_LSPICE'], inn:['θl、qt ← 动力'], out:['云量、液水和冰水 → 辐射'] },
+        { t:'加回辐射', r:'CLD_CTL §9.4', at:'CLDCTL1.dk:750–990', cond:'无完整辐射的步', d:'加上存下的加热率，短波按本步太阳高度角缩放（见“辐射”）', out:['辐射加热 → θ'] },
+        { t:'大尺度降水', r:'LSPP_CTL → GLUE_LSPP', at:'LSPP_CT1.dk:221', d:'自上而下：冰晶下落、云中液水超过阈值后自动转化、云下雨雪蒸发', p:['CW_SEA','CW_LAND','RHCRIT'], out:['大尺度雨、雪 → 陆面水文和耦合器','大尺度降水的潜热 → 能量订正'] }
+      ],
+      params:[['L_RHCPT','.FALSE.','不诊断 RHcrit，用固定的 RHCRIT 廓线'],['RHCRIT','0.95, 0.90, 0.85, 之后 0.70','临界相对湿度：第 1–3 层，第 4 层及以上','0.95 … 0.70'],['L_CLD_AREA','.FALSE.','没有单独的面积云量'],['L_LSPICE','.FALSE.','没有预报云冰：液态与冰相按温度划分'],['CW_SEA','5.0×10⁻⁵','海洋上自动转化的云水阈值'],['CW_LAND','2.0×10⁻⁴','陆地上的阈值：更高，因为气溶胶多、云滴小']],
       rel:'HadCM3 中云会响应轨道变化并改变地表能量收支。cGENIE 没有云，所以云的作用只能通过你给它的 HadCM3 场间接进入。',
       had:'EMBM 把超过饱和比湿固定比例的水汽直接降掉；没有云，也没有云辐射效应。',
-      src:['ATMPHY1.dk:420（CLD_CTL）、828（LSPP_CTL）'] },
+      src:['ATMPHY1.dk:420（CLD_CTL）、828（LSPP_CTL）','CLDCTL1.dk','LSPP_CT1.dk'] },
 
     { key:'conv', fam:'atm', name:'对流', full:'质量通量对流 · 第 5 节（A05_3C）',
       freq:['每个大气步','48 次 / 天','A_CONV_STEP = 1'],
-      lead:'整体质量通量方案（Gregory and Rowntree 1990），含下沉气流和对流动量输送，每步在每个气柱上都调用。',
-      in:['经过边界层和大尺度降水之后的温湿廓线','边界层的 T、q 扰动，用来启动气块'],
-      calc:['从最低几层检验气块浮力','上升气流的卷入与卷出、下沉气流、降水','对流动量输送（L_MOM）'],
-      out:['加热、干燥和动量增量','对流雨、雪 → 水文和耦合器','对流云量、云底和云顶 → 辐射'],
-      params:[['A_CONV_STEP','1','每步调用'],['L_MOM','.TRUE.','对流动量输送'],['L_CAPE','.FALSE.','不用 CAPE 闭合'],['L_3D_CCA','.FALSE.','对流云以每柱一个云量表示'],['ANVIL_FACTOR / TOWER_FACTOR','0.0 / 0.0','对流云不做砧状分布']],
+      lead:'整体质量通量方案（Gregory and Rowntree 1990），含下沉气流和对流动量输送。每步都运行，在每个气柱上从下往上逐层计算。',
+      flow:[
+        { t:'该做对流了吗？', r:'SETTSCTL', at:'SETTSCT1.dk:512', d:'L_CONVECT = MOD(STEP − 1, A_CONV_STEP) = 0', p:['A_CONV_STEP'] },
+        { t:'分块', r:'CONV_CTL → GLUE_CONV', at:'CONV_CT1.dk:585', d:'把气柱分块处理', p:['A_CONVECT_SEGMENTS'], inn:['经过边界层和大尺度降水后的 T、q、u、v','T₁、q₁ 扰动 ← 边界层'] },
+        { t:'气柱准备', r:'CONVECT：QSAT、FLAG_WET', at:'CONVEC3C.dk:633–664', d:'各层饱和比湿；凝结物是水还是冰；气块初始动量', p:['L_MOM'] },
+        { t:'触发检验', r:'LAYER_CN · DQS_DTH', at:'CONVEC3C.dk:797–907', loop:['对每一层 k，从地面往上', 4], d:'卷入、卷出率；在从 k 到 k + 1 足够不稳定处启动气块' },
+        { t:'抬升气块', r:'LIFT_PAR', at:'CONVEC3C.dk:1198–1434', d:'带卷入地把气块从 k 抬到 k + 1 并检验浮力；不再有浮力的点卷出', p:['L_MOM'] },
+        { t:'云及其作用', r:'CONVEC2', at:'CONVEC3C.dk:1809', d:'凝结与降水、对流云水、强迫卷出；质量通量对 θ、q、u、v 的增量', p:['MPARWTR','UD_FACTOR','L_CCW','L_MOM'] },
+        { t:'闭合与下沉气流', r:'DD_CALL', at:'CONVEC3C.dk:1990–2098', d:'对在本层终止的云：确定云底质量通量，然后计算下沉气流和降水蒸发', p:['L_CAPE','L_PHASE_LIM'] },
+        { t:'能量平衡', r:'COR_ENGY', at:'CONVEC3C.dk:2190', d:'订正温度，使气柱的湿静力能守恒' },
+        { t:'三维对流云', r:'CALC_3D_CCA', at:'CONVEC3C.dk:2194', off:true, cond:'关闭：L_3D_CCA = .FALSE.', d:'本可把对流云按砧状和塔状分布到各层；这里每柱只有一个云量', p:['L_3D_CCA','ANVIL_FACTOR','TOWER_FACTOR'] },
+        { t:'施加增量', r:'CONV_CTL', at:'CONV_CT1.dk:659–1193', d:'加上 θ、q 增量，把 u、v 增量插到风点，累计雨雪', out:['对流雨、雪 → 水文、耦合器','潜热 → 能量订正','对流云量、云底、云顶 → 辐射'] }
+      ],
+      params:[['A_CONV_STEP','1','每 A_CONV_STEP 步做一次对流：这里每步都做'],['A_CONVECT_SEGMENTS','3','气柱分块处理以节省内存'],['L_MOM','.TRUE.','气块携带动量：对流动量输送'],['MPARWTR','1.0×10⁻³','每层保留的对流云水（kg kg⁻¹），多出的变成降水'],['UD_FACTOR','1.0','辐射所见对流水路径中的上升气流因子；只在 L_CCW 时使用'],['L_CCW','.FALSE.','该水路径不包含降水'],['L_CAPE','.FALSE.','不用 CAPE 闭合'],['L_PHASE_LIM','.TRUE.','限制下沉气流中降水的融化和冻结，使潜热不会把温度推过 0 °C'],['L_3D_CCA','.FALSE.','对流云以每柱一个云量表示'],['ANVIL_FACTOR','0.0','三维对流云的砧状部分（仅 L_3D_CCA 时）'],['TOWER_FACTOR','0.0','三维对流云的塔状部分（仅 L_3D_CCA 时）']],
       rel:'热带对流决定在哪里下雨、下多少。当轨道改变季风时，HadCM3 的降水和径流响应就是在这里产生的。',
       had:'EMBM 没有对流方案。',
-      src:['ATMPHY1.dk:973（CONV_CTL）'] },
+      src:['ATMPHY1.dk:973（CONV_CTL）','CONVEC3C.dk（CONVECT）'] },
 
     { key:'bl', fam:'atm', name:'边界层', full:'边界层与地表交换 · 第 3 节（A03_7A，MOSES 2.1）',
       freq:['每个大气步','48 次 / 天','Δt = 30 分钟'],
-      lead:'MOSES 2.1 在每个陆地格子里对 9 种地表类型分别求解地表能量平衡。随后一阶湍流方案在最低 5 层内混合热量、水汽和动量。',
-      in:['地表辐射，以及近地面的 T、q、u、v','陆地：TRIFFID 给出的 tile 比例、土壤水分和温度、积雪','海面和海冰：最近一次交换得到的 SST、海冰比例和冰厚'],
-      calc:['在每个 tile 上算交换系数和地表通量；在 5 个植物 tile 上算光合与呼吸','海冰表面能量平衡：表面温度、顶部融化、穿过冰层的热传导','在 BL_LEVELS = 5 层内做湍流混合'],
-      out:['感热、潜热、蒸发、风应力','融雪、冠层和土壤蒸发 → 水文','植物碳通量 → TRIFFID','日平均的 τ、热量和水通量 → 耦合器'],
-      params:[['LMOSES / A03_7A','.TRUE. / MOSES 2.1','分块（tile）陆面交换'],['地表类型','5 + 4','阔叶树、针叶树、C3 草、C4 草、灌木；城市、内陆水体、裸土、陆冰'],['BL_LEVELS','5','有湍流混合的层数'],['L_Z0_OROG','.TRUE.','地形粗糙度'],['SOILTYPE','qrparm.soil.MOSES2','土壤辅助文件（preind2）']],
+      lead:'MOSES 2.1 在每个陆地格子里对 9 种地表类型分别求解地表能量平衡：阔叶树、针叶树、C3 草、C4 草、灌木、城市、内陆水体、裸土和冰。一阶湍流方案在最低 5 层内混合热量、水汽和动量，与地表一起隐式求解。',
+      flow:[
+        { t:'tile 列表', r:'BL_INTCT → TILEPTS', at:'BL_IC7A.dk:667', d:'按当前比例列出每种地表类型对应的陆地点', p:['LMOSES'], inn:['地表类型比例 ← TRIFFID'] },
+        { t:'植物生理', r:'PHYSIOL', at:'BL_IC7A.dk:686', d:'5 种植物功能型的气孔导度、光合与呼吸', p:['CO2_MMR','L_CO2_INTERACTIVE'], inn:['光合有效辐射 ← 辐射','土壤水分 ← 水文'], out:['NPP 和呼吸 → TRIFFID 累加器'] },
+        { t:'地表交换', r:'BDY_LAYR → SF_EXCH', at:'BDYLYR7A.dk:770', d:'海面、海冰和每个陆面 tile 的粗糙度、整体 Richardson 数、交换系数和显式通量', p:['L_Z0_OROG'], inn:['SST、海冰比例、冰厚 ← 耦合器（最近一次交换）','地表短波、长波 ← 辐射'] },
+        { t:'混合系数', r:'KMKH', at:'BDYLYR7A.dk:825', d:'最低几层上动量和热量的湍流扩散系数', p:['BL_LEVELS'] },
+        { t:'T、q 隐式求解', r:'EX_FLUX_TQ → IM_CAL_TQ', at:'BDYLYR7A.dk:917–970', d:'先算显式通量，再把地表与边界层各层耦合起来隐式求解', p:['BL_LEVELS'] },
+        { t:'海冰热通量', r:'SICE_HTF', at:'BDYLYR7A.dk:1010', d:'由冰面温度和冰厚算穿过冰层的热传导', out:['传导热通量和顶部融化热通量 → 耦合器'] },
+        { t:'蒸发限制', r:'SF_EVAP', at:'BDYLYR7A.dk:1061', d:'从冠层、土壤、湖泊和积雪中取蒸发，受可用水量限制' },
+        { t:'融雪', r:'SF_MELT', at:'BDYLYR7A.dk:1075', d:'地表达到 0 °C 的 tile 上融雪', out:['融雪、升华、蒸发 → 水文'] },
+        { t:'风与应力', r:'IM_CAL_UV', at:'BDYLYR7A.dk:1166', d:'u、v 隐式求解；地面风应力', out:['τ、感热、潜热、蒸发 → 耦合器（日平均）','地表感热 → 能量订正'] }
+      ],
+      params:[['LMOSES','.TRUE.','MOSES 陆面；section 版本 A03_7A 即带 tile 的 MOSES 2.1'],['CO2_MMR','4.25418×10⁻⁴','光合作用看到的 CO₂：同样固定为 280 ppm','280 ppm'],['L_CO2_INTERACTIVE','.FALSE.','用固定的 CO2_MMR，而不是三维 CO₂ 场'],['L_Z0_OROG','.TRUE.','由次网格地形加上地形粗糙度'],['BL_LEVELS','5','有湍流混合的层数']],
       rel:'进入海洋的风应力和地表热量、淡水通量就在这里产生，并在一天内平均。它们是 HadCM3 中最接近 cGENIE 海洋所需边界条件的量。',
       had:'cGENIE 的 surflux 用整体公式做同样的事，每格只有一种地表，每个海洋步算一次。',
-      src:['ATMPHY1.dk:687（BL_CTL）'] },
+      src:['ATMPHY1.dk:687（BL_CTL）','BL_IC7A.dk','BDYLYR7A.dk'] },
 
     { key:'hydro', fam:'land', name:'陆面水文', full:'土壤、积雪与径流 · 第 8 节（A08_7A，MOSES 2.1）',
       freq:['每个大气步','48 次 / 天','Δt = 30 分钟'],
       lead:'雨雪在这里落到地面：冠层截留、积雪、下渗、4 层土壤，以及每天交给海洋一次的径流。',
-      in:['大尺度和对流的雨、雪','边界层给出的蒸发、升华和融雪'],
-      calc:['冠层水量和穿透降水','雪量和融雪','4 层土壤中的水和温度；地表和地下（快速与慢速）径流'],
-      out:['土壤水分 → 下一步的蒸发','快速与慢速径流 → 耦合器 → 河口点'],
-      params:[['SM_LEVELS / ST_LEVELS','4 / 4','土壤水分层和土壤温度层'],['SMCSNOWD','qrclim.smow','初始土壤水分和积雪'],['DSOILTMP','qrclim.slt.MOSES','深层土壤温度'],['L_VEG_FRACS','.TRUE.','水文使用植被比例']],
+      flow:[
+        { t:'土壤导热率', r:'HYD_INTCTL → HYDROL → HEAT_CON', at:'HYDR_CT1.dk:321 · HYDROL7A.dk:210', d:'由各层土壤的含水量和含冰量计算', p:['ST_LEVELS'] },
+        { t:'积雪', r:'SFSNOW', at:'HYDROL7A.dk:215', d:'加上降雪，减去融化和升华，更新雪量', inn:['降雪（大尺度 + 对流）← 降水','融雪、升华 ← 边界层'] },
+        { t:'冠层和地表径流', r:'SURF_HYD', at:'HYDROL7A.dk:244', d:'每个 tile 上的截留和穿透降水；土壤吸收不了的水形成径流', p:['L_VEG_FRACS'], inn:['降雨（大尺度 + 对流）← 降水'], out:['快速（地表）径流 → 耦合器'] },
+        { t:'土壤水', r:'SOIL_HYD', at:'HYDROL7A.dk:254', d:'各层之间的水流、根系吸水、从最底层排出', p:['SM_LEVELS'], inn:['蒸腾和土壤蒸发 ← 边界层'], out:['慢速（地下）径流 → 耦合器'] },
+        { t:'土壤温度', r:'SOIL_HTC · 陆冰点用 ICE_HTC', at:'HYDROL7A.dk:263–273', d:'土壤各层的热传导', p:['ST_LEVELS'], inn:['地表热通量 ← 边界层'] },
+        { t:'土壤水分合计', r:'SOILMC', at:'HYDROL7A.dk:286', d:'整柱土壤水分', out:['土壤水分 → 下一步的蒸发和光合'] }
+      ],
+      params:[['L_VEG_FRACS','.TRUE.','按 tile、用植被比例计算水文'],['SM_LEVELS','4','土壤水分层数'],['ST_LEVELS','4','土壤温度层数']],
       rel:'径流把陆地那一份淡水收支送进海洋。cGENIE 里 ROKGEM 会让河流带去风化产物；HadCM3 的河流只带水。',
       had:'不开 ENTS 时，cGENIE 的陆地不储水：落在陆地上的降水直接作为径流流到海岸。',
-      src:['ATMPHY1.dk:1047（HYDR_CTL）'] },
+      src:['ATMPHY1.dk:1047（HYDR_CTL）','HYDROL7A.dk'] },
 
     { key:'veg', fam:'land', name:'植被', full:'TRIFFID 动态植被与叶物候 · 第 19 节（A19_2A）',
       freq:['叶物候每天','TRIFFID 每 10 天','在大气第 48 步'],
       lead:'叶物候每天更新一次叶面积。TRIFFID 每 10 天更新植被碳和 5 种植物功能型的覆盖比例，进而改变 MOSES tile 及其反照率和粗糙度。',
-      in:['边界层累积的光合、呼吸和落叶','扰动辅助文件（本 PI 作业中无扰动）'],
-      calc:['叶物候：由随温度变化的落叶率得到叶面积','TRIFFID：各植物功能型的碳收支、空间竞争（Lotka–Volterra）、土壤碳'],
-      out:['叶面积和冠层高度 → MOSES tile','每 10 天一次的新植被比例'],
-      params:[['L_TRIFFID','.TRUE.','动态植被开启'],['TRIFFID_PERIOD','10 天','TRIFFID 的调用间隔'],['L_PHENOL / PHENOL_PERIOD','.TRUE. / 1 天','叶物候'],['L_TRIF_EQ','.FALSE.','动态模式，不是平衡模式'],['VEGINIT / FRACINIT','qrfrac.pft / qrfrac.type','初始植物功能型和地表类型比例'],['DISTURB','qrfrac.disturb.nodisturb','无农业扰动']],
+      flow:[
+        { t:'计步', r:'ATM_PHYS', at:'ATMPHY1.dk:1229', d:'距上次调用 TRIFFID 的步数加一' },
+        { t:'叶物候', r:'VEG_CTL → VEG → PHENOL', at:'VEG2A.dk:324–344', cond:'每 PHENOL_PERIOD', d:'由温度得到落叶率，更新各植物功能型的叶面积', p:['L_PHENOL','PHENOL_PERIOD'], inn:['当天累积的落叶 ← 边界层'] },
+        { t:'平均通量', r:'VEG', at:'VEG2A.dk:375–410', cond:'每 TRIFFID_PERIOD', d:'把累积的 NPP、植物和土壤呼吸以及落叶换算成这段时间的平均速率', p:['L_TRIFFID','TRIFFID_PERIOD'], inn:['NPP、植物和土壤呼吸 ← 边界层累加器'] },
+        { t:'扰动', r:'VEG', at:'VEG2A.dk:422', cond:'每 TRIFFID_PERIOD', d:'由被扰动比例得到农业扰动率：本 PI 作业中为零', inn:['被扰动比例 ← qrfrac.disturb.nodisturb'] },
+        { t:'TRIFFID', r:'TRIFFID', at:'VEG2A.dk:457', cond:'每 TRIFFID_PERIOD', d:'各植物功能型的碳收支、空间竞争（Lotka–Volterra）、凋落物进入土壤碳', p:['L_TRIF_EQ'], out:['5 种植物功能型和裸土的新比例'] },
+        { t:'更新 tile', r:'TILEPTS', at:'VEG2A.dk:469', cond:'每 TRIFFID_PERIOD', d:'重建 tile 列表，累加器清零' },
+        { t:'地表参数', r:'SPARM', at:'VEG2A.dk:508', d:'由叶面积和冠层高度得到每个 tile 的反照率、粗糙度和冠层持水量', out:['tile 参数、叶面积、冠层高度 → 边界层和水文'] }
+      ],
+      params:[['L_PHENOL','.TRUE.','交互式叶物候'],['PHENOL_PERIOD','1 天','每 48 步一次叶物候'],['L_TRIFFID','.TRUE.','动态植被'],['TRIFFID_PERIOD','10 天','每 480 步一次 TRIFFID；通量按这段时间平均'],['L_TRIF_EQ','.FALSE.','动态时间积分，不是平衡模式']],
       rel:'植被响应轨道气候，并通过反照率和蒸发反馈回去。它的碳不进入大气：因为 L_CO2_INTERACTIVE = .FALSE.，CO₂ 始终是 CO2_MMR。',
       had:'cGENIE 中对应的是 ENTS；CBSR 配置里它是关闭的，此时完全没有植被。',
-      src:['ATMPHY1.dk:1222–1251（VEG_CTL）','merge_MOSES2.1_01，ABX5F406（TRIFFID 计步器）'] },
+      src:['ATMPHY1.dk:1222–1251（VEG_CTL）','VEG2A.dk','merge_MOSES2.1_01，ABX5F406（TRIFFID 计步器）'] },
 
     { key:'gwd', fam:'atm', name:'重力波拖曳', full:'地形重力波拖曳 · 第 6 节（A06_3A）',
       freq:['每个大气步','48 次 / 天','Δt = 30 分钟'],
-      lead:'次网格山地激发的重力波在高空破碎，使气流减速。方案还包含背风波部分。',
-      in:['u、v、θ 廓线','地形辅助文件中的次网格地形统计量'],
-      calc:['由次网格地形计算地面应力','从第 START_LEVEL_GWDRAG = 3 层往上，在波饱和处释放应力'],
-      out:['u、v 增量'],
-      params:[['KAY_GWAVE','2.0×10⁴','地面应力常数'],['KAY_LEE_GWAVE','3.0×10⁵','背风波应力常数'],['START_LEVEL_GWDRAG','3','接受拖曳的最低层'],['OROG','qrparm.orog','地形辅助文件（preind2）']],
+      lead:'次网格山地激发的重力波在高空破碎，使气流减速。方案还包含近地面的水跃拖曳和陷波（背风波）拖曳。',
+      flow:[
+        { t:'地面应力', r:'GWAV_CTL → GWAVE → GW_SURF', at:'GWAV_CT1.dk:326 · GWAVE3A.dk:319', d:'由低层风和稳定度以及次网格地形（标准差和各向异性）计算应力', p:['KAY_GWAVE'], inn:['u、v、θ 廓线','次网格地形 ← qrparm.orog'] },
+        { t:'垂直分布', r:'GW_VERT', at:'GWAVE3A.dk:330', d:'从 START_LEVEL_GWDRAG 层往上检验，在波饱和处释放应力；加上水跃和陷波拖曳', p:['START_LEVEL_GWDRAG','KAY_LEE_GWAVE','KAY_GWAVE'] },
+        { t:'作用到风上', r:'P_TO_UV', at:'GWAVE3A.dk:347–369', d:'把拖曳插到风点，更新 u、v', out:['u、v 增量'] }
+      ],
+      params:[['KAY_GWAVE','2.0×10⁴','地面应力常数（m⁻¹）'],['KAY_LEE_GWAVE','3.0×10⁵','陷波（背风波）常数'],['START_LEVEL_GWDRAG','3','波破碎检验的最低层']],
       rel:'主要用于调平均态。它影响急流，因而影响风应力，而不是直接影响轨道强迫本身。',
       had:'cGENIE 中没有对应部分。',
-      src:['ATMPHY1.dk:1173（GWAV_CTL）'] },
+      src:['ATMPHY1.dk:1173（GWAV_CTL）','GWAVE3A.dk'] },
 
     { key:'eng', fam:'atm', name:'能量订正', full:'全球能量订正 · 第 14 节（A14_1B）',
       freq:['每天算一次','每步施加','A_ENERGYSTEPS = 48'],
       lead:'动力框架不能严格守恒能量。模式每天比较一次大气总能量的变化和净流入的能量，把差值作为均一加热分摊到下一天。',
-      in:['一天内累计的向下净能量通量','此刻与当天开始时的大气总能量'],
-      calc:['第 48 步：ENG_MASS_DIAG 和 CAL_ENG_MASS_CORR 计算订正量，并对 p* 做干空气质量订正','每步：ADD_ENG_CORR 加上均一的 θ 增量'],
-      out:['一个很小的、处处相同的温度倾向'],
-      params:[['LEMCORR','.TRUE.','能量订正开启'],['A_ENERGYSTEPS','48','订正周期：一天'],['ADD_ENG_CORR','每步','在云方案之后、辐射之前施加']],
+      flow:[
+        { t:'当日累计清零', r:'ATM_PHYS', at:'ATMPHY1.dk:470–477 · SETTSCT1.dk:425', cond:'每天第一步（LFLUX_RESET）', d:'把净通量累加器置零', p:['LEMCORR','A_ENERGYSTEPS'] },
+        { t:'施加订正', r:'ADD_ENG_CORR', at:'ATMPHY1.dk:485', d:'加上一个均一的 θ 增量：昨天算出的订正率 × 1800 s', p:['LEMCORR'] },
+        { t:'累计净通量', r:'RAD_CTL、LSPP_CTL、CONV_CTL、BL_CTL 中的 FLUX_DIAG', at:'RAD_CTL1.dk:1587, 2120 · LSPP_CT1.dk:306 · CONV_CT1.dk:1188 · BL_CTL1.dk:1663', d:'各方案把自己给气柱带来的能量加进当天的累计', inn:['净辐射加热 ← 辐射','雨雪潜热 ← 大尺度降水、对流','地表感热 ← 边界层'] },
+        { t:'算出明天的订正', r:'ENG_MASS_DIAG → CAL_ENG_MASS_CORR', at:'ATMPHY1.dk:1338–1361', cond:'第 48 步（LENERGY）', d:'一天的能量变化减去累计净通量就是误差；把它换成下一天的加热率，并对 p* 做干空气质量订正', p:['A_ENERGYSTEPS'], out:['订正率 → 明天的每一步','订正后的 p*'] }
+      ],
+      params:[['LEMCORR','.TRUE.','能量订正开启'],['A_ENERGYSTEPS','48','订正周期：一天']],
       rel:'它防止长期控制试验因数值能量损失而漂移。因为是全球均一的，不会改变轨道响应的区域分布。',
       had:'cGENIE 中没有对应部分。',
-      src:['ATMPHY1.dk:485（ADD_ENG_CORR）、1338–1361（ENG_MASS_DIAG、CAL_ENG_MASS_CORR）','SETTSCT1.dk:424–425（LENERGY、LFLUX_RESET）'] },
+      src:['ATMPHY1.dk:470–485, 1338–1361','SETTSCT1.dk:424–425（LENERGY、LFLUX_RESET）'] },
 
     { key:'cpl', fam:'cpl', name:'耦合器', full:'大气–海洋交换 · SWAP_A2O 和 SWAP_O2A',
       freq:['每天一次','每个 24 小时组之后','MODEL_HRS_PER_GROUP = 24'],
-      lead:'没有单独的耦合器程序。U_MODEL 在两个子模式之间交替，在每个 24 小时组结束时在内存中交换场。大气给出的场是 STASH 累积的日平均。',
-      in:['大气 → 海洋：τx、τy、风混合能、净太阳辐射和蓝光、长波、感热、蒸发、大尺度和对流雨雪、海冰顶部融化、底部融化和升华、海冰比例、快速与慢速径流','海洋 → 大气：SST、表层流、海冰比例、冰厚、雪深'],
-      calc:['TRANSA2O：大气网格 → 海洋网格，含海岸订正；合成净热通量、P − E、降雪；径流送到河口点','TRANSO2A：海洋网格 → 大气网格'],
-      out:['第 n 天的海洋强迫，在 24 个海洋步中保持不变','第 n + 1 天的大气下边界，在 48 个大气步中保持不变'],
-      params:[['MODEL_HRS_PER_GROUP','24','耦合周期（小时）'],['顺序','先大气','两者完成的组数相同时，SETGRCTL 先跑大气'],['L_CO2_INTERACTIVE','.FALSE.','双向都不传 CO₂'],['L_FLUXCORR / FLUXCORR','.TRUE. / qrparm.waterfix.hadcm3','唯一的通量订正文件：一个在 SFCADD 中加入的水通量场'],['网格','96 × 73 ↔ 288 × 144','每个大气格子覆盖 3 × 2 个海洋格子']],
+      lead:'没有单独的耦合器程序。U_MODEL 在两个子模式之间交替，在每个 24 小时组结束时在内存中交换场。每个大气格子覆盖 3 × 2 个海洋格子。',
+      flow:[
+        { t:'组长度', r:'INITTIME', at:'INITTIM1.dk:581', d:'GROUP = MODEL_HRS_PER_GROUP × 3600 × 每天步数 ÷ 86 400：大气 48 步，海洋 24 步', p:['MODEL_HRS_PER_GROUP','STEPS_PER_PERIODim'] },
+        { t:'累积日平均', r:'STASH（耦合标记 10）', at:'INITA2O1.dk', cond:'每个大气步', d:'大气的耦合场就是普通的 STASH 诊断量，在一组内做时间平均', inn:['τx、τy、风混合能 ← 边界层','净太阳辐射和蓝光、长波 ← 辐射','感热、蒸发、升华、冰融化 ← 边界层','雨、雪 ← 大尺度降水、对流','快速与慢速径流 ← 水文'] },
+        { t:'切换到海洋', r:'SETGRCTL', at:'SETGRCT1.dk:120–140', d:'48 步之后，下一个内部模式是海洋' },
+        { t:'收集并分配径流', r:'SWAP_A2O', at:'U_MODEL1.dk:1525 · SWAPA2O2.dk', d:'把场收集到全球数组；把径流移到海岸上的入海点', p:['L_CO2_INTERACTIVE'] },
+        { t:'大气网格 → 海洋网格', r:'TRANSA2O', at:'TRANA2O1.dk', d:'双线性插值（H_INT_BL）加海岸订正（COAST_AJ、POST_H_INT）；合成净热通量和 P − E', out:['τx、τy、风混合、蓝光、热通量、P − E、河流入海、降雪、升华、海冰热通量 → 海洋（第 n 天）'] },
+        { t:'海洋跑完这一天', r:'OCN_STEP × 24', at:'U_MODEL1.dk:994', d:'24 个海洋步都用同一份强迫' },
+        { t:'海洋网格 → 大气网格', r:'SWAP_O2A → TRANSO2A', at:'U_MODEL1.dk:1541 · TRANO2A1.dk', d:'面积平均（PRE_AREAVER、DO_AREAVER）回到大气网格', inn:['SST、表层流、海冰比例、冰厚、雪深 ← 海洋'], out:['地表温度、海冰比例、冰厚、雪深、洋流 → 大气（第 n + 1 天）'] }
+      ],
+      params:[['MODEL_HRS_PER_GROUP','24','耦合周期（小时）'],['STEPS_PER_PERIODim','每天 48 / 24 步','大气和海洋每天的步数，决定一组有多少步','48 / 24'],['L_CO2_INTERACTIVE','.FALSE.','不交换任何 CO₂ 场']],
       rel:'半耦合时 cGENIE 要接管的正是这组日平均场：向下的风应力、地表热量和淡水通量，向上的 SST 和海冰。它们的月平均或年平均是喂给 cGENIE 最自然的 HadCM3 输出。',
       had:'cGENIE 在同一个循环里通过共享接口数组耦合各模块，surflux 每个海洋步（约 3.8 天）重算一次通量。',
-      src:['U_MODEL1.dk:1483–1562','SETGRCT1.dk:80–86','SWAPA2O2.dk:521、SWAPO2A2.dk:433、TRANA2O1.dk','INITA2O1.dk（按 STASH 标记找到耦合场）'] },
+      src:['U_MODEL1.dk:1483–1562','SETGRCT1.dk:80–140','SWAPA2O2.dk、SWAPO2A2.dk、TRANA2O1.dk、TRANO2A1.dk','INITA2O1.dk'] },
 
-    { key:'ocn', fam:'ocn', name:'海洋', full:'Bryan–Cox 刚盖海洋 GCM · 第 30–31 节',
+    { key:'ocn', fam:'ocn', name:'海洋', full:'Bryan–Cox 刚盖海洋 GCM · 第 30–31 节 · 288 × 144 × 20',
       freq:['每个海洋步','24 次 / 天','Δt = 1 小时'],
       lead:'1.25° 网格、20 层、刚盖的 z 坐标海洋。每一步先逐行扫描，算随深度变化的流和示踪物，再在全球求解一个深度平均流的方程。',
-      in:['耦合器给出的日强迫：τ、热通量、P − E、太阳辐射、风混合、河流、冰融化','与海冰交换的热量和盐分'],
-      calc:['OCN_FRST：计步，每天一次混合步（Euler 后差）','逐行：密度、CLINIC（斜压 u、v）、TRACER（T、S）','TRACER：平流、带 Gent–McWilliams 的等密度面扩散、隐式垂直扩散、地表通量、穿透性太阳辐射、结冰、Kraus–Turner 混合层、对流调整、极区滤波','TROP_CTL：用 SOR 求正压流函数，含绕岛环流'],
-      out:['T、S、u、v 和流函数','SST 和表层流 → 耦合器；洋流 → 海冰'],
-      params:[['IMT × JMT × KM','290 × 144 × 20','288 列加 2 列循环边界；1.25° × 1.25°'],['DTTS / DTUV / DTSF','3600 s','示踪物、动量和流函数的步长'],['NMIX','24','每 24 步一次混合步，即每天一次'],['L_OFREESFC','.FALSE.','刚盖'],['MXSCAN / SOR / CRIT','500 / 1.775 / 4×10⁻⁵','流函数求解器'],['NISLE','6','单独计算环流的岛屿数'],['L_OISOGM / L_OVISBECK','.TRUE. / .TRUE.','Gent–McWilliams，Visbeck 可变系数'],['AHI1_SI / AHI2_SI / AHI3_SI','1000 / 1000 / 500 m² s⁻¹','等密度面扩散系数'],['KAPPA0_SI / DKAPPA_DZ_SI','1×10⁻⁵ / 2.8×10⁻⁸','海表垂直扩散系数（m² s⁻¹）及其随深度每米的增量：5 km 处约 1.5×10⁻⁴ m² s⁻¹'],['LAMDA / DELTA_SI / EPSILON','0.7 / 100 m / 0.15','Kraus–Turner 混合层常数'],['L_ORICHARD / L_OQLARGE','.TRUE. / .TRUE.','Richardson 数混合；上层 80 m 内的二次 Large 方案'],['L_OMEDOUT','.TRUE.','地中海出流参数化'],['SALREF','0.035（35 psu）','虚盐通量的参考盐度']],
+      flow:[
+        { t:'计步', r:'OCN_CTL → OCN_FRST', at:'OCN_CTL.dk:314 · OCN_FRST.dk:60', d:'计步；每天一次的混合步用 Euler 后差代替蛙跳', p:['NMIX'] },
+        { t:'密度', r:'STATED', at:'ROWCALC.dk:1141', loop:['对每一行 j = 1 … 144（ROW_CTL → BLOKCALC → ROWCALC）', 11], d:'本行和下一行的状态方程' },
+        { t:'斜压动量', r:'CLINIC · VERTCOFC', at:'ROWCALC.dk:1265 · CLINIC.dk:1405', d:'平流、科氏力、气压梯度、水平黏性 AM = AM0 + AM1 cos φ、随 Richardson 数变化的垂直黏性；顶部风应力', p:['DTUV','AM0_SI','AM1_SI','ACOR','L_ORICHARD','FNU0_SI','FNUB_SI'], inn:['风应力 τx、τy ← 耦合器'] },
+        { t:'垂直扩散系数', r:'TRACER → VERTCOFT', at:'TRACER.dk:682–700', d:'随 Richardson 数变化的扩散系数，叠加在随深度增大的背景值上；近海表用二次 Large 方案', p:['L_ORICHARD','STABLM_SI','KAPPA0_SI','DKAPPA_DZ_SI','L_OQLARGE','MAX_QLARGE_DEPTH'] },
+        { t:'输送', r:'ISOPYC_M · IPDGMVEL · 平流 · ISOFLUX', at:'TRACER.dk:868–1453', d:'沿等密度面扩散 AHI(z) = AHI2 + (AHI1 − AHI2)·e^(−z/AHI3)；带 Visbeck 系数的 Gent–McWilliams 涡致速度；T、S 平流；隐式垂直扩散', p:['DTTS','L_OISOPYC','L_OISOMOM','AHI1_SI','AHI2_SI','AHI3_SI','L_OISOGM','L_OVISBECK','L_OIMPDIF'] },
+        { t:'地表通量', r:'SFCADD · ICEFLUX', at:'TRACER.dk:1885–1992', d:'热量进入顶层；淡水以虚盐通量进入；加上 water fix；与海冰交换热量', p:['L_FLUXCORR','L_SALFLUXFIX','L_REFSAL','SALREF'], inn:['热通量、P − E、河流入海、降雪 ← 耦合器','water fix ← qrparm.waterfix.hadcm3'] },
+        { t:'穿透性太阳辐射', r:'SOLADD', at:'TRACER.dk:2067–2137', d:'蓝光波段太阳辐射随深度吸收', p:['RSOL','ETA1_SI','ETA2_SI'], inn:['蓝光（可穿透）太阳辐射 ← 耦合器'] },
+        { t:'结冰', r:'FREEZEUP', at:'TRACER.dk:2192', d:'冷却到冰点以下的海水生成新冰', out:['新冰 → 海冰'] },
+        { t:'地中海出流', r:'TRACER', at:'TRACER.dk:2292–2378', d:'在直布罗陀两侧的地中海和大西洋水柱之间交换海水', p:['L_OMEDOUT'] },
+        { t:'混合层', r:'MIXLAY', at:'TRACER.dk:2583', d:'Kraus–Turner：风混合能和对流释放的能量加深混合层', p:['LAMDA','DELTA_SI','EPSILON'], inn:['风混合能 ← 耦合器'] },
+        { t:'对流', r:'CONVADJ · CONVFULL', at:'TRACER.dk:2695–2755', d:'先在固定区域内做 Roussenov 对流，再在全球做 Rahmstorf 完整对流调整', p:['L_OCONVROUS','ISROUS…JEROUS'] },
+        { t:'极区滤波', r:'OFILTR_CNTL', at:'TRACER.dk:2879', d:'对高纬示踪物做傅里叶滤波', p:['L_OFILTER'] },
+        { t:'正压流', r:'TROP_CTL → RELAX', at:'OCN_CTL.dk:424 · TROP_CTL.dk:183', d:'用超松弛迭代求流函数（含绕岛环流），加上深度平均流', p:['L_OFREESFC','DTSF','MXSCAN','SOR','CRIT','ACOR','NISLE'], out:['SST、表层流 → 耦合器','表层流 → 海冰'] },
+        { t:'海冰', r:'ICE_CTL', at:'OCN_CTL.dk:474', fam:'ice', d:'漂移和热力学：见“海冰”标签' }
+      ],
+      params:[['NMIX','24','每 24 步一次混合步（Euler 后差），即每天一次'],['DTUV','3600 s','动量步长'],['AM0_SI','3000 m² s⁻¹','水平黏性的常数部分'],['AM1_SI','3000 m² s⁻¹','水平黏性中随 cos φ 变化的部分'],['ACOR','0.75','科氏项隐式处理的权重（0 为显式）'],['L_ORICHARD','.TRUE.','随 Richardson 数变化的垂直混合'],['FNU0_SI','5.5×10⁻³ m² s⁻¹','随 Richardson 数变化的黏性的最大值'],['FNUB_SI','1×10⁻⁵ m² s⁻¹','背景垂直黏性'],['STABLM_SI','1×10⁻² m² s⁻¹','垂直扩散系数上限'],['KAPPA0_SI','1×10⁻⁵ m² s⁻¹','海表处的背景垂直扩散系数'],['DKAPPA_DZ_SI','2.8×10⁻⁸ m s⁻¹','背景扩散系数随深度每米的增量：5 km 处约 1.5×10⁻⁴ m² s⁻¹'],['L_OQLARGE','.TRUE.','近海表用二次 Large 方案'],['MAX_QLARGE_DEPTH','80 m','二次 Large 方案作用的最大深度'],['DTTS','3600 s','示踪物步长'],['L_OISOPYC','.TRUE.','等密度面扩散'],['L_OISOMOM','.TRUE.','Griffies 形式的等密度面方案（ISOPYC_M、ISOFLUX）'],['AHI1_SI','1000 m² s⁻¹','海表处的等密度面扩散系数'],['AHI2_SI','1000 m² s⁻¹','深层的等密度面扩散系数'],['AHI3_SI','500 m','二者之间的 e 折深度；因为 AHI1 = AHI2，扩散系数实际恒为 1000 m² s⁻¹'],['L_OISOGM','.TRUE.','Gent–McWilliams 涡致输送'],['L_OVISBECK','.TRUE.','Visbeck 可变 GM 系数'],['L_OIMPDIF','.TRUE.','隐式（Crank–Nicolson）垂直扩散'],['L_FLUXCORR','.TRUE.','读入通量订正文件 FLUXCORR = qrparm.waterfix.hadcm3'],['L_SALFLUXFIX','.TRUE.','把其中的热量部分置零，只施加 water fix'],['L_REFSAL','.TRUE.','虚盐通量使用参考盐度'],['SALREF','0.035','参考盐度（35 psu）'],['RSOL','0','第一个太阳波段所占份额：零'],['ETA1_SI','1.0 m⁻¹','第一个太阳波段的衰减率（因 RSOL = 0 未使用）'],['ETA2_SI','0.059 m⁻¹','第二个波段的衰减率：e 折深度约 17 m'],['L_OMEDOUT','.TRUE.','地中海出流参数化'],['LAMDA','0.7','风混合能进入混合层的份额'],['DELTA_SI','100 m','风混合能的衰减深度'],['EPSILON','0.15','对流释放的能量中留给混合的份额'],['L_OCONVROUS','.TRUE.','在固定区域内做 Roussenov 对流'],['ISROUS…JEROUS','列 251–290，行 119–128','Roussenov 区域，约 58–70° N 的北大西洋北部','251–290, 119–128'],['L_OFILTER','.TRUE.','高纬傅里叶滤波'],['L_OFREESFC','.FALSE.','刚盖'],['DTSF','3600 s','流函数步长'],['MXSCAN','500','SOR 最多扫描次数'],['SOR','1.775','超松弛因子'],['CRIT','4×10⁻⁵','收敛判据'],['NISLE','6','单独计算环流的岛屿数']],
       rel:'在碳循环模式里，决定碳储量的正是海洋温度、盐度和环流（包括 AMOC）。HadCM3 算了这些，但本作业不带碳（L_OCARBON = .FALSE.）。半耦合时，T、S 或环流的月平均、年平均是传给 cGENIE 的候选场。',
       had:'GOLDSTEIN 是约 10°、16 层、每年 96 步的摩擦地转海洋；HadCM3 分辨率 1.25°，每年 8 640 步。',
-      src:['OCN_CTL.dk:314（OCN_FRST）、351（ROW_CTL）、424（TROP_CTL）','ROWCALC.dk:1265（CLINIC）、1330（TRACER）','TRACER.dk','TROP_CTL.dk:183（RELAX）','OCN_FRST.dk:60（NMIX）'] },
+      src:['OCN_CTL.dk','ROWCALC.dk','CLINIC.dk','TRACER.dk','TROP_CTL.dk','OSETCON.dk:505–512（KAPPA 廓线）、1286（AHI 廓线）','SFCADD.dk:112–147'] },
 
     { key:'ice', fam:'ice', name:'海冰', full:'零层热力学海冰，简单漂移 · 第 32 节',
       freq:['每个海洋步','24 次 / 天','Δt = 1 小时'],
-      lead:'海冰属于海洋子模式，但它的表面能量平衡由大气来解。海洋这边让海冰随表层流移动，并根据收到的通量增长或融化。',
-      in:['海洋表层流','顶部融化、底部融化、升华和降雪 ← 耦合器（来自大气的冰面计算）','海洋传给冰的热通量'],
-      calc:['ICEDRIFT：让海冰随表层流移动（L_ICESIMPLE），并对冰厚做扩散','ICEFLOE：带冰间水道（Hibler 1979）的 Semtner (1976) 零层热力学','密集度上限：北半球 0.995，南半球 0.98'],
-      out:['海冰比例、冰厚、雪深 → 耦合器 → 大气','进入海洋顶层的热量、盐分和淡水'],
-      params:[['L_SEAICE / L_ICESIMPLE','.TRUE. / .TRUE.','开海冰；随洋流简单漂移'],['AMXNORTH / AMXSOUTH','0.995 / 0.98','最大海冰密集度'],['AICEMIN / HICEMIN','0.001 / 1×10⁻⁴','最小密集度和冰厚'],['H0','0.5 m','最小局地冰厚'],['SALICE','0.006','海冰盐度（6 psu）'],['AH_ICE','670 m² s⁻¹','冰厚扩散系数'],['ALPHAC / ALPHAM / DTICE','0.80 / 0.50 / 10 K','冷冰和融化冰的反照率，以及二者之间的温度范围（由大气使用）']],
+      lead:'海冰的计算分在两个子模式里。大气每 30 分钟解一次冰面能量平衡和反照率；海洋这边每小时让海冰随表层流移动，并让它增长或融化。',
+      flow:[
+        { t:'海冰反照率', r:'FTSA（辐射）', at:'RAD_CTL1.dk:990–1026', fam:'atm', cond:'大气，辐射步', d:'冰面温度升到融点以下 DTICE 范围内时，反照率从 ALPHAC 降到 ALPHAM', p:['ALPHAC','ALPHAM','DTICE'] },
+        { t:'冰面能量平衡', r:'BL_CTL → SICE_HTF、SF_MELT', at:'BDYLYR7A.dk:1010, 1075', fam:'atm', cond:'大气，每步', d:'冰面温度、穿过冰层的热传导、顶部融化和升华', inn:['海冰比例、冰厚、雪深 ← 最近一次交换'], out:['顶部融化、传导热通量和升华的日平均 → 耦合器'] },
+        { t:'分配进入的通量', r:'OCN_CTL → Init_Ocean_Ice', at:'OCN_CTL.dk:280–300', cond:'海洋，每步', d:'把热通量和降雪分到冰面和冰间开阔水道', p:['L_SEAICE'], inn:['顶部融化、传导热通量、升华、降雪 ← 耦合器'] },
+        { t:'漂移', r:'ICE_CTL → ICEDRIFT', at:'ICE_CTL.dk:429', d:'用表层流平流冰厚、雪深和密集度（GFDL 型方案）；对冰厚做扩散', p:['L_ICESIMPLE','AH_ICE'], inn:['表层流 ← 海洋'] },
+        { t:'热力学', r:'ICEFLOE', at:'ICE_CTL.dk:453', d:'带冰间水道（Hibler 1979）的 Semtner (1976) 零层模式：由大气通量和与 EDDYDIFF × (T₁ − T_冰点) 成正比的海洋热通量让冰增长或融化', p:['EDDYDIFFN','EDDYDIFFS','H0','HICEMIN','AICEMIN','SALICE'], inn:['顶层水温和新冰 ← 海洋'] },
+        { t:'密集度上限', r:'ICEFLOE（AMX）', at:'OSETCON.dk:1163–1171', d:'北冰洋至少保留 0.5 % 开阔水，南大洋至少 2 %', p:['AMXNORTH','AMXSOUTH'], out:['海冰比例、冰厚、雪深 → 耦合器 → 大气（第 n + 1 天）','热量、盐分和淡水 → 海洋顶层'] }
+      ],
+      params:[['ALPHAC','0.80','冷海冰的反照率'],['ALPHAM','0.50','处于融点的海冰反照率'],['DTICE','10 K','融点以下反照率发生变化的温度区间'],['L_SEAICE','.TRUE.','开海冰'],['L_ICESIMPLE','.TRUE.','随表层流简单漂移'],['AH_ICE','670 m² s⁻¹','冰厚扩散系数'],['EDDYDIFFN','2.5×10⁻⁵','海洋向冰的传热系数，北半球'],['EDDYDIFFS','2.5×10⁻⁵','海洋向冰的传热系数，南半球'],['H0','0.5 m','最小局地冰厚'],['HICEMIN','1×10⁻⁴','最小平均冰厚'],['AICEMIN','0.001','最小密集度'],['SALICE','0.006','海冰盐度（6 psu）'],['AMXNORTH','0.995','北半球最大密集度'],['AMXSOUTH','0.98','南半球最大密集度']],
       rel:'在 cGENIE 中，海冰覆盖会阻断高纬的海气气体交换。不同轨道下 HadCM3 的海冰比例，适合拿来与 cGENIE 比较，或直接强加给它。',
       had:'cGENIE 的海冰在性质上类似（厚度加覆盖率、随洋流漂移、无流变学），但在 10° 网格上约每 3.8 天走一步。',
-      src:['OCN_CTL.dk:474（ICE_CTL）','ICE_CTL.dk:429（ICEDRIFT）、453（ICEFLOE）','ICEFLOE.dk'] },
+      src:['OCN_CTL.dk:474（ICE_CTL）','ICE_CTL.dk','ICEDRIFT.dk','ICEFLOE.dk','OSETCON.dk:1163–1171'] },
 
     { key:'off', fam:'off', name:'未启用', full:'UM vn4.5 中有、但本 PI 作业关闭的选项',
       lead:'代码里存在、但在 tdaah 中通过 namelist 开关或 section 选择关掉的部分。',
-      table:[['交互式 CO₂','L_CO2_INTERACTIVE, L_CO2_EMITS = .FALSE.','CO₂ 固定为 CO2_MMR；没有三维 CO₂ 示踪物，耦合器也不传 CO₂'],['海洋碳循环（HadOCC）','L_OCARBON, L_OBIOLOGY = .FALSE.','海洋中没有 DIC、碱度和浮游生物'],['硫循环','L_SULPC_SO2 = .FALSE.','改用气候态气溶胶'],['预报云冰','L_LSPICE = .FALSE.','液态和冰相按温度划分'],['自由表面海洋','L_OFREESFC = .FALSE.','刚盖加流函数'],['自由漂移海冰动力','L_ICEFREEDR = .FALSE.','只用随洋流的简单漂移（L_ICESIMPLE）'],['轨道长期变化','L_SEC_VAR = .FALSE.','整个运行中轨道固定'],['垂直扩散、示踪物平流','A07_0A, A11_0A','第 7 节和第 11 节未包含'],['热通量调整','—','唯一的通量订正文件是 water fix；HadCM3 不做热通量调整']],
-      src:['tdaah：CNTLATM、CNTLOCN、SECT_MODE'] }
+      table:[['交互式 CO₂','L_CO2_INTERACTIVE, L_CO2_EMITS = .FALSE.','CO₂ 固定为 CO2_MMR；没有三维 CO₂ 示踪物，耦合器也不传 CO₂'],['海洋碳循环（HadOCC）','L_OCARBON, L_OBIOLOGY = .FALSE.','海洋中没有 DIC、碱度和浮游生物'],['硫循环','L_SULPC_SO2 = .FALSE.','改用气候态气溶胶'],['预报云冰','L_LSPICE = .FALSE.','液态和冰相按温度划分'],['自由表面海洋','L_OFREESFC = .FALSE.','刚盖加流函数'],['自由漂移海冰动力','L_ICEFREEDR = .FALSE.','只用随洋流的简单漂移（L_ICESIMPLE）'],['轨道长期变化','L_SEC_VAR = .FALSE.','整个运行中轨道固定'],['三维对流云','L_3D_CCA = .FALSE.','每柱只有一个对流云量'],['垂直扩散、示踪物平流','A07_0A, A11_0A','第 7 节和第 11 节未包含'],['热通量调整','L_SALFLUXFIX = .TRUE.','FLUXCORR 中的热量部分被置零，只施加 water fix']],
+      src:['tdaah：CNTLATM、CNTLOCN、SECT_MODE','SFCADD.dk:112–125'] }
   ];
 
   /* ---------------- 工具 ---------------- */
@@ -916,6 +1055,44 @@ footer .mono { overflow-wrap: anywhere; }
     svg.innerHTML = h;
   })();
 
+  /* ---------------- 分量流程图 ---------------- */
+  const T = { enters:'从这里进入', inside:'分量内部，按调用顺序', leaves:'从这里离开',
+    hint:'点击图中的参数或表中的一行，两处会同时标出。',
+    param:'参数', value:'tdaah 取值', used:'用在哪一步', meaning:'含义' };
+  const attr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+  function flowHTML(m) {
+    const P = Object.fromEntries(m.params.map(r => [r[0], r]));
+    const chip = k => `<button type="button" class="pc" data-p="${attr(k)}" title="${attr(P[k][2])}">${k}<b>${P[k][3] || P[k][1]}</b></button>`;
+    const pills = a => `<div class="mf-pills">${a.map(x => `<span class="mf-pill">${x}</span>`).join('')}</div>`;
+    const conn = c => `<div class="mf-conn${c ? ' ' + c : ''}" aria-hidden="true"><span></span></div>`;
+    let h = `<div class="mflow"><div class="mf-head" aria-hidden="true"><span>${T.enters}</span><span>${T.inside}</span><span>${T.leaves}</span></div>`;
+    let left = 0;
+    m.flow.forEach((s, i) => {
+      const last = i === m.flow.length - 1;
+      if (Array.isArray(s.loop)) { h += `<div class="mf-loop"><div class="mf-looplab">↻ ${s.loop[0]}</div>` + conn('short nohead'); left = s.loop[1]; }
+      const cls = ['mf-node', s.fam || m.fam, s.cond ? 'cond' : '', s.off ? 'off' : ''].join(' ');
+      const tags = (typeof s.loop === 'string' ? `<span class="mf-tag">${s.loop}</span>` : '') + (s.cond ? `<span class="mf-tag">${s.cond}</span>` : '');
+      h += '<div class="mf-row">';
+      h += `<div class="mf-in">${s.inn ? pills(s.inn) + '<i class="mf-arr"></i>' : ''}</div>`;
+      h += `<div class="${cls}"><div class="mf-top"><span class="mf-n">${i + 1}</span><span class="mf-t">${s.t}</span>${tags}</div><div class="mf-r">${s.r} · ${s.at}</div>`;
+      if (s.d) h += `<p class="mf-d">${s.d}</p>`;
+      if (s.p && s.p.length) h += `<div class="mf-ps">${s.p.map(chip).join('')}</div>`;
+      h += '</div>';
+      h += `<div class="mf-out">${s.out ? '<i class="mf-arr"></i>' + pills(s.out) : ''}</div></div>`;
+      if (left > 0 && --left === 0) h += conn('short nohead') + '</div>';
+      if (!last) h += conn('');
+    });
+    return h + '</div>';
+  }
+
+  function paramTable(m) {
+    const used = {};
+    m.flow.forEach((s, i) => (s.p || []).forEach(k => { (used[k] = used[k] || []).push(i); }));
+    const rows = m.params.map(r => `<tr data-p="${attr(r[0])}" tabindex="0"><td class="k">${r[0]}</td><td class="v">${r[1]}</td><td class="u">${(used[r[0]] || []).map(i => `<span class="ul"><span class="ub">${i + 1}</span>${m.flow[i].t}</span>`).join('')}</td><td>${r[2]}</td></tr>`).join('');
+    return `<p class="mf-hint">${T.hint}</p><div class="tablewrap"><table class="ptab"><thead><tr><th>${T.param}</th><th>${T.value}</th><th>${T.used}</th><th>${T.meaning}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
   /* ---------------- 标签页 ---------------- */
   (function buildTabs() {
     const tabs = $('#tabs'), panels = $('#panels');
@@ -928,8 +1105,7 @@ footer .mono { overflow-wrap: anywhere; }
       if (m.table) {
         body += `<div class="tablewrap"><table><thead><tr><th>选项</th><th>开关</th><th>本作业中</th></tr></thead><tbody>${m.table.map(r => `<tr><td>${r[0]}</td><td class="k">${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div>`;
       } else {
-        body += `<div class="cols3"><div class="box"><h4>读入</h4>${ul(m.in)}</div><div class="box"><h4>计算</h4>${ul(m.calc)}</div><div class="box"><h4>输出</h4>${ul(m.out)}</div></div>`;
-        body += `<div class="tablewrap"><table><thead><tr><th>参数</th><th>tdaah 取值</th><th>含义</th></tr></thead><tbody>${m.params.map(r => `<tr><td class="k">${r[0]}</td><td class="v">${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div>`;
+        body += flowHTML(m) + paramTable(m);
         body += `<div class="pair"><div class="box rel"><h4>对轨道–CO₂ 问题</h4><p>${m.rel}</p></div><div class="box"><h4>与 cGENIE 对比</h4><p>${m.had}</p></div></div>`;
       }
       body += `<div class="srcs">来源：${m.src.join(' · ')}</div>`;
@@ -954,6 +1130,21 @@ footer .mono { overflow-wrap: anywhere; }
     else if (e.key === 'End') j = list.length - 1;
     if (j !== null) { e.preventDefault(); e.stopPropagation(); openTab(list[j].dataset.key, { focusTab: true }); }
   });
+
+  /* 参数标签 ↔ 表格行 */
+  const markParam = (el, cls, on) => {
+    const panel = el.closest('.mod');
+    if (panel) panel.querySelectorAll(`[data-p="${CSS.escape(el.dataset.p)}"]`).forEach(x => x.classList.toggle(cls, on));
+  };
+  const pickParam = el => markParam(el, 'sel', !el.classList.contains('sel'));
+  const panelsEl = $('#panels');
+  panelsEl.addEventListener('click', e => { const t = e.target.closest('[data-p]'); if (t) pickParam(t); });
+  panelsEl.addEventListener('keydown', e => {
+    const t = e.target.closest('tr[data-p]');
+    if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); pickParam(t); }
+  });
+  ['mouseover', 'focusin'].forEach(ev => panelsEl.addEventListener(ev, e => { const t = e.target.closest('[data-p]'); if (t) markParam(t, 'hl', true); }));
+  ['mouseout', 'focusout'].forEach(ev => panelsEl.addEventListener(ev, e => { const t = e.target.closest('[data-p]'); if (t) markParam(t, 'hl', false); }));
 
   $$('svg .n[data-tab]').forEach(n => {
     const go = () => openTab(n.dataset.tab, { scroll: true });
