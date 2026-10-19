@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="交互式拆解 HadCM3（UM vn4.5，工业革命前作业 tdaah）如何走完一个耦合日：调用顺序、大气–海洋耦合和关键参数。">
+<title>HadCM3 时间步拆解</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap">
+<style>
+/* Layout: one 1120px column — coupled-day flowchart → step player (timeline + component map + step card) → component tabs. Sibling of the cGENIE walkthrough. */
+:root {
+  --bg: #F2F5F6;
+  --surface: #FFFFFF;
+  --surface-2: #E8EEF0;
+  --ink: #12222A;
+  --muted: #586A72;
+  --line: #C7D3D8;
+  --atm: #2C6C9C;
+  --atm-soft: #DDEAF4;
+  --ocn: #13707A;
+  --ocn-soft: #D5ECEC;
+  --ice: #5B6E99;
+  --ice-soft: #E3E8F4;
+  --land: #5E7D22;
+  --land-soft: #E5EDD5;
+  --cpl: #A0642A;
+  --cpl-soft: #F2E5D5;
+  --off: #9AA5AA;
+  --sun: #D99A2B;
+  --signal: #B42F79;
+  --signal-soft: #F7E1EE;
+  --zone-air: #E8F0F7;
+  --zone-ocean: #E1EEEF;
+  --zone-land: #ECEDE3;
+  --font-display: "Source Serif 4", "Noto Serif SC", "Songti SC", Georgia, serif;
+  --font-body: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C1418; --surface: #131E24; --surface-2: #1A2830; --ink: #E2EBEE; --muted: #93A3AB; --line: #2A3A43;
+    --atm: #72B1E0; --atm-soft: #15304A; --ocn: #4FC1C2; --ocn-soft: #0F3336; --ice: #A3B4DE; --ice-soft: #232D45;
+    --land: #A7C764; --land-soft: #253018; --cpl: #D9A262; --cpl-soft: #3A2A18;
+    --off: #5D6A70; --sun: #E7B04C; --signal: #F06BB4; --signal-soft: #3D1A2E;
+    --zone-air: #0F1D28; --zone-ocean: #0D1F22; --zone-land: #1A1F17;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C1418; --surface: #131E24; --surface-2: #1A2830; --ink: #E2EBEE; --muted: #93A3AB; --line: #2A3A43;
+  --atm: #72B1E0; --atm-soft: #15304A; --ocn: #4FC1C2; --ocn-soft: #0F3336; --ice: #A3B4DE; --ice-soft: #232D45;
+  --land: #A7C764; --land-soft: #253018; --cpl: #D9A262; --cpl-soft: #3A2A18;
+  --off: #5D6A70; --sun: #E7B04C; --signal: #F06BB4; --signal-soft: #3D1A2E;
+  --zone-air: #0F1D28; --zone-ocean: #0D1F22; --zone-land: #1A1F17;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { color-scheme: light; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.75; }
+img { max-width: 100%; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); padding-block: 36px 72px; display: grid; gap: 56px; }
+@media (max-width: 480px) { .wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); } }
+
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; color: var(--ink); }
+h1 { font-size: clamp(30px, 4.4vw, 44px); line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 25px; line-height: 1.3; font-weight: 700; }
+h3 { font-size: 21px; line-height: 1.35; font-weight: 600; }
+p { margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+a { color: var(--signal); text-underline-offset: 3px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+header { display: grid; gap: 14px; }
+.toprow { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.lang { font-size: 13.5px; }
+.lede { max-width: 70ch; color: var(--ink); font-size: 16px; }
+.lede + .lede { color: var(--muted); font-size: 14.5px; }
+.lede code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
+section { display: grid; gap: 18px; }
+.sec-head { display: grid; gap: 6px; }
+.sec-head p { color: var(--muted); max-width: 72ch; }
+
+figure { margin: 0; display: grid; gap: 10px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+figcaption { color: var(--muted); font-size: 13.5px; max-width: 86ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--muted); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid; display: inline-block; }
+.sw.atm { background: var(--atm-soft); border-color: var(--atm); }
+.sw.ocn { background: var(--ocn-soft); border-color: var(--ocn); }
+.sw.ice { background: var(--ice-soft); border-color: var(--ice); }
+.sw.land { background: var(--land-soft); border-color: var(--land); }
+.sw.cpl { background: var(--cpl-soft); border-color: var(--cpl); }
+.sw.sun { background: var(--sun); border-color: var(--sun); width: 6px; height: 16px; border-radius: 1px; }
+.sw.some { background: var(--surface); border-color: var(--muted); border-style: dashed; }
+
+/* ---------- SVG shared ---------- */
+svg { display: block; }
+svg text { font-family: var(--font-body); fill: var(--ink); }
+.n rect { stroke-width: 1.5; transition: opacity .25s, stroke-width .2s; }
+.n.atm rect { fill: var(--atm-soft); stroke: var(--atm); }
+.n.ocn rect { fill: var(--ocn-soft); stroke: var(--ocn); }
+.n.ice rect { fill: var(--ice-soft); stroke: var(--ice); }
+.n.land rect { fill: var(--land-soft); stroke: var(--land); }
+.n.cpl rect { fill: var(--cpl-soft); stroke: var(--cpl); }
+.n.some rect { stroke-dasharray: 5 3; }
+.n .t1 { font-size: 14px; font-weight: 600; }
+.n .t2 { font-size: 12.5px; fill: var(--muted); }
+.n[data-tab] { cursor: pointer; }
+.n[data-tab]:hover rect { stroke-width: 2.5; }
+.n[data-tab]:focus { outline: none; }
+.n[data-tab]:focus-visible rect { stroke: var(--signal); stroke-width: 3; }
+.e path { fill: none; stroke: var(--muted); stroke-width: 1.4; }
+.e text { font-size: 12.5px; fill: var(--muted); }
+.ah { fill: var(--muted); }
+.ah-on { fill: var(--signal); }
+.zone { stroke: none; }
+.zone.air { fill: var(--zone-air); }
+.zone.ocean { fill: var(--zone-ocean); }
+.zone.land { fill: var(--zone-land); }
+.zlabel { font-size: 12.5px; fill: var(--muted) !important; letter-spacing: 0.02em; }
+
+/* overview flow */
+#flow { width: 100%; max-width: 1000px; min-width: 800px; height: auto; margin-inline: auto; }
+.frame { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 6 5; }
+.frametitle { font-family: var(--font-mono) !important; font-size: 12.5px; fill: var(--muted) !important; }
+.ztitle { font-size: 13px; font-weight: 600; fill: var(--muted) !important; letter-spacing: 0.02em; }
+.brk { fill: none; stroke: var(--muted); stroke-width: 1.2; }
+.brklab { font-family: var(--font-mono) !important; font-size: 12px; fill: var(--muted) !important; }
+.pill rect { fill: var(--surface-2); stroke: var(--line); }
+.pill text { font-size: 13px; }
+.seq path { fill: none; stroke: var(--ink); stroke-width: 1.4; opacity: .55; }
+.loopnote { font-size: 12.5px; fill: var(--muted) !important; }
+.tk { stroke: none; }
+.tk.atm { fill: var(--atm); opacity: .55; }
+.tk.rad { fill: var(--sun); }
+.tk.day { fill: var(--land); }
+.tk.ocn { fill: var(--ocn); opacity: .55; }
+.tk.mix { fill: var(--ocn); }
+
+/* component map */
+#map { width: 100%; max-width: 700px; min-width: 560px; height: auto; margin-inline: auto; }
+.sun circle { fill: var(--sun); }
+.sun line { stroke: var(--sun); stroke-width: 2; stroke-linecap: round; }
+.sun { transition: opacity .25s; }
+#map.stepping .n, #map.stepping .sun { opacity: .28; }
+#map.stepping .n.on, #map.stepping .sun.on { opacity: 1; }
+#map .n.cur rect { stroke: var(--signal); stroke-width: 3; }
+#map.stepping .e { opacity: .22; transition: opacity .25s; }
+#map.stepping .e.on { opacity: 1; }
+#map .e.on path { stroke: var(--signal); stroke-width: 2.3; }
+#map .e.on text { fill: var(--signal); font-weight: 600; }
+
+/* timeline */
+#track { width: 100%; max-width: 720px; min-width: 660px; height: auto; }
+.colbg { fill: transparent; transition: fill .2s; }
+.col.on .colbg { fill: var(--signal-soft); }
+.col { cursor: pointer; }
+.col:focus { outline: none; }
+.col:focus-visible .colbg { stroke: var(--signal); stroke-width: 2; }
+.kh { font-family: var(--font-mono) !important; font-size: 12px; fill: var(--muted) !important; }
+.col.on .kh { fill: var(--signal) !important; font-weight: 600; }
+.grp { font-size: 12px; fill: var(--muted) !important; letter-spacing: 0.04em; }
+.grpline { stroke: var(--line); stroke-width: 1.5; }
+.rowlab { font-size: 12.5px; fill: var(--muted) !important; }
+.dot.atm { fill: var(--atm); } .dot.ocn { fill: var(--ocn); } .dot.ice { fill: var(--ice); } .dot.land { fill: var(--land); } .dot.cpl { fill: var(--cpl); } .dot.sun { fill: var(--sun); }
+.dot.ring { fill: none; stroke-width: 1.5; }
+.dot.ring.atm { stroke: var(--atm); } .dot.ring.ocn { stroke: var(--ocn); } .dot.ring.ice { stroke: var(--ice); } .dot.ring.land { stroke: var(--land); } .dot.ring.cpl { stroke: var(--cpl); } .dot.ring.sun { stroke: var(--sun); }
+.dot.no { fill: var(--line); }
+#track .dot.cur { stroke: var(--signal); stroke-width: 3; }
+
+/* ---------- player ---------- */
+.controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.btns { display: flex; gap: 6px; }
+button { font: inherit; }
+.btn { height: 38px; min-width: 38px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; }
+.btn:hover { border-color: var(--muted); }
+.btn:focus-visible, select:focus-visible, input[type=range]:focus-visible, .tab:focus-visible, .open-tab:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); min-width: 96px; font-weight: 500; }
+.btn svg { width: 14px; height: 14px; }
+.btn svg path, .btn svg rect { fill: currentColor; }
+.speed { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--muted); }
+select { font: inherit; font-size: 14px; height: 38px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 0 8px; }
+.scrub { flex: 1 1 220px; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.scrub input { flex: 1; min-width: 0; accent-color: var(--signal); }
+.count { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kbd-hint { font-size: 12.5px; color: var(--muted); }
+kbd { font-family: var(--font-mono); font-size: 11.5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface); }
+
+.stage { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 16px; align-items: start; }
+@media (max-width: 920px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px 20px; display: grid; gap: 14px; min-width: 0; position: relative; overflow: hidden; }
+.timer { position: absolute; left: 0; top: 0; height: 3px; width: 100%; background: transparent; }
+.timer i { display: block; height: 100%; width: 0; background: var(--signal); }
+.timer.run i { animation: fillbar var(--dur, 5s) linear forwards; }
+@keyframes fillbar { from { width: 0; } to { width: 100%; } }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; color: var(--muted); white-space: nowrap; }
+.chip.k { color: var(--signal); border-color: var(--signal); }
+.call { font-family: var(--font-mono); font-size: 12.5px; background: var(--surface-2); border-radius: 6px; padding: 7px 10px; overflow-wrap: anywhere; line-height: 1.6; }
+.call .src { color: var(--muted); }
+.io { display: grid; gap: 10px; margin: 0; }
+.io > div { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; }
+.io dt { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; padding-top: 3px; }
+.io dd { margin: 0; }
+.io ul, .mod ul { margin: 0; padding-left: 1.1em; display: grid; gap: 3px; }
+.io li, .mod li { font-size: 14px; }
+.io li::marker, .mod li::marker { color: var(--muted); }
+.note { background: var(--signal-soft); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+.note b { color: var(--signal); font-weight: 600; margin-right: 6px; }
+.open-tab { justify-self: start; background: none; border: 0; padding: 0; color: var(--signal); cursor: pointer; font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- component tabs ---------- */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px; }
+.tab .d { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid; }
+.tab .d.atm { background: var(--atm); border-color: var(--atm); }
+.tab .d.ocn { background: var(--ocn); border-color: var(--ocn); }
+.tab .d.ice { background: var(--ice); border-color: var(--ice); }
+.tab .d.land { background: var(--land); border-color: var(--land); }
+.tab .d.cpl { background: var(--cpl); border-color: var(--cpl); }
+.tab .d.off { border-color: var(--off); border-style: dashed; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.mod { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; display: grid; gap: 18px; min-width: 0; }
+.mod-head { display: grid; gap: 6px; }
+.mod-head .full { color: var(--muted); font-size: 14px; }
+.mod .lead { font-size: 15.5px; max-width: 74ch; }
+.cols3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .cols3 { grid-template-columns: minmax(0, 1fr); } }
+.box { background: var(--surface-2); border-radius: 8px; padding: 12px 14px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.box h4 { margin: 0; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+td.k { font-family: var(--font-mono); font-size: 12.5px; }
+td.v { font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.tablewrap { overflow-x: auto; }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.pair .box p { font-size: 14px; }
+.box.rel { background: var(--signal-soft); }
+.box.rel h4 { color: var(--signal); }
+.srcs { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+
+footer { color: var(--muted); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 16px; }
+footer .mono { overflow-wrap: anywhere; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+  .timer { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="toprow">
+    <div class="eyebrow">UM vn4.5 · HadCM3B-M2.1aD · 作业 tdaah（工业革命前）</div>
+    <a class="lang xlink" href="HadCM3_timestep_walkthrough_en.html" data-artifact="https://claude.ai/artifact/NvLiK1jmDgtQTWMkfUsAWK" hreflang="en" lang="en">English</a>
+  </div>
+  <h1>HadCM3 是怎样一步步算的</h1>
+  <p class="lede">主程序 <code>U_MODEL</code> 以<strong>耦合日</strong>为单位推进：先让大气用 48 个 30 分钟的步长走完一整天，把这一天的平均通量交给海洋，再让海洋用 24 个 1 小时的步长走完同一天；然后把 SST 和海冰交回大气，开始下一天。每个大气步内部的顺序是固定的：先动力，后物理。</p>
+  <p class="lede">数值取自 <code>tdaah</code>，它是 bc5 上 BRIDGE 共享 UMUI 作业中的一个标准工业革命前（PI）作业：CO₂ 280 ppm，<code>preind2</code> 辅助文件，MOSES 2.1 加 TRIFFID，360 天日历，从 1850 年 12 月 1 日起算。调用顺序和行号来自 UM vn4.5 的源码 deck。</p>
+</header>
+
+<!-- ============ 1. 总览 ============ -->
+<section aria-labelledby="h-over">
+  <div class="sec-head">
+    <div class="eyebrow">总览</div>
+    <h2 id="h-over">一个耦合日</h2>
+    <p>同一天的模式时间要走两遍：先大气，后海洋。每个刻度是一个时间步。下半部分是两者各自一步之内的调用顺序。点击任一方框查看详情。</p>
+  </div>
+  <figure class="panel">
+    <div class="scroll">
+      <svg id="flow" viewBox="0 0 1000 520" role="group" aria-label="HadCM3 主循环：每个耦合日，大气先走 48 个半小时步，SWAP_A2O 把日平均通量交给海洋，海洋走 24 个一小时步，SWAP_O2A 再把 SST 和海冰交回。一个大气步内：调整、平流、扩散、云、每 6 步一次的辐射、边界层、大尺度降水、对流、水文、重力波拖曳，第 48 步还有植被和能量订正。一个海洋步内：计步、逐行的斜压动量和示踪物、正压流函数、海冰。">
+        <defs>
+          <marker id="fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+        </defs>
+        <g class="pill"><rect x="20" y="12" width="250" height="34" rx="17"/><text x="145" y="34" text-anchor="middle">开始 · INITIAL · 读入 .astart、.ostart</text></g>
+        <g class="pill"><rect x="730" y="12" width="250" height="34" rx="17"/><text x="855" y="34" text-anchor="middle">结束 · 在 RUN_TARGET_END 写 dump</text></g>
+        <g class="seq"><path d="M145,46 V64" marker-end="url(#fa)"/><path d="M855,66 V48" marker-end="url(#fa)"/></g>
+        <rect class="frame" x="20" y="66" width="960" height="442" rx="14"/>
+        <text class="frametitle" x="36" y="90">U_MODEL · 一组 = MODEL_HRS_PER_GROUP = 24 小时模式时间 · 每天重复</text>
+
+        <g class="n atm" data-tab="dyn" tabindex="0" role="button" aria-label="大气：动力详情">
+          <rect x="40" y="104" width="420" height="92" rx="8"/>
+          <text class="t1" x="56" y="126">大气 · 第 n 天</text>
+          <text class="t2" x="56" y="144">ATM_STEP × 48 · Δt = 30 分钟 · 00:00 → 24:00</text>
+        </g>
+        <g id="aTicks"></g>
+        <g class="n cpl" data-tab="cpl" tabindex="0" role="button" aria-label="SWAP_A2O：耦合器详情">
+          <rect x="478" y="118" width="104" height="64" rx="7"/>
+          <text class="t1" x="530" y="140" text-anchor="middle">SWAP_A2O</text>
+          <text class="t2" x="530" y="158" text-anchor="middle">日平均通量</text>
+          <text class="t2" x="530" y="174" text-anchor="middle">→ 海洋网格</text>
+        </g>
+        <g class="n ocn" data-tab="ocn" tabindex="0" role="button" aria-label="海洋详情">
+          <rect x="600" y="104" width="240" height="92" rx="8"/>
+          <text class="t1" x="616" y="126">海洋 · 第 n 天</text>
+          <text class="t2" x="616" y="144">OCN_STEP × 24 · Δt = 1 小时</text>
+        </g>
+        <g id="oTicks"></g>
+        <g class="n cpl" data-tab="cpl" tabindex="0" role="button" aria-label="SWAP_O2A：耦合器详情">
+          <rect x="858" y="118" width="104" height="64" rx="7"/>
+          <text class="t1" x="910" y="140" text-anchor="middle">SWAP_O2A</text>
+          <text class="t2" x="910" y="158" text-anchor="middle">SST、海冰</text>
+          <text class="t2" x="910" y="174" text-anchor="middle">→ 大气网格</text>
+        </g>
+        <g class="seq">
+          <path d="M460,150 H476" marker-end="url(#fa)"/>
+          <path d="M582,150 H598" marker-end="url(#fa)"/>
+          <path d="M840,150 H856" marker-end="url(#fa)"/>
+          <path d="M910,182 V210 H30 V150 H38" marker-end="url(#fa)"/>
+        </g>
+        <text class="loopnote" x="480" y="226" text-anchor="middle">第 n + 1 天：回到大气</text>
+
+        <text class="ztitle" x="40" y="250">一个大气步内部（30 分钟）</text>
+        <path class="brk" d="M40,272 V266 H426 V272"/>
+        <text class="brklab" x="233" y="262" text-anchor="middle">ATM_DYN · 第 10–13 节</text>
+        <path class="brk" d="M442,272 V266 H560 V272"/>
+        <text class="brklab" x="501" y="262" text-anchor="middle">ATM_PHYS ↓</text>
+
+        <g class="n atm" data-tab="dyn" tabindex="0" role="button" aria-label="调整：动力详情"><rect x="40" y="276" width="118" height="48" rx="7"/><text class="t1" x="99" y="296" text-anchor="middle">调整</text><text class="t2" x="99" y="314" text-anchor="middle">3 × 10 分钟</text></g>
+        <g class="n atm" data-tab="dyn" tabindex="0" role="button" aria-label="平流：动力详情"><rect x="174" y="276" width="118" height="48" rx="7"/><text class="t1" x="233" y="296" text-anchor="middle">平流</text><text class="t2" x="233" y="314" text-anchor="middle">u, v, θl, qt</text></g>
+        <g class="n atm" data-tab="dyn" tabindex="0" role="button" aria-label="扩散与滤波：动力详情"><rect x="308" y="276" width="118" height="48" rx="7"/><text class="t1" x="367" y="296" text-anchor="middle">扩散</text><text class="t2" x="367" y="314" text-anchor="middle">∇⁶ · 极区滤波</text></g>
+        <g class="n atm" data-tab="cloud" tabindex="0" role="button" aria-label="大尺度云详情"><rect x="442" y="276" width="118" height="48" rx="7"/><text class="t1" x="501" y="296" text-anchor="middle">大尺度云</text><text class="t2" x="501" y="314" text-anchor="middle">+ 能量订正</text></g>
+
+        <g class="n atm some" data-tab="rad" tabindex="0" role="button" aria-label="辐射详情"><rect x="442" y="352" width="118" height="48" rx="7"/><text class="t1" x="501" y="372" text-anchor="middle">辐射</text><text class="t2" x="501" y="390" text-anchor="middle">每 6 步一次</text></g>
+        <g class="n atm" data-tab="bl" tabindex="0" role="button" aria-label="边界层详情"><rect x="308" y="352" width="118" height="48" rx="7"/><text class="t1" x="367" y="372" text-anchor="middle">边界层</text><text class="t2" x="367" y="390" text-anchor="middle">MOSES 2.1</text></g>
+        <g class="n atm" data-tab="cloud" tabindex="0" role="button" aria-label="大尺度降水详情"><rect x="174" y="352" width="118" height="48" rx="7"/><text class="t1" x="233" y="372" text-anchor="middle">大尺度降水</text><text class="t2" x="233" y="390" text-anchor="middle">雨、雪</text></g>
+        <g class="n atm" data-tab="conv" tabindex="0" role="button" aria-label="对流详情"><rect x="40" y="352" width="118" height="48" rx="7"/><text class="t1" x="99" y="372" text-anchor="middle">对流</text><text class="t2" x="99" y="390" text-anchor="middle">质量通量</text></g>
+
+        <g class="n land" data-tab="hydro" tabindex="0" role="button" aria-label="陆面水文详情"><rect x="40" y="428" width="118" height="48" rx="7"/><text class="t1" x="99" y="448" text-anchor="middle">陆面水文</text><text class="t2" x="99" y="466" text-anchor="middle">4 层土壤</text></g>
+        <g class="n atm" data-tab="gwd" tabindex="0" role="button" aria-label="重力波拖曳详情"><rect x="174" y="428" width="118" height="48" rx="7"/><text class="t1" x="233" y="448" text-anchor="middle">重力波拖曳</text><text class="t2" x="233" y="466" text-anchor="middle">地形</text></g>
+        <g class="n land some" data-tab="veg" tabindex="0" role="button" aria-label="植被详情"><rect x="308" y="428" width="118" height="48" rx="7"/><text class="t1" x="367" y="448" text-anchor="middle">植被</text><text class="t2" x="367" y="466" text-anchor="middle">1 天 / 10 天</text></g>
+        <g class="n atm some" data-tab="eng" tabindex="0" role="button" aria-label="能量订正详情"><rect x="442" y="428" width="118" height="48" rx="7"/><text class="t1" x="501" y="448" text-anchor="middle">能量订正</text><text class="t2" x="501" y="466" text-anchor="middle">每天一次</text></g>
+
+        <g class="seq">
+          <path d="M158,300 H172" marker-end="url(#fa)"/>
+          <path d="M292,300 H306" marker-end="url(#fa)"/>
+          <path d="M426,300 H440" marker-end="url(#fa)"/>
+          <path d="M501,324 V350" marker-end="url(#fa)"/>
+          <path d="M442,376 H428" marker-end="url(#fa)"/>
+          <path d="M308,376 H294" marker-end="url(#fa)"/>
+          <path d="M174,376 H160" marker-end="url(#fa)"/>
+          <path d="M99,400 V426" marker-end="url(#fa)"/>
+          <path d="M158,452 H172" marker-end="url(#fa)"/>
+          <path d="M292,452 H306" marker-end="url(#fa)"/>
+          <path d="M426,452 H440" marker-end="url(#fa)"/>
+        </g>
+        <text class="loopnote" x="560" y="496" text-anchor="end">然后诊断输出（STASH）→ 下一步</text>
+
+        <text class="ztitle" x="600" y="250">一个海洋步内部（1 小时）</text>
+        <g class="n ocn" data-tab="ocn" tabindex="0" role="button" aria-label="海洋计步详情"><rect x="676" y="258" width="270" height="38" rx="7"/><text class="t1" x="811" y="274" text-anchor="middle">计步</text><text class="t2" x="811" y="289" text-anchor="middle">OCN_FRST · 每天一次 Euler 步</text></g>
+        <g class="n ocn" data-tab="ocn" tabindex="0" role="button" aria-label="斜压动量：海洋详情"><rect x="676" y="306" width="270" height="38" rx="7"/><text class="t1" x="811" y="322" text-anchor="middle">斜压动量</text><text class="t2" x="811" y="337" text-anchor="middle">CLINIC · u, v</text></g>
+        <g class="n ocn" data-tab="ocn" tabindex="0" role="button" aria-label="温度和盐度：海洋详情"><rect x="676" y="354" width="270" height="38" rx="7"/><text class="t1" x="811" y="370" text-anchor="middle">温度、盐度</text><text class="t2" x="811" y="385" text-anchor="middle">TRACER · 通量、混合、对流</text></g>
+        <g class="n ocn" data-tab="ocn" tabindex="0" role="button" aria-label="正压流：海洋详情"><rect x="676" y="402" width="270" height="38" rx="7"/><text class="t1" x="811" y="418" text-anchor="middle">正压流</text><text class="t2" x="811" y="433" text-anchor="middle">TROP_CTL · 流函数（刚盖）</text></g>
+        <g class="n ice" data-tab="ice" tabindex="0" role="button" aria-label="海冰详情"><rect x="676" y="450" width="270" height="38" rx="7"/><text class="t1" x="811" y="466" text-anchor="middle">海冰</text><text class="t2" x="811" y="481" text-anchor="middle">ICE_CTL · 先漂移，后热力学</text></g>
+        <g class="seq">
+          <path d="M811,296 V304" marker-end="url(#fa)"/>
+          <path d="M811,344 V352" marker-end="url(#fa)"/>
+          <path d="M811,392 V400" marker-end="url(#fa)"/>
+          <path d="M811,440 V448" marker-end="url(#fa)"/>
+        </g>
+        <path class="brk" d="M672,306 H666 V392 H672"/>
+        <text class="brklab" x="660" y="345" text-anchor="end">ROW_CTL</text>
+        <text class="brklab" x="660" y="361" text-anchor="end">逐行</text>
+      </svg>
+    </div>
+    <figcaption>高的琥珀色刻度是完整辐射步（第 1、7、13 … 43 步），其间沿用存下来的加热率。绿色刻度是第 48 步：能量订正、叶物候，以及每 10 天一次的 TRIFFID 在这一步运行。海洋那排高刻度是每天一次的混合步（Euler 后差），其余 23 步是蛙跳步。虚线框表示不是每步都运行。</figcaption>
+    <div class="legend">
+      <span><i class="sw atm"></i>大气</span>
+      <span><i class="sw land"></i>陆面</span>
+      <span><i class="sw ocn"></i>海洋</span>
+      <span><i class="sw ice"></i>海冰</span>
+      <span><i class="sw cpl"></i>耦合器</span>
+      <span><i class="sw some"></i>不是每步都运行</span>
+    </div>
+  </figure>
+</section>
+
+<!-- ============ 2. 逐步演示 ============ -->
+<section aria-labelledby="h-play">
+  <div class="sec-head">
+    <div class="eyebrow">逐步演示</div>
+    <h2 id="h-play">跟着走一个耦合日</h2>
+    <p>依次是：启动；第一个大气步的细节；大气这一天的其余部分；交给海洋；第一个海洋步的细节；海洋这一天的其余部分；再交回大气。示意图上高亮的箭头是这一步中流动的数据。</p>
+  </div>
+
+  <div class="controls" aria-label="播放控制">
+    <div class="btns">
+      <button class="btn" id="bPrev" type="button" aria-label="上一步"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="2" height="12"/><path d="M14 2 L5 8 L14 14 z"/></svg></button>
+      <button class="btn primary" id="bPlay" type="button" aria-label="播放"><svg viewBox="0 0 16 16" aria-hidden="true" id="iPlay"><path d="M3 2 L14 8 L3 14 z"/></svg><span id="tPlay">播放</span></button>
+      <button class="btn" id="bNext" type="button" aria-label="下一步"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2 L11 8 L2 14 z"/><rect x="12" y="2" width="2" height="12"/></svg></button>
+      <button class="btn" id="bReset" type="button">重新开始</button>
+    </div>
+    <label class="speed" for="speed">速度
+      <select id="speed">
+        <option value="9000">慢</option>
+        <option value="6000" selected>中</option>
+        <option value="3000">快</option>
+      </select>
+    </label>
+    <div class="scrub">
+      <input type="range" id="scrub" min="0" max="19" value="0" step="1" aria-label="跳到某一步">
+      <span class="count" id="count">1 / 20</span>
+    </div>
+    <span class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> 单步，<kbd>空格</kbd> 播放 / 暂停</span>
+  </div>
+
+  <div class="panel scroll">
+    <svg id="track" viewBox="0 0 720 214" role="group" aria-label="一个耦合日的时间线：每列是一个大气步、一次交换或一个海洋步；每行是一组计算；有圆点表示该步运行这组计算"></svg>
+  </div>
+
+  <div class="stage">
+    <figure class="panel">
+      <div class="scroll">
+        <svg id="map" class="stepping" viewBox="0 0 700 540" role="group" aria-label="HadCM3 分量示意图：大气中有辐射、动力、湿过程、边界层、能量订正和重力波拖曳；大气与海洋之间是耦合器；海洋中有海冰和海洋 GCM；陆地上有陆面和 TRIFFID。箭头表示它们交换的量。">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+            <marker id="ahon" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-on"/></marker>
+          </defs>
+          <rect class="zone air" x="10" y="8" width="680" height="214" rx="10"/>
+          <text class="zlabel" x="680" y="24" text-anchor="end">大气 · 96 × 73 × 19 · Δt 30 分钟</text>
+          <rect class="zone ocean" x="10" y="292" width="520" height="240" rx="10"/>
+          <text class="zlabel" x="20" y="522">海洋 · 288 × 144 × 20 · Δt 1 小时</text>
+          <rect class="zone land" x="545" y="236" width="145" height="296" rx="10"/>
+          <text class="zlabel" x="555" y="254">陆地</text>
+
+          <g class="e" data-edge="e-sun" data-ends="end"><path d="M55,62 H78"/><text x="14" y="106">太阳辐射</text></g>
+          <g class="e" data-edge="e-rad-bl" data-ends="end"><path d="M170,90 V130"/><text x="178" y="116">地表短波、长波</text></g>
+          <g class="e" data-edge="e-dyn-bl" data-ends="both"><path d="M310,90 V130"/><text x="318" y="116">状态 ⇅ 增量</text></g>
+          <g class="e" data-edge="e-dyn-moist" data-ends="both"><path d="M470,62 H498"/></g>
+          <g class="e" data-edge="e-moist-land" data-ends="end"><path d="M668,90 V298"/><text x="662" y="206" text-anchor="end">雨、雪</text></g>
+          <g class="e" data-edge="e-bl-land" data-ends="both"><path d="M300,184 V200 H620 V298"/><text x="460" y="215" text-anchor="middle">热量、水 ⇅ 分 tile</text></g>
+          <g class="e" data-edge="e-a2o" data-ends="end"><path d="M120,184 V234"/><text x="128" y="215">日平均 ↓</text></g>
+          <g class="e" data-edge="e-o2a" data-ends="end"><path d="M230,234 V186"/><text x="238" y="215">SST、海冰 ↑</text></g>
+          <g class="e" data-edge="e-cpl-ocn" data-ends="both"><path d="M250,276 V394"/><text x="258" y="318">τ、热量、P − E、河流 ↓</text><text x="258" y="334">SST、洋流 ↑</text></g>
+          <g class="e" data-edge="e-cpl-ice" data-ends="both"><path d="M100,276 V304"/><text x="108" y="295">海冰 ⇅</text></g>
+          <g class="e" data-edge="e-ocn-ice" data-ends="both"><path d="M100,346 V394"/><text x="108" y="374">结冰、融化 · 漂移</text></g>
+          <g class="e" data-edge="e-river" data-ends="end"><path d="M556,330 H500 V278"/><text x="492" y="318" text-anchor="end">径流</text></g>
+          <g class="e" data-edge="e-veg-land" data-ends="both"><path d="M618,360 V398"/><text x="626" y="384">LAI、覆盖度</text></g>
+
+          <g class="sun" data-node="sun">
+            <circle cx="40" cy="62" r="13"/>
+            <line x1="40" y1="40" x2="40" y2="45"/><line x1="40" y1="79" x2="40" y2="84"/>
+            <line x1="18" y1="62" x2="23" y2="62"/><line x1="57" y1="62" x2="62" y2="62"/>
+            <line x1="24.4" y1="46.4" x2="28" y2="50"/><line x1="52" y1="74" x2="55.6" y2="77.6"/>
+            <line x1="55.6" y1="46.4" x2="52" y2="50"/><line x1="28" y1="74" x2="24.4" y2="77.6"/>
+          </g>
+
+          <g class="n atm" data-node="rad" data-tab="rad" tabindex="0" role="button" aria-label="辐射详情"><rect x="80" y="34" width="180" height="56" rx="8"/><text class="t1" x="170" y="58" text-anchor="middle">辐射</text><text class="t2" x="170" y="78" text-anchor="middle">短波 + 长波 · 每 3 小时</text></g>
+          <g class="n atm" data-node="dyn" data-tab="dyn" tabindex="0" role="button" aria-label="动力详情"><rect x="290" y="34" width="180" height="56" rx="8"/><text class="t1" x="380" y="58" text-anchor="middle">动力</text><text class="t2" x="380" y="78" text-anchor="middle">调整 · 平流 · 扩散</text></g>
+          <g class="n atm" data-node="moist" data-tab="cloud" tabindex="0" role="button" aria-label="云与降水详情"><rect x="500" y="34" width="180" height="56" rx="8"/><text class="t1" x="590" y="58" text-anchor="middle">湿过程</text><text class="t2" x="590" y="78" text-anchor="middle">云 · 降水 · 对流</text></g>
+          <g class="n atm" data-node="bl" data-tab="bl" tabindex="0" role="button" aria-label="边界层详情"><rect x="80" y="132" width="250" height="52" rx="8"/><text class="t1" x="205" y="154" text-anchor="middle">边界层</text><text class="t2" x="205" y="173" text-anchor="middle">MOSES 2.1 地表交换</text></g>
+          <g class="n atm" data-node="eng" data-tab="eng" tabindex="0" role="button" aria-label="能量订正详情"><rect x="345" y="132" width="135" height="52" rx="8"/><text class="t1" x="412.5" y="154" text-anchor="middle">能量订正</text><text class="t2" x="412.5" y="173" text-anchor="middle">每天</text></g>
+          <g class="n atm" data-node="gwd" data-tab="gwd" tabindex="0" role="button" aria-label="重力波拖曳详情"><rect x="495" y="132" width="155" height="52" rx="8"/><text class="t1" x="572.5" y="154" text-anchor="middle">重力波拖曳</text><text class="t2" x="572.5" y="173" text-anchor="middle">地形</text></g>
+          <g class="n cpl" data-node="cpl" data-tab="cpl" tabindex="0" role="button" aria-label="耦合器详情"><rect x="10" y="236" width="520" height="40" rx="7"/><text class="t1" x="270" y="261" text-anchor="middle">耦合器 · SWAP_A2O / SWAP_O2A · 每天一次</text></g>
+          <g class="n land" data-node="land" data-tab="hydro" tabindex="0" role="button" aria-label="陆面水文详情"><rect x="556" y="300" width="124" height="60" rx="8"/><text class="t1" x="618" y="325" text-anchor="middle">陆面</text><text class="t2" x="618" y="345" text-anchor="middle">土壤 · 雪 · 径流</text></g>
+          <g class="n land" data-node="veg" data-tab="veg" tabindex="0" role="button" aria-label="植被详情"><rect x="556" y="400" width="124" height="60" rx="8"/><text class="t1" x="618" y="425" text-anchor="middle">TRIFFID</text><text class="t2" x="618" y="445" text-anchor="middle">植被</text></g>
+          <g class="n ice" data-node="ice" data-tab="ice" tabindex="0" role="button" aria-label="海冰详情"><rect x="24" y="306" width="150" height="40" rx="7"/><text class="t1" x="99" y="323" text-anchor="middle">海冰</text><text class="t2" x="99" y="339" text-anchor="middle">漂移 · 热力学</text></g>
+          <g class="n ocn" data-node="ocn" data-tab="ocn" tabindex="0" role="button" aria-label="海洋详情"><rect x="24" y="396" width="300" height="80" rx="8"/><text class="t1" x="174" y="428" text-anchor="middle">海洋 GCM</text><text class="t2" x="174" y="450" text-anchor="middle">逐行 · 正压求解 · 1 小时</text></g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i class="sw atm"></i>大气</span>
+        <span><i class="sw land"></i>陆面</span>
+        <span><i class="sw ocn"></i>海洋</span>
+        <span><i class="sw ice"></i>海冰</span>
+        <span><i class="sw cpl"></i>耦合器</span>
+      </div>
+    </figure>
+
+    <article class="card" id="card" aria-live="polite">
+      <div class="timer" id="timer"><i></i></div>
+      <div class="meta" id="sMeta"></div>
+      <h3 id="sTitle"></h3>
+      <div class="call" id="sCall"></div>
+      <dl class="io">
+        <div><dt>读入</dt><dd id="sIn"></dd></div>
+        <div><dt>计算</dt><dd id="sCalc"></dd></div>
+        <div><dt>输出</dt><dd id="sOut"></dd></div>
+      </dl>
+      <p class="note" id="sNote"></p>
+      <button class="open-tab" id="sOpen" type="button"></button>
+    </article>
+  </div>
+</section>
+
+<!-- ============ 3. 分量 ============ -->
+<section aria-labelledby="h-mod" id="modules">
+  <div class="sec-head">
+    <div class="eyebrow">分量</div>
+    <h2 id="h-mod">各分量算什么</h2>
+    <p>参数值读自 tdaah 的 namelist（<code>CNTLATM</code>、<code>CNTLOCN</code>、<code>CNTLALL</code>、<code>CNTLGEN</code>、<code>SIZES</code>、<code>INITHIS</code>）。A03_7A 这类代码是在 UMUI 里选定的 section 版本（见 <code>SECT_MODE</code>）。</p>
+  </div>
+  <div class="tabs" role="tablist" aria-label="分量" id="tabs"></div>
+  <div id="panels"></div>
+</section>
+
+<footer>
+  <span>来源：<span class="mono">$UM_HOME/um/vn4.5/source/umpl</span> 中的 UM vn4.5 deck（U_MODEL1、SETGRCT1、INITTIM1、SETTSCT1、ATMSTEP1、ATMDYN1、ATMPHY1、RAD_CTL1、OCNSTEP1、OCNFRST1、OCN_CTL、OCN_FRST、ROWCALC、TRACER、TROP_CTL、ICE_CTL、ICEFLOE、SWAPA2O2、SWAPO2A2、TRANA2O1、INITA2O1）。作业 namelist 位于 <span class="mono">/projects/public/b56i/ggpjv/work/umui_jobs/tdaah</span>（2026 年 6 月 1 日）。</span>
+  <span>该作业还用了 Bristol 的 mod 包（BUGFIXES、BriSciModN048、GENERIC、MOSES2.1）和两个 STANDARD_MODS 包。它们都不改变图中的调用顺序；文中的轨道代码来自 <span class="mono">merge_BriSciModN048_01</span> 里的 CALC_SOLAR mod。</span>
+  <span>姊妹页：<a class="xlink" href="../cGENIE-visualization/cGENIE_timestep_walkthrough_en.html" data-artifact="https://claude.ai/artifact/9NgGTz5pv5qZjHbkjPRxrU">cGENIE 时间步拆解</a></span>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  const ALL = ['sun','rad','dyn','moist','bl','eng','gwd','cpl','land','veg','ice','ocn'];
+  const ATMOS = ['dyn','rad','moist','bl','eng','gwd','land'];
+
+  /* ---------------- 步骤 ---------------- */
+  const STEPS = [
+    { cols:['init'], rows:['dyn','rad','phys','slow','cpl','ocn','ice'], nodes:ALL, cur:[], edges:[], tab:null,
+      chips:['启动','1850-12-01','只运行一次'],
+      title:'启动：读入 dump、辅助文件和 namelist',
+      call:'CALL INITIAL', src:'U_MODEL1.dk:826',
+      in:['初始 dump <code>$RUNID.astart</code> 和 <code>.ostart</code>，由 <code>standard.atmos.ver01</code> 和 <code>standard.ocean.ver01</code>（HadCM3B-M2.1aD）重配置得到','<code>bristol_ancils/preind2</code> 中的辅助文件：海陆掩膜、地形、土壤、植被、臭氧 …','UMUI 写出的 namelist：CNTLALL、CNTLGEN、CNTLATM、CNTLOCN、SIZES'],
+      calc:['建立 D1（存放全部预报场的那个大数组）及其指针','设置 STASH：哪些诊断量要累积、何时累积','由 <code>&amp;NLSTSOLAR</code> 计算一次轨道参数（ORBPRM）','SETGRCTL：两个子模式都完成了 0 组，所以先跑大气'],
+      out:['模式起始时刻（MODEL_BASIS_TIME）的状态，采用 360 天日历'],
+      note:'之后的一切都以耦合日为单位：大气先跑完一整天，海洋再把同一天补上。' },
+
+    { cols:['a1'], rows:['dyn'], nodes:['dyn'], cur:['dyn'], edges:[], tab:'dyn',
+      chips:['大气第 1 步','00:00 → 00:30','每步'],
+      title:'动力（一）：三个调整步',
+      call:'INCRTIME → SETTSCTL → ATM_STEP → ATM_DYN → ADJ_CTL', src:'U_MODEL1.dk:863–872 · ATMSTEP1.dk:278 · ATMDYN1.dk:656',
+      in:['96 × 73 × 19 网格上的 p*、θ、q、云水、u、v，即上一步结束时的状态'],
+      calc:['SETTSCTL 先设定本步的开关：MOD(STEP − 1, 6) = 0，所以第 1 步是辐射步','把 p*、θ、u、v 积分 A_ADJSTEPS = 3 个 10 分钟的调整步：气压梯度力、科氏力、重力波','在经线汇聚的高纬地区用傅里叶滤波去掉最快的波'],
+      out:['调整后的 p*、θ、u、v，以及供平流用的质量加权速度'],
+      note:'分裂显式动力框架：快速的重力波项用短的调整步，较慢的平流用完整的 30 分钟。' },
+
+    { cols:['a1'], rows:['dyn'], nodes:['dyn'], cur:['dyn'], edges:[], tab:'dyn',
+      chips:['大气第 1 步','00:00 → 00:30','每步'],
+      title:'动力（二）：平流、扩散、滤波',
+      call:'ADV_CTL → DIF_CTL → QT_POS_CTL → FILT_UV', src:'ATMDYN1.dk:2138, 2380, 2410, 2515',
+      in:['质量加权速度和调整后的场'],
+      calc:['在完整的 30 分钟内平流 u、v、θ<sub>l</sub>、q<sub>t</sub>，并加上垂直运动引起的科氏项','水平扩散：第 1–18 层用 ∇⁶，顶层用 ∇²','去掉负湿度；在极区附近对 u、v 滤波'],
+      out:['30 分钟后、尚未经过任何物理过程的动力状态'],
+      note:'在动力部分，水汽以液水位温 θ<sub>l</sub> 和总水 q<sub>t</sub> 的形式输送，到物理部分再拆回 θ、q 和云水。' },
+
+    { cols:['a1'], rows:['phys'], nodes:['moist','eng','dyn'], cur:['moist','eng'], edges:['e-dyn-moist'], tab:'cloud',
+      chips:['大气第 1 步','00:00 → 00:30','每步'],
+      title:'物理开始：大尺度云，然后加能量订正增量',
+      call:'ATM_PHYS → CLD_CTL → ADD_ENG_CORR', src:'ATMSTEP1.dk:396 · ATMPHY1.dk:420, 485',
+      in:['动力部分给出的 θ<sub>l</sub>、q<sub>t</sub>（θ 先换算成温度）','前一天结束时算出的能量订正率'],
+      calc:['由 q<sub>t</sub> 和由 RHcrit 决定的次网格湿度分布诊断云量和云水（最低层 0.95，第 4 层及以上 0.70）','加上能量订正：一个全球均一的温度增量，每个格点都相同'],
+      out:['云量和云水 → 辐射与降水','订正后的 θ'],
+      note:'能量订正用来弥补动力框架不守恒的那部分能量。它每天算一次（第 48 步），在下一天的每一步中平均施加。' },
+
+    { cols:['a1'], rows:['rad'], nodes:['rad','sun','moist','bl'], cur:['rad'], edges:['e-sun','e-rad-bl'], tab:'rad',
+      chips:['大气第 1 步','00:00 → 00:30','每 6 步（3 小时）'],
+      title:'辐射：完整的短波和长波计算',
+      call:'RAD_CTL → SOLPOS, SOLANG → 短波与长波方案', src:'ATMPHY1.dk:591 · SETTSCT1.dk:508–510',
+      in:['太阳位置：由固定的轨道算赤纬和日地距离（SOLPOS），再得各点天顶角（SOLANG）','云、温度、湿度；CO₂ 280 ppm、CH₄ 760 ppb、N₂O 270 ppb 为固定混合比；臭氧气候态；气候态气溶胶','地表反照率：开阔海面、海冰（随冰温变化）、MOSES 陆面 tile、积雪'],
+      calc:['Edwards–Slingo 二流方案，短波 6 个波段，长波 8 个波段','各层的加热率，以及地面和大气顶的净通量'],
+      out:['短波、长波加热率，存下来供后 5 步使用','地面短波、长波 → 边界层；净太阳辐射和蓝光部分 → 耦合器','大气顶通量 → 能量订正'],
+      note:'这是轨道进入 HadCM3 的唯一位置。CO₂ 是 namelist 里的一个固定数：在 HadCM3 中它是强迫，从来不是响应。' },
+
+    { cols:['a1'], rows:['phys'], nodes:['bl','land','veg','dyn'], cur:['bl'], edges:['e-bl-land','e-dyn-bl'], tab:'bl',
+      chips:['大气第 1 步','00:00 → 00:30','每步'],
+      title:'边界层与地表交换（MOSES 2.1）',
+      call:'BL_CTL', src:'ATMPHY1.dk:687',
+      in:['RAD_CTL 给出的地表辐射','陆地：每个格点 9 种地表类型（5 种植物功能型、城市、内陆水体、裸土、冰），土壤水分和温度，积雪','海洋：最近一次从海洋收到的 SST、海冰比例和冰厚'],
+      calc:['在每个陆面 tile 上分别算地表能量平衡和交换系数；在植物 tile 上算光合与呼吸','海冰表面能量平衡：表面温度、顶部融化、穿过冰层的热传导','在最低 BL_LEVELS = 5 层内做热量、水汽和动量的湍流混合'],
+      out:['感热、潜热、蒸发、风应力','融雪、冠层和土壤蒸发 → 水文；植物碳通量 → TRIFFID','对当天耦合平均量（τ、热量、蒸发、冰融化）的贡献'],
+      note:'海冰表面的能量平衡由大气来解。它算出的融化和升华量在这一天结束时交给海洋里的海冰模式。' },
+
+    { cols:['a1'], rows:['phys'], nodes:['moist','bl','dyn'], cur:['moist'], edges:['e-dyn-moist'], tab:'conv',
+      chips:['大气第 1 步','00:00 → 00:30','每步'],
+      title:'先大尺度降水，再对流',
+      call:'LSPP_CTL → CONV_CTL', src:'ATMPHY1.dk:828, 973',
+      in:['CLD_CTL 给出的云水和云冰','经过边界层后的温湿廓线，以及边界层给出的 T、q 扰动（用来启动对流气块）'],
+      calc:['大尺度雨雪：云水超过阈值后自动转化（陆地阈值更高）、冰晶下落、云下雨滴蒸发','质量通量对流方案，含下沉气流和对流动量输送，每步都运行'],
+      out:['大尺度和对流的雨、雪 → 陆面水文和耦合器','加热、干燥和动量增量；对流云 → 下一次辐射调用'],
+      note:'大尺度降水在对流之前运行，二者又都在陆面水文之前，因为水文需要它们给出的雨雪。' },
+
+    { cols:['a1'], rows:['phys'], nodes:['land','gwd','moist','bl'], cur:['land','gwd'], edges:['e-moist-land','e-bl-land'], tab:'hydro',
+      chips:['大气第 1 步','00:00 → 00:30','每步'],
+      title:'陆面水文、重力波拖曳、诊断输出',
+      call:'HYDR_CTL → GWAV_CTL → ST_DIAG1/2 → STASH', src:'ATMPHY1.dk:1047, 1173 · ATMSTEP1.dk:570–633',
+      in:['LSPP_CTL 和 CONV_CTL 给出的雨雪；边界层给出的蒸发和融雪','次网格地形统计量（用于拖曳）'],
+      calc:['冠层截留、积雪、下渗；4 层土壤中的水和热；地表与地下径流','对 u、v 施加地形重力波和背风波拖曳','STASH 累积所需的诊断量，其中包括耦合场'],
+      out:['土壤水分和积雪；快速与慢速径流 → 耦合器','本步最终的 u、v、θ、q'],
+      note:'耦合场（风应力、热量和水通量、径流）就是普通的 STASH 诊断量，只是带了一个特殊标记，在一天内累积。' },
+
+    { cols:['a2-6'], rows:['dyn','rad','phys'], nodes:ATMOS, cur:['dyn','moist','bl','gwd','land'], edges:['e-dyn-moist','e-dyn-bl','e-bl-land','e-moist-land','e-rad-bl'], tab:'rad',
+      chips:['大气第 2–6 步','00:30 → 03:00','无完整辐射'],
+      title:'第 2–6 步：除完整辐射外全部照常',
+      call:'ATM_STEP × 5，L_SW_RADIATE = L_LW_RADIATE = .FALSE.', src:'SETTSCT1.dk:508–510 · RAD_CTL1.dk:1565–1660, 1787',
+      in:['第 1 步存下的短波和长波加热率'],
+      calc:['动力和其他所有物理过程都和第 1 步一样运行','短波加热按当前太阳天顶角重新缩放，使日变化保持平滑；长波加热原样沿用'],
+      out:['又走了 5 个 30 分钟步'],
+      note:'完整辐射是物理部分最贵的一项。每 6 步算一次（A_SW_RADSTEP = A_LW_RADSTEP = 6）是最主要的节省。' },
+
+    { cols:['a7','amid'], rows:['dyn','rad','phys'], nodes:ATMOS.concat(['sun']), cur:['rad'], edges:['e-sun','e-rad-bl'], tab:'rad',
+      chips:['大气第 7 步','03:00 → 03:30','每 6 步'],
+      title:'第 7 步：下一次完整辐射',
+      call:'ATM_STEP，L_SW_RADIATE = .TRUE.', src:'SETTSCT1.dk:508',
+      in:['03:00 时的云、温度和湿度'],
+      calc:['与第 1 步顺序相同','完整辐射在第 1、7、13、19、25、31、37、43 步运行：每天 8 次'],
+      out:['新的加热率，供第 8–12 步使用'],
+      note:'第 8–47 步重复这个 6 步的节奏。' },
+
+    { cols:['a48'], rows:['dyn','phys','slow'], nodes:['eng','veg','land','bl','dyn','moist'], cur:['eng','veg'], edges:['e-veg-land'], tab:'eng',
+      chips:['大气第 48 步','23:30 → 24:00','每天一次'],
+      title:'第 48 步：大气这一天结束',
+      call:'ENG_MASS_DIAG → CAL_ENG_MASS_CORR · VEG_CTL', src:'ATMPHY1.dk:1222–1361 · SETTSCT1.dk:424',
+      in:['一天内累计的进入大气的净能量通量','此刻与 24 小时前的大气总能量','边界层累积的植物碳通量'],
+      calc:['能量订正（LENERGY，每 A_ENERGYSTEPS = 48 步）：比较能量变化与净通量，把差值换成明天施加的均一加热率','叶物候（每 PHENOL_PERIOD = 1 天）：更新叶面积','TRIFFID（每 TRIFFID_PERIOD = 10 天）：更新植被碳和 5 种植物功能型的覆盖比例'],
+      out:['明天的能量订正率','叶面积，以及每 10 天一次的新植被比例 → MOSES tile'],
+      note:'此时大气的钟走到了 24:00，海洋的钟还停在 00:00。这一天的平均通量已经可以交出去了。' },
+
+    { cols:['A2O'], rows:['cpl'], nodes:['cpl','bl','land','ocn','ice'], cur:['cpl'], edges:['e-a2o','e-cpl-ocn','e-cpl-ice','e-river'], tab:'cpl',
+      chips:['大气第 48 步之后','24:00','每天一次'],
+      title:'SWAP_A2O：把大气的一天交给海洋',
+      call:'SETGRCTL → SWAP_A2O → TRANSA2O', src:'U_MODEL1.dk:1483, 1525 · SWAPA2O2.dk:521',
+      in:['96 × 73 大气网格上的日平均量：风应力 τx、τy；风混合能；净太阳辐射及其蓝光（可穿透）部分；长波、感热、蒸发；大尺度和对流的雨、雪','海冰顶部融化、底部融化和升华；海冰比例','陆地格点上的快速和慢速径流'],
+      calc:['插值到 288 × 144 海洋网格（每个大气格子覆盖 3 × 2 个海洋格子），并在海岸线处订正','合成净热通量、P − E 和降雪；把径流送到海岸上的河口点'],
+      out:['第 n 天全天的海洋强迫：τ、热通量、P − E、风混合、太阳辐射、降雪、冰融化、河流入海'],
+      note:'海洋看不到大气的日变化和单次天气过程，只看到日平均。CO₂ 不传递（L_CO2_INTERACTIVE = .FALSE.）。' },
+
+    { cols:['o1'], rows:['ocn'], nodes:['ocn','cpl'], cur:['ocn'], edges:['e-cpl-ocn'], tab:'ocn',
+      chips:['海洋第 1 步','00:00 → 01:00','每步'],
+      title:'海洋第 1 步：逐行算动量',
+      call:'OCN_STEP → OCN_FOR_STEP → OCN_CTL → OCN_FRST → ROW_CTL → ROWCALC → CLINIC', src:'U_MODEL1.dk:994 · OCN_CTL.dk:314, 351 · ROWCALC.dk:1265',
+      in:['两个时间层（蛙跳）上的 T、S、u、v，以及正压流函数','耦合器给出的当天风应力'],
+      calc:['OCN_FRST 计步。MOD(ITT, NMIX = 24) = 1，所以这是当天的混合步（Euler 后差），用来抑制蛙跳格式的计算模态','逐行扫描 j = 1 … 144：先算状态方程，再用 CLINIC 算随深度变化的（斜压）速度：平流、科氏力、气压梯度、黏性、顶部风应力'],
+      out:['逐行更新的斜压 u、v'],
+      note:'在刚盖近似下，速度分成随深度变化的部分（这里逐行计算）和深度平均的部分（所有行算完后在全球一起求解）。' },
+
+    { cols:['o1'], rows:['ocn'], nodes:['ocn','cpl','ice'], cur:['ocn'], edges:['e-cpl-ocn','e-ocn-ice'], tab:'ocn',
+      chips:['海洋第 1 步','00:00 → 01:00','每步'],
+      title:'海洋第 1 步：温度和盐度',
+      call:'ROWCALC → TRACER', src:'ROWCALC.dk:1330 · TRACER.dk:1885–2879',
+      in:['热通量、P − E、太阳辐射、风混合能、河流入海 ← 耦合器','海冰过程带来的热量和盐分'],
+      calc:['平流；带 Gent–McWilliams 涡致输送的等密度面扩散（Visbeck 可变系数）；隐式垂直扩散','地表通量（SFCADD，含 water-fix 场）；冰–海热通量；穿透性太阳辐射','结冰：冷却到冰点以下的海水生成新冰','由风混合能驱动的 Kraus–Turner 混合层；对流调整（全球用 Rahmstorf 完整方案，北欧海一块区域再加 Roussenov 方案）','极区傅里叶滤波'],
+      out:['该行新的 T 和 S'],
+      note:'在刚盖海洋里，淡水以虚盐通量的形式进入，按参考盐度 SALREF = 35 psu 计算。' },
+
+    { cols:['o1'], rows:['ocn'], nodes:['ocn'], cur:['ocn'], edges:[], tab:'ocn',
+      chips:['海洋第 1 步','00:00 → 01:00','每步'],
+      title:'海洋第 1 步：深度平均流',
+      call:'OCN_CTL → TROP_CTL → RELAX', src:'OCN_CTL.dk:424 · TROP_CTL.dk:183',
+      in:['从所有行收集的垂直积分强迫'],
+      calc:['刚盖：用超松弛迭代（SOR = 1.775，最多 MXSCAN = 500 次扫描，容差 CRIT = 4 × 10⁻⁵）求解正压流函数的椭圆方程','为 NISLE = 6 个岛屿单独计算绕岛环流'],
+      out:['正压 u、v，叠加到斜压部分上'],
+      note:'刚盖滤掉了快速的表面重力波，海洋因此可以用 1 小时的步长。' },
+
+    { cols:['o1'], rows:['ice'], nodes:['ice','ocn','cpl'], cur:['ice'], edges:['e-ocn-ice','e-cpl-ice'], tab:'ice',
+      chips:['海洋第 1 步','00:00 → 01:00','每步'],
+      title:'海冰：先漂移，后热力学',
+      call:'OCN_CTL → ICE_CTL → ICEDRIFT → ICEFLOE', src:'OCN_CTL.dk:474 · ICE_CTL.dk:429, 453',
+      in:['海洋表层流','顶部融化、底部融化、升华和降雪 ← 耦合器','海洋传给冰的热通量'],
+      calc:['ICEDRIFT：让海冰随表层流移动（L_ICESIMPLE），并对冰厚做扩散','ICEFLOE：带冰间水道的零层热力学（Semtner 1976），增长或融化冰厚与密集度','密集度上限：北半球 0.995，南半球 0.98'],
+      out:['海冰密集度、冰厚、冰上雪深','与海洋顶层交换的热量、盐分和淡水'],
+      note:'没有海冰流变学：没有内应力，只随表层流输送。' },
+
+    { cols:['o2-23','o24'], rows:['ocn','ice'], nodes:['ocn','ice','cpl'], cur:['ocn','ice'], edges:['e-cpl-ocn','e-ocn-ice','e-cpl-ice'], tab:'ocn',
+      chips:['海洋第 2–24 步','01:00 → 24:00','蛙跳'],
+      title:'海洋第 2–24 步：同一份日强迫',
+      call:'OCN_STEP × 23', src:'U_MODEL1.dk:994',
+      in:['第 n 天每一步都用同一组耦合场'],
+      calc:['蛙跳时间积分；下一个混合步是明天的第 1 步','每小时都是：逐行计算 → 正压求解 → 海冰'],
+      out:['24:00 时的海洋和海冰状态'],
+      note:'至此两个子模式都走到了第 n 天的终点。' },
+
+    { cols:['O2A'], rows:['cpl'], nodes:['cpl','ocn','ice','bl'], cur:['cpl'], edges:['e-o2a','e-cpl-ocn','e-cpl-ice'], tab:'cpl',
+      chips:['海洋第 24 步之后','24:00','每天一次'],
+      title:'SWAP_O2A：把海洋表面交回大气',
+      call:'SETGRCTL → SWAP_O2A → TRANSO2A', src:'U_MODEL1.dk:1541 · SWAPO2A2.dk:433',
+      in:['SST（海洋顶层）和表层流','海冰密集度、冰厚、冰上雪深'],
+      calc:['从海洋网格映射到大气网格'],
+      out:['大气网格上的海表温度、海冰比例、冰厚、雪深和洋流，在第 n + 1 天全天保持不变'],
+      note:'大气看到的海洋表面每天更新一次。第 n + 1 天从大气第 49 步开始。' },
+
+    { cols:['next'], rows:[], nodes:ALL, cur:[], edges:[], tab:null,
+      chips:['第 n + 1 天 …','重复','循环'],
+      title:'同样的一天每年重复 360 次',
+      call:'GOTO 1（回到组循环开头）', src:'U_MODEL1.dk:1569',
+      in:['第 n 天结束时的状态'],
+      calc:['1 年 = 360 天 = 17 280 个大气步 + 8 640 个海洋步 + 720 次交换','TRIFFID 每 10 天一次；臭氧等随时间变化的辅助场由 UP_ANCIL 更新','每 30 天写一次 dump：DUMPFREQ = 1440 个大气步、720 个海洋步'],
+      out:['每 30 天的 dump；PP 文件中的 STASH 诊断量'],
+      note:'一百年的控制试验大约是 170 万个大气步。' },
+
+    { cols:['end'], rows:['dyn','rad','phys','slow','cpl','ocn','ice'], nodes:ALL, cur:[], edges:[], tab:null,
+      chips:['运行结束','RUN_TARGET_END','只运行一次'],
+      title:'结束：写最终 dump，可以接着跑',
+      call:'DUMPCTL → EXITCHEK', src:'U_MODEL1.dk:1058, 1243',
+      in:['RUN_TARGET_END 时的状态（本作业为 100 年零 1 个月）'],
+      calc:['写出最后的大气和海洋 dump，关闭输出文件'],
+      out:['续跑（CRUN）或新试验可以从这些 dump 开始'],
+      note:'扰动试验（比如换一个轨道）通常从已经 spin-up 的控制试验 dump 出发，只改 <code>&amp;NLSTSOLAR</code> 或 CO2_MMR。' }
+  ];
+
+  /* ---------------- 分量 ---------------- */
+  const MODS = [
+    { key:'dyn', fam:'atm', name:'动力', full:'大气动力框架 · 第 10–13 节（A10_1C、A12_1C、A13_1C）',
+      freq:['每个大气步','48 次 / 天','Δt = 30 分钟，调整 3 × 10 分钟'],
+      lead:'在规则的 2.5° × 3.75° 网格（Arakawa B 网格）和 19 层混合 σ–p 坐标上求解静力原始方程。采用分裂显式：快速的重力波调整用短的子步，平流用完整步长。',
+      in:['上一步物理部分留下的 p*、θ、q、云水、u、v'],
+      calc:['ADJ_CTL：对 p*、θ、u、v 做 3 个调整步（气压梯度力、科氏力、重力波）','ADV_CTL：平流 u、v、θ<sub>l</sub>、q<sub>t</sub>','DIF_CTL：水平扩散，第 1–18 层 ∇⁶，顶层 ∇²','QT_POS_CTL 去掉负湿度；FILT_UV 做极区滤波'],
+      out:['更新后的 p*、θ、q、u、v → 物理','垂直速度诊断量'],
+      params:[['ROW_LENGTH × P_ROWS','96 × 73','3.75° × 2.5° 网格'],['P_LEVELS / Q_LEVELS','19 / 19','混合 σ–p 层；每层都有水汽'],['STEPS_PER_PERIODim','每 86 400 s 48 步','大气 Δt = 1800 s'],['A_ADJSTEPS','3','每个平流步内的调整子步数（每个 600 s）'],['A_SWEEPS_DYN','1','每个物理步的动力扫描次数'],['DIFF_COEFF / DIFF_EXP','5.47×10⁸ / 3','第 1–18 层的水平扩散；算子为 ∇ 的 2 × DIFF_EXP 次方'],['GRAV_WAVE_SPEED','350 m s⁻¹','决定极区滤波作用的纬度和波数'],['FILTERING_SAFETY_FACTOR','0.01','极区滤波的安全裕量']],
+      rel:'风和风应力都是在动力部分产生的。cGENIE 里二者都是从文件读入的固定场，所以新轨道下 HadCM3 环流的变化，只有在你显式传过去风或风应力时才会影响 cGENIE。',
+      had:'cGENIE 没有动力框架：EMBM 只用给定的风对 T 和 q 做平流和扩散。',
+      src:['ATMSTEP1.dk:278（ATM_DYN）','ATMDYN1.dk:656（ADJ_CTL）、2138（ADV_CTL）、2380（DIF_CTL）、2515（FILT_UV）'] },
+
+    { key:'rad', fam:'atm', name:'辐射', full:'Edwards–Slingo 二流辐射 · 第 1–2 节（A01_3A、A02_3A）',
+      freq:['每 6 个大气步','8 次 / 天','Δt = 3 小时'],
+      lead:'每天第 1、7、13 … 步做完整的短波和长波计算。其间沿用存下来的加热率：短波按当前太阳天顶角重新缩放，长波原样使用。',
+      in:['轨道（整个运行中固定）→ 太阳赤纬和日地距离（SOLPOS）；各点天顶角（SOLANG）','温度、湿度、大尺度云和对流云','固定的气体混合比、臭氧气候态、气候态气溶胶','地表反照率：海面、海冰、MOSES 陆面 tile、积雪'],
+      calc:['短波 6 个、长波 8 个波段','各层加热率；地面和大气顶通量','存下增量供后 5 步使用'],
+      out:['辐射加热 → θ','地面短波、长波 → 边界层；净太阳辐射和蓝光 → 耦合器','大气顶通量 → 能量订正'],
+      params:[['A_SW_RADSTEP / A_LW_RADSTEP','6 / 6','每 6 步（3 小时）做一次完整辐射'],['H_SWBANDS / H_LWBANDS','6 / 8','光谱波段数'],['SC','1365 W m⁻²','太阳常数'],['CO2_MMR','4.25418×10⁻⁴','= 280 ppmv CO₂'],['CH4MMR','4.209×10⁻⁷','≈ 760 ppbv CH₄'],['N2OMMR','4.102×10⁻⁷','≈ 270 ppbv N₂O'],['L_SEC_VAR','.FALSE.','整个运行中轨道固定'],['OZONE','qrclim.ozone_CMIP7clim','臭氧气候态（INITHIS）'],['L_CLIMAT_AEROSOL','.TRUE.','用气候态气溶胶，不用硫循环']],
+      rel:'轨道只在这里起作用，通过日射和太阳高度角。Bristol 的 CALC_SOLAR mod 根据 <code>&amp;NLSTSOLAR</code> 用 ORBPRM（Berger 1978）算一次轨道，ORB_ARRAY 可以直接覆盖 e、γ、τ₀ 和 sin(黄赤交角)。CO₂ 就是固定的 CO2_MMR：在 HadCM3 里是强迫，从来不是响应。',
+      had:'cGENIE 把这些全换成了“日射 × (1 − 反照率)”和一个带 ln(CO₂) 项的长波出射公式。',
+      src:['ATMPHY1.dk:591（RAD_CTL）','RAD_CTL1.dk:1565–1660（短波重新缩放）、1787（长波沿用）','SETTSCT1.dk:508–510','merge_BriSciModN048_01：CALC_SOLAR（SOLPOS、ORBPRM）'] },
+
+    { key:'cloud', fam:'atm', name:'云与降水', full:'大尺度云和降水 · 第 9 节和第 4 节（A09_1A、A04_2E）',
+      freq:['每个大气步','48 次 / 天','Δt = 30 分钟'],
+      lead:'云量每步都由总水量和临界相对湿度重新诊断。之后大尺度降水把一部分云水变成雨或雪。',
+      in:['动力之后的 q<sub>t</sub> 和 θ<sub>l</sub>','RHcrit 廓线'],
+      calc:['CLD_CTL：假定宽度由 RHcrit 决定的次网格湿度分布，诊断云量以及液态和冰相云水','液态与冰相按温度划分，没有预报的云冰','LSPP_CTL：云水超过阈值后自动转化、冰晶下落、雨滴下落途中蒸发'],
+      out:['云量和云水 → 辐射','大尺度雨、雪 → 陆面水文和耦合器','潜热加热 → θ'],
+      params:[['RHCRIT','0.95, 0.90, 0.85, 之后 0.70','临界相对湿度：第 1–3 层，第 4 层及以上'],['CW_SEA / CW_LAND','5.0×10⁻⁵ / 2.0×10⁻⁴','自动转化的云水阈值，海洋 / 陆地'],['L_LSPICE','.FALSE.','没有预报云冰'],['L_CLD_AREA','.FALSE.','没有单独的面积云量']],
+      rel:'HadCM3 中云会响应轨道变化并改变地表能量收支。cGENIE 没有云，所以云的作用只能通过你给它的 HadCM3 场间接进入。',
+      had:'EMBM 把超过饱和比湿固定比例的水汽直接降掉；没有云，也没有云辐射效应。',
+      src:['ATMPHY1.dk:420（CLD_CTL）、828（LSPP_CTL）'] },
+
+    { key:'conv', fam:'atm', name:'对流', full:'质量通量对流 · 第 5 节（A05_3C）',
+      freq:['每个大气步','48 次 / 天','A_CONV_STEP = 1'],
+      lead:'整体质量通量方案（Gregory and Rowntree 1990），含下沉气流和对流动量输送，每步在每个气柱上都调用。',
+      in:['经过边界层和大尺度降水之后的温湿廓线','边界层的 T、q 扰动，用来启动气块'],
+      calc:['从最低几层检验气块浮力','上升气流的卷入与卷出、下沉气流、降水','对流动量输送（L_MOM）'],
+      out:['加热、干燥和动量增量','对流雨、雪 → 水文和耦合器','对流云量、云底和云顶 → 辐射'],
+      params:[['A_CONV_STEP','1','每步调用'],['L_MOM','.TRUE.','对流动量输送'],['L_CAPE','.FALSE.','不用 CAPE 闭合'],['L_3D_CCA','.FALSE.','对流云以每柱一个云量表示'],['ANVIL_FACTOR / TOWER_FACTOR','0.0 / 0.0','对流云不做砧状分布']],
+      rel:'热带对流决定在哪里下雨、下多少。当轨道改变季风时，HadCM3 的降水和径流响应就是在这里产生的。',
+      had:'EMBM 没有对流方案。',
+      src:['ATMPHY1.dk:973（CONV_CTL）'] },
+
+    { key:'bl', fam:'atm', name:'边界层', full:'边界层与地表交换 · 第 3 节（A03_7A，MOSES 2.1）',
+      freq:['每个大气步','48 次 / 天','Δt = 30 分钟'],
+      lead:'MOSES 2.1 在每个陆地格子里对 9 种地表类型分别求解地表能量平衡。随后一阶湍流方案在最低 5 层内混合热量、水汽和动量。',
+      in:['地表辐射，以及近地面的 T、q、u、v','陆地：TRIFFID 给出的 tile 比例、土壤水分和温度、积雪','海面和海冰：最近一次交换得到的 SST、海冰比例和冰厚'],
+      calc:['在每个 tile 上算交换系数和地表通量；在 5 个植物 tile 上算光合与呼吸','海冰表面能量平衡：表面温度、顶部融化、穿过冰层的热传导','在 BL_LEVELS = 5 层内做湍流混合'],
+      out:['感热、潜热、蒸发、风应力','融雪、冠层和土壤蒸发 → 水文','植物碳通量 → TRIFFID','日平均的 τ、热量和水通量 → 耦合器'],
+      params:[['LMOSES / A03_7A','.TRUE. / MOSES 2.1','分块（tile）陆面交换'],['地表类型','5 + 4','阔叶树、针叶树、C3 草、C4 草、灌木；城市、内陆水体、裸土、陆冰'],['BL_LEVELS','5','有湍流混合的层数'],['L_Z0_OROG','.TRUE.','地形粗糙度'],['SOILTYPE','qrparm.soil.MOSES2','土壤辅助文件（preind2）']],
+      rel:'进入海洋的风应力和地表热量、淡水通量就在这里产生，并在一天内平均。它们是 HadCM3 中最接近 cGENIE 海洋所需边界条件的量。',
+      had:'cGENIE 的 surflux 用整体公式做同样的事，每格只有一种地表，每个海洋步算一次。',
+      src:['ATMPHY1.dk:687（BL_CTL）'] },
+
+    { key:'hydro', fam:'land', name:'陆面水文', full:'土壤、积雪与径流 · 第 8 节（A08_7A，MOSES 2.1）',
+      freq:['每个大气步','48 次 / 天','Δt = 30 分钟'],
+      lead:'雨雪在这里落到地面：冠层截留、积雪、下渗、4 层土壤，以及每天交给海洋一次的径流。',
+      in:['大尺度和对流的雨、雪','边界层给出的蒸发、升华和融雪'],
+      calc:['冠层水量和穿透降水','雪量和融雪','4 层土壤中的水和温度；地表和地下（快速与慢速）径流'],
+      out:['土壤水分 → 下一步的蒸发','快速与慢速径流 → 耦合器 → 河口点'],
+      params:[['SM_LEVELS / ST_LEVELS','4 / 4','土壤水分层和土壤温度层'],['SMCSNOWD','qrclim.smow','初始土壤水分和积雪'],['DSOILTMP','qrclim.slt.MOSES','深层土壤温度'],['L_VEG_FRACS','.TRUE.','水文使用植被比例']],
+      rel:'径流把陆地那一份淡水收支送进海洋。cGENIE 里 ROKGEM 会让河流带去风化产物；HadCM3 的河流只带水。',
+      had:'不开 ENTS 时，cGENIE 的陆地不储水：落在陆地上的降水直接作为径流流到海岸。',
+      src:['ATMPHY1.dk:1047（HYDR_CTL）'] },
+
+    { key:'veg', fam:'land', name:'植被', full:'TRIFFID 动态植被与叶物候 · 第 19 节（A19_2A）',
+      freq:['叶物候每天','TRIFFID 每 10 天','在大气第 48 步'],
+      lead:'叶物候每天更新一次叶面积。TRIFFID 每 10 天更新植被碳和 5 种植物功能型的覆盖比例，进而改变 MOSES tile 及其反照率和粗糙度。',
+      in:['边界层累积的光合、呼吸和落叶','扰动辅助文件（本 PI 作业中无扰动）'],
+      calc:['叶物候：由随温度变化的落叶率得到叶面积','TRIFFID：各植物功能型的碳收支、空间竞争（Lotka–Volterra）、土壤碳'],
+      out:['叶面积和冠层高度 → MOSES tile','每 10 天一次的新植被比例'],
+      params:[['L_TRIFFID','.TRUE.','动态植被开启'],['TRIFFID_PERIOD','10 天','TRIFFID 的调用间隔'],['L_PHENOL / PHENOL_PERIOD','.TRUE. / 1 天','叶物候'],['L_TRIF_EQ','.FALSE.','动态模式，不是平衡模式'],['VEGINIT / FRACINIT','qrfrac.pft / qrfrac.type','初始植物功能型和地表类型比例'],['DISTURB','qrfrac.disturb.nodisturb','无农业扰动']],
+      rel:'植被响应轨道气候，并通过反照率和蒸发反馈回去。它的碳不进入大气：因为 L_CO2_INTERACTIVE = .FALSE.，CO₂ 始终是 CO2_MMR。',
+      had:'cGENIE 中对应的是 ENTS；CBSR 配置里它是关闭的，此时完全没有植被。',
+      src:['ATMPHY1.dk:1222–1251（VEG_CTL）','merge_MOSES2.1_01，ABX5F406（TRIFFID 计步器）'] },
+
+    { key:'gwd', fam:'atm', name:'重力波拖曳', full:'地形重力波拖曳 · 第 6 节（A06_3A）',
+      freq:['每个大气步','48 次 / 天','Δt = 30 分钟'],
+      lead:'次网格山地激发的重力波在高空破碎，使气流减速。方案还包含背风波部分。',
+      in:['u、v、θ 廓线','地形辅助文件中的次网格地形统计量'],
+      calc:['由次网格地形计算地面应力','从第 START_LEVEL_GWDRAG = 3 层往上，在波饱和处释放应力'],
+      out:['u、v 增量'],
+      params:[['KAY_GWAVE','2.0×10⁴','地面应力常数'],['KAY_LEE_GWAVE','3.0×10⁵','背风波应力常数'],['START_LEVEL_GWDRAG','3','接受拖曳的最低层'],['OROG','qrparm.orog','地形辅助文件（preind2）']],
+      rel:'主要用于调平均态。它影响急流，因而影响风应力，而不是直接影响轨道强迫本身。',
+      had:'cGENIE 中没有对应部分。',
+      src:['ATMPHY1.dk:1173（GWAV_CTL）'] },
+
+    { key:'eng', fam:'atm', name:'能量订正', full:'全球能量订正 · 第 14 节（A14_1B）',
+      freq:['每天算一次','每步施加','A_ENERGYSTEPS = 48'],
+      lead:'动力框架不能严格守恒能量。模式每天比较一次大气总能量的变化和净流入的能量，把差值作为均一加热分摊到下一天。',
+      in:['一天内累计的向下净能量通量','此刻与当天开始时的大气总能量'],
+      calc:['第 48 步：ENG_MASS_DIAG 和 CAL_ENG_MASS_CORR 计算订正量，并对 p* 做干空气质量订正','每步：ADD_ENG_CORR 加上均一的 θ 增量'],
+      out:['一个很小的、处处相同的温度倾向'],
+      params:[['LEMCORR','.TRUE.','能量订正开启'],['A_ENERGYSTEPS','48','订正周期：一天'],['ADD_ENG_CORR','每步','在云方案之后、辐射之前施加']],
+      rel:'它防止长期控制试验因数值能量损失而漂移。因为是全球均一的，不会改变轨道响应的区域分布。',
+      had:'cGENIE 中没有对应部分。',
+      src:['ATMPHY1.dk:485（ADD_ENG_CORR）、1338–1361（ENG_MASS_DIAG、CAL_ENG_MASS_CORR）','SETTSCT1.dk:424–425（LENERGY、LFLUX_RESET）'] },
+
+    { key:'cpl', fam:'cpl', name:'耦合器', full:'大气–海洋交换 · SWAP_A2O 和 SWAP_O2A',
+      freq:['每天一次','每个 24 小时组之后','MODEL_HRS_PER_GROUP = 24'],
+      lead:'没有单独的耦合器程序。U_MODEL 在两个子模式之间交替，在每个 24 小时组结束时在内存中交换场。大气给出的场是 STASH 累积的日平均。',
+      in:['大气 → 海洋：τx、τy、风混合能、净太阳辐射和蓝光、长波、感热、蒸发、大尺度和对流雨雪、海冰顶部融化、底部融化和升华、海冰比例、快速与慢速径流','海洋 → 大气：SST、表层流、海冰比例、冰厚、雪深'],
+      calc:['TRANSA2O：大气网格 → 海洋网格，含海岸订正；合成净热通量、P − E、降雪；径流送到河口点','TRANSO2A：海洋网格 → 大气网格'],
+      out:['第 n 天的海洋强迫，在 24 个海洋步中保持不变','第 n + 1 天的大气下边界，在 48 个大气步中保持不变'],
+      params:[['MODEL_HRS_PER_GROUP','24','耦合周期（小时）'],['顺序','先大气','两者完成的组数相同时，SETGRCTL 先跑大气'],['L_CO2_INTERACTIVE','.FALSE.','双向都不传 CO₂'],['L_FLUXCORR / FLUXCORR','.TRUE. / qrparm.waterfix.hadcm3','唯一的通量订正文件：一个在 SFCADD 中加入的水通量场'],['网格','96 × 73 ↔ 288 × 144','每个大气格子覆盖 3 × 2 个海洋格子']],
+      rel:'半耦合时 cGENIE 要接管的正是这组日平均场：向下的风应力、地表热量和淡水通量，向上的 SST 和海冰。它们的月平均或年平均是喂给 cGENIE 最自然的 HadCM3 输出。',
+      had:'cGENIE 在同一个循环里通过共享接口数组耦合各模块，surflux 每个海洋步（约 3.8 天）重算一次通量。',
+      src:['U_MODEL1.dk:1483–1562','SETGRCT1.dk:80–86','SWAPA2O2.dk:521、SWAPO2A2.dk:433、TRANA2O1.dk','INITA2O1.dk（按 STASH 标记找到耦合场）'] },
+
+    { key:'ocn', fam:'ocn', name:'海洋', full:'Bryan–Cox 刚盖海洋 GCM · 第 30–31 节',
+      freq:['每个海洋步','24 次 / 天','Δt = 1 小时'],
+      lead:'1.25° 网格、20 层、刚盖的 z 坐标海洋。每一步先逐行扫描，算随深度变化的流和示踪物，再在全球求解一个深度平均流的方程。',
+      in:['耦合器给出的日强迫：τ、热通量、P − E、太阳辐射、风混合、河流、冰融化','与海冰交换的热量和盐分'],
+      calc:['OCN_FRST：计步，每天一次混合步（Euler 后差）','逐行：密度、CLINIC（斜压 u、v）、TRACER（T、S）','TRACER：平流、带 Gent–McWilliams 的等密度面扩散、隐式垂直扩散、地表通量、穿透性太阳辐射、结冰、Kraus–Turner 混合层、对流调整、极区滤波','TROP_CTL：用 SOR 求正压流函数，含绕岛环流'],
+      out:['T、S、u、v 和流函数','SST 和表层流 → 耦合器；洋流 → 海冰'],
+      params:[['IMT × JMT × KM','290 × 144 × 20','288 列加 2 列循环边界；1.25° × 1.25°'],['DTTS / DTUV / DTSF','3600 s','示踪物、动量和流函数的步长'],['NMIX','24','每 24 步一次混合步，即每天一次'],['L_OFREESFC','.FALSE.','刚盖'],['MXSCAN / SOR / CRIT','500 / 1.775 / 4×10⁻⁵','流函数求解器'],['NISLE','6','单独计算环流的岛屿数'],['L_OISOGM / L_OVISBECK','.TRUE. / .TRUE.','Gent–McWilliams，Visbeck 可变系数'],['AHI1_SI / AHI2_SI / AHI3_SI','1000 / 1000 / 500 m² s⁻¹','等密度面扩散系数'],['KAPPA0_SI / DKAPPA_DZ_SI','1×10⁻⁵ / 2.8×10⁻⁸','海表垂直扩散系数（m² s⁻¹）及其随深度每米的增量：5 km 处约 1.5×10⁻⁴ m² s⁻¹'],['LAMDA / DELTA_SI / EPSILON','0.7 / 100 m / 0.15','Kraus–Turner 混合层常数'],['L_ORICHARD / L_OQLARGE','.TRUE. / .TRUE.','Richardson 数混合；上层 80 m 内的二次 Large 方案'],['L_OMEDOUT','.TRUE.','地中海出流参数化'],['SALREF','0.035（35 psu）','虚盐通量的参考盐度']],
+      rel:'在碳循环模式里，决定碳储量的正是海洋温度、盐度和环流（包括 AMOC）。HadCM3 算了这些，但本作业不带碳（L_OCARBON = .FALSE.）。半耦合时，T、S 或环流的月平均、年平均是传给 cGENIE 的候选场。',
+      had:'GOLDSTEIN 是约 10°、16 层、每年 96 步的摩擦地转海洋；HadCM3 分辨率 1.25°，每年 8 640 步。',
+      src:['OCN_CTL.dk:314（OCN_FRST）、351（ROW_CTL）、424（TROP_CTL）','ROWCALC.dk:1265（CLINIC）、1330（TRACER）','TRACER.dk','TROP_CTL.dk:183（RELAX）','OCN_FRST.dk:60（NMIX）'] },
+
+    { key:'ice', fam:'ice', name:'海冰', full:'零层热力学海冰，简单漂移 · 第 32 节',
+      freq:['每个海洋步','24 次 / 天','Δt = 1 小时'],
+      lead:'海冰属于海洋子模式，但它的表面能量平衡由大气来解。海洋这边让海冰随表层流移动，并根据收到的通量增长或融化。',
+      in:['海洋表层流','顶部融化、底部融化、升华和降雪 ← 耦合器（来自大气的冰面计算）','海洋传给冰的热通量'],
+      calc:['ICEDRIFT：让海冰随表层流移动（L_ICESIMPLE），并对冰厚做扩散','ICEFLOE：带冰间水道（Hibler 1979）的 Semtner (1976) 零层热力学','密集度上限：北半球 0.995，南半球 0.98'],
+      out:['海冰比例、冰厚、雪深 → 耦合器 → 大气','进入海洋顶层的热量、盐分和淡水'],
+      params:[['L_SEAICE / L_ICESIMPLE','.TRUE. / .TRUE.','开海冰；随洋流简单漂移'],['AMXNORTH / AMXSOUTH','0.995 / 0.98','最大海冰密集度'],['AICEMIN / HICEMIN','0.001 / 1×10⁻⁴','最小密集度和冰厚'],['H0','0.5 m','最小局地冰厚'],['SALICE','0.006','海冰盐度（6 psu）'],['AH_ICE','670 m² s⁻¹','冰厚扩散系数'],['ALPHAC / ALPHAM / DTICE','0.80 / 0.50 / 10 K','冷冰和融化冰的反照率，以及二者之间的温度范围（由大气使用）']],
+      rel:'在 cGENIE 中，海冰覆盖会阻断高纬的海气气体交换。不同轨道下 HadCM3 的海冰比例，适合拿来与 cGENIE 比较，或直接强加给它。',
+      had:'cGENIE 的海冰在性质上类似（厚度加覆盖率、随洋流漂移、无流变学），但在 10° 网格上约每 3.8 天走一步。',
+      src:['OCN_CTL.dk:474（ICE_CTL）','ICE_CTL.dk:429（ICEDRIFT）、453（ICEFLOE）','ICEFLOE.dk'] },
+
+    { key:'off', fam:'off', name:'未启用', full:'UM vn4.5 中有、但本 PI 作业关闭的选项',
+      lead:'代码里存在、但在 tdaah 中通过 namelist 开关或 section 选择关掉的部分。',
+      table:[['交互式 CO₂','L_CO2_INTERACTIVE, L_CO2_EMITS = .FALSE.','CO₂ 固定为 CO2_MMR；没有三维 CO₂ 示踪物，耦合器也不传 CO₂'],['海洋碳循环（HadOCC）','L_OCARBON, L_OBIOLOGY = .FALSE.','海洋中没有 DIC、碱度和浮游生物'],['硫循环','L_SULPC_SO2 = .FALSE.','改用气候态气溶胶'],['预报云冰','L_LSPICE = .FALSE.','液态和冰相按温度划分'],['自由表面海洋','L_OFREESFC = .FALSE.','刚盖加流函数'],['自由漂移海冰动力','L_ICEFREEDR = .FALSE.','只用随洋流的简单漂移（L_ICESIMPLE）'],['轨道长期变化','L_SEC_VAR = .FALSE.','整个运行中轨道固定'],['垂直扩散、示踪物平流','A07_0A, A11_0A','第 7 节和第 11 节未包含'],['热通量调整','—','唯一的通量订正文件是 water fix；HadCM3 不做热通量调整']],
+      src:['tdaah：CNTLATM、CNTLOCN、SECT_MODE'] }
+  ];
+
+  /* ---------------- 工具 ---------------- */
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const ul = arr => '<ul>' + arr.map(x => '<li>' + x + '</li>').join('') + '</ul>';
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const NAME = Object.fromEntries(MODS.map(m => [m.key, m.name]));
+
+  /* 语言和姊妹页链接：本地打开时用相对路径，发布后用 artifact 链接 */
+  if (location.protocol !== 'file:') $$('a.xlink').forEach(a => { if (a.dataset.artifact) a.href = a.dataset.artifact; });
+
+  /* ---------------- 总览刻度 ---------------- */
+  (function buildTicks() {
+    let h = '';
+    for (let i = 0; i < 48; i++) {
+      const x = 56 + i * 8;
+      if (i === 47) h += `<rect class="tk day" x="${x}" y="150" width="6" height="30" rx="1"/>`;
+      else if (i % 6 === 0) h += `<rect class="tk rad" x="${x}" y="150" width="6" height="30" rx="1"/>`;
+      else h += `<rect class="tk atm" x="${x}" y="158" width="6" height="22" rx="1"/>`;
+    }
+    $('#aTicks').innerHTML = h;
+    h = '';
+    for (let i = 0; i < 24; i++) {
+      const x = 616 + i * 9;
+      if (i === 0) h += `<rect class="tk mix" x="${x}" y="150" width="7" height="30" rx="1"/>`;
+      else h += `<rect class="tk ocn" x="${x}" y="158" width="7" height="22" rx="1"/>`;
+    }
+    $('#oTicks').innerHTML = h;
+  })();
+
+  /* ---------------- 时间线 ---------------- */
+  const COLS = ['init','a1','a2-6','a7','amid','a48','A2O','o1','o2-23','o24','O2A','next','end'];
+  const HEAD = { init:'启动', a1:'1', 'a2-6':'2–6', a7:'7', amid:'…', a48:'48', A2O:'A→O', o1:'1', 'o2-23':'2–23', o24:'24', O2A:'O→A', next:'n+1', end:'结束' };
+  const MID = ['amid','next'];
+  const ATM = ['a1','a2-6','a7','a48'], OCN = ['o1','o2-23','o24'];
+  const ROWS = [
+    { key:'dyn',  label:'动力', fam:'atm', fires: c => ATM.includes(c) },
+    { key:'rad',  label:'完整辐射', fam:'sun', fires: c => (c === 'a1' || c === 'a7') ? 'on' : (c === 'a2-6' ? 'ring' : false) },
+    { key:'phys', label:'其他物理', fam:'atm', fires: c => ATM.includes(c) },
+    { key:'slow', label:'每天 · 每 10 天', fam:'land', fires: c => c === 'a48' },
+    { key:'cpl',  label:'交换', fam:'cpl', fires: c => c === 'A2O' || c === 'O2A' },
+    { key:'ocn',  label:'海洋', fam:'ocn', fires: c => OCN.includes(c) },
+    { key:'ice',  label:'海冰', fam:'ice', fires: c => OCN.includes(c) }
+  ];
+  const colX = i => 160 + i * 44;
+  const rowY = j => 64 + j * 22;
+  (function buildTrack() {
+    const svg = $('#track');
+    let h = '';
+    h += `<text class="grp" x="${colX(3)}" y="14" text-anchor="middle">大气 · 第 n 天</text><line class="grpline" x1="${colX(1) - 16}" y1="20" x2="${colX(5) + 16}" y2="20"/>`;
+    h += `<text class="grp" x="${colX(8)}" y="14" text-anchor="middle">海洋 · 第 n 天</text><line class="grpline" x1="${colX(7) - 16}" y1="20" x2="${colX(9) + 16}" y2="20"/>`;
+    h += '<text class="rowlab" x="8" y="42">步</text>';
+    ROWS.forEach((r, j) => { h += `<text class="rowlab" x="8" y="${rowY(j) + 4}">${r.label}</text>`; });
+    COLS.forEach((c, i) => {
+      const x = colX(i);
+      h += `<g class="col" data-col="${c}" tabindex="0" role="button" aria-label="跳到 ${HEAD[c]}">`;
+      h += `<rect class="colbg" x="${x - 20}" y="26" width="40" height="184" rx="6"/>`;
+      h += `<text class="kh" x="${x}" y="42" text-anchor="middle">${HEAD[c]}</text>`;
+      ROWS.forEach((r, j) => {
+        const y = rowY(j);
+        if (c === 'init' || c === 'end') h += `<circle class="dot ring ${r.fam}" data-row="${r.key}" cx="${x}" cy="${y}" r="5"/>`;
+        else if (MID.includes(c)) h += `<circle class="dot no" cx="${x}" cy="${y}" r="1.6"/>`;
+        else {
+          const f = r.fires(c);
+          if (f === 'ring') h += `<circle class="dot ring ${r.fam}" data-row="${r.key}" cx="${x}" cy="${y}" r="5"/>`;
+          else if (f) h += `<circle class="dot ${r.fam}" data-row="${r.key}" cx="${x}" cy="${y}" r="5.5"/>`;
+          else h += `<circle class="dot no" cx="${x}" cy="${y}" r="2"/>`;
+        }
+      });
+      h += '</g>';
+    });
+    svg.innerHTML = h;
+  })();
+
+  /* ---------------- 标签页 ---------------- */
+  (function buildTabs() {
+    const tabs = $('#tabs'), panels = $('#panels');
+    tabs.innerHTML = MODS.map((m, i) =>
+      `<button class="tab" role="tab" id="tab-${m.key}" aria-controls="pan-${m.key}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}" data-key="${m.key}"><i class="d ${m.fam}"></i>${m.name}</button>`).join('');
+    panels.innerHTML = MODS.map((m, i) => {
+      let body = `<div class="mod-head"><h3>${m.name}</h3><div class="full">${m.full}</div>`;
+      if (m.freq) body += `<div class="meta">${m.freq.map(f => `<span class="chip">${f}</span>`).join('')}</div>`;
+      body += `</div><p class="lead">${m.lead}</p>`;
+      if (m.table) {
+        body += `<div class="tablewrap"><table><thead><tr><th>选项</th><th>开关</th><th>本作业中</th></tr></thead><tbody>${m.table.map(r => `<tr><td>${r[0]}</td><td class="k">${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div>`;
+      } else {
+        body += `<div class="cols3"><div class="box"><h4>读入</h4>${ul(m.in)}</div><div class="box"><h4>计算</h4>${ul(m.calc)}</div><div class="box"><h4>输出</h4>${ul(m.out)}</div></div>`;
+        body += `<div class="tablewrap"><table><thead><tr><th>参数</th><th>tdaah 取值</th><th>含义</th></tr></thead><tbody>${m.params.map(r => `<tr><td class="k">${r[0]}</td><td class="v">${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div>`;
+        body += `<div class="pair"><div class="box rel"><h4>对轨道–CO₂ 问题</h4><p>${m.rel}</p></div><div class="box"><h4>与 cGENIE 对比</h4><p>${m.had}</p></div></div>`;
+      }
+      body += `<div class="srcs">来源：${m.src.join(' · ')}</div>`;
+      return `<div class="mod" role="tabpanel" id="pan-${m.key}" aria-labelledby="tab-${m.key}" tabindex="0" ${i === 0 ? '' : 'hidden'}>${body}</div>`;
+    }).join('');
+  })();
+
+  function openTab(key, opts) {
+    opts = opts || {};
+    $$('.tab').forEach(t => { const on = t.dataset.key === key; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; if (on && opts.focusTab) t.focus(); });
+    $$('.mod').forEach(p => { p.hidden = p.id !== 'pan-' + key; });
+    if (opts.scroll) $('#modules').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  }
+  $('#tabs').addEventListener('click', e => { const t = e.target.closest('.tab'); if (t) openTab(t.dataset.key); });
+  $('#tabs').addEventListener('keydown', e => {
+    const list = $$('.tab'); const i = list.indexOf(document.activeElement);
+    if (i < 0) return;
+    let j = null;
+    if (e.key === 'ArrowRight') j = (i + 1) % list.length;
+    else if (e.key === 'ArrowLeft') j = (i - 1 + list.length) % list.length;
+    else if (e.key === 'Home') j = 0;
+    else if (e.key === 'End') j = list.length - 1;
+    if (j !== null) { e.preventDefault(); e.stopPropagation(); openTab(list[j].dataset.key, { focusTab: true }); }
+  });
+
+  $$('svg .n[data-tab]').forEach(n => {
+    const go = () => openTab(n.dataset.tab, { scroll: true });
+    n.addEventListener('click', go);
+    n.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); go(); } });
+  });
+
+  /* ---------------- 播放器 ---------------- */
+  let idx = 0, playing = false, timer = null;
+  const scrub = $('#scrub');
+  scrub.max = STEPS.length - 1;
+
+  function setMarkers(g, on) {
+    const p = g.querySelector('path');
+    const m = on ? 'url(#ahon)' : 'url(#ah)';
+    p.setAttribute('marker-end', m);
+    if (g.dataset.ends === 'both') p.setAttribute('marker-start', m); else p.removeAttribute('marker-start');
+  }
+
+  function render() {
+    const s = STEPS[idx];
+    $('#count').textContent = (idx + 1) + ' / ' + STEPS.length;
+    scrub.value = idx;
+    $('#sMeta').innerHTML = s.chips.map((c, i) => `<span class="chip${i === 0 ? ' k' : ''}">${c}</span>`).join('');
+    $('#sTitle').textContent = s.title;
+    $('#sCall').innerHTML = s.call + (s.src ? `<br><span class="src">${s.src}</span>` : '');
+    $('#sIn').innerHTML = ul(s.in);
+    $('#sCalc').innerHTML = ul(s.calc);
+    $('#sOut').innerHTML = ul(s.out);
+    const note = $('#sNote');
+    note.hidden = !s.note;
+    note.innerHTML = s.note ? '<b>要点</b>' + s.note : '';
+    const open = $('#sOpen');
+    open.hidden = !s.tab;
+    if (s.tab) { open.textContent = '查看' + NAME[s.tab] + '详情 ↓'; open.dataset.tab = s.tab; }
+
+    $$('#map [data-node]').forEach(n => {
+      n.classList.toggle('on', s.nodes.includes(n.dataset.node));
+      n.classList.toggle('cur', s.cur.includes(n.dataset.node));
+    });
+    $$('#map [data-edge]').forEach(g => {
+      const on = s.edges.includes(g.dataset.edge);
+      g.classList.toggle('on', on);
+      setMarkers(g, on);
+    });
+    $$('#track .col').forEach(c => {
+      const inCol = s.cols.includes(c.dataset.col);
+      c.classList.toggle('on', inCol);
+      c.querySelectorAll('.dot[data-row]').forEach(d => d.classList.toggle('cur', inCol && s.rows.includes(d.dataset.row)));
+    });
+    restartTimerBar();
+  }
+
+  function restartTimerBar() {
+    const bar = $('#timer');
+    bar.classList.remove('run');
+    if (playing && !reduced) { void bar.offsetWidth; bar.style.setProperty('--dur', $('#speed').value + 'ms'); bar.classList.add('run'); }
+  }
+
+  function setPlayUI() {
+    $('#tPlay').textContent = playing ? '暂停' : (idx >= STEPS.length - 1 ? '重新播放' : '播放');
+    $('#bPlay').setAttribute('aria-label', playing ? '暂停' : '播放');
+    $('#iPlay').innerHTML = playing ? '<rect x="3" y="2" width="3.5" height="12"/><rect x="9.5" y="2" width="3.5" height="12"/>' : '<path d="M3 2 L14 8 L3 14 z"/>';
+  }
+  function schedule() {
+    clearTimeout(timer);
+    if (!playing) return;
+    timer = setTimeout(() => {
+      if (idx < STEPS.length - 1) { idx++; render(); schedule(); }
+      else { playing = false; setPlayUI(); restartTimerBar(); }
+    }, +$('#speed').value);
+  }
+  function go(i) { idx = Math.max(0, Math.min(STEPS.length - 1, i)); render(); setPlayUI(); schedule(); }
+  function play() { if (idx >= STEPS.length - 1) idx = 0; playing = true; render(); setPlayUI(); schedule(); }
+  function pause() { playing = false; clearTimeout(timer); setPlayUI(); restartTimerBar(); }
+  const toggle = () => (playing ? pause() : play());
+
+  $('#bPlay').addEventListener('click', toggle);
+  $('#bPrev').addEventListener('click', () => go(idx - 1));
+  $('#bNext').addEventListener('click', () => go(idx + 1));
+  $('#bReset').addEventListener('click', () => { pause(); go(0); });
+  $('#speed').addEventListener('change', () => { if (playing) { render(); schedule(); } });
+  scrub.addEventListener('input', () => go(+scrub.value));
+  $('#sOpen').addEventListener('click', e => openTab(e.currentTarget.dataset.tab, { scroll: true }));
+
+  $$('#track .col').forEach(c => {
+    const jump = () => { const key = c.dataset.col; const i = STEPS.findIndex(s => s.cols.includes(key)); if (i >= 0) go(i); };
+    c.addEventListener('click', jump);
+    c.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); jump(); } });
+  });
+
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    if (t.closest && t.closest('input, select, textarea, [role="tab"]')) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(idx + 1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); go(idx - 1); }
+    else if (e.key === ' ' && !(t.closest && t.closest('button, [role="button"]'))) { e.preventDefault(); toggle(); }
+  });
+
+  /* 深链接：#rad、#ocn … 直接打开对应分量 */
+  const hash = (location.hash || '').slice(1);
+  if (MODS.some(m => m.key === hash)) openTab(hash);
+
+  render(); setPlayUI();
+})();
+</script>
+</body>
+</html>
