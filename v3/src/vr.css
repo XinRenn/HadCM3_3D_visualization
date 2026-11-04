@@ -1,0 +1,5 @@
+
+/* ---------------------------------------------------------------- VR page: the Enter VR buttons */
+.tbtn.vrbtn { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.tbtn.vrbtn:hover:not(:disabled) { background: rgba(231, 176, 76, 0.12); }
+.tbtn.vrbtn:disabled { border-color: var(--line-2); color: var(--muted); font-weight: 400; cursor: not-allowed; }

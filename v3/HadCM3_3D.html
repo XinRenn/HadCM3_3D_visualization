@@ -1952,6 +1952,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 window.__had3dStarted = true;
 THREE.ColorManagement.enabled = false;
+/* extension points, used by the VR build (src/vr.js is appended to this module there); empty in the 3D page */
+const HOOKS = { init: [], frame: [], camTo: null, scene: null, presenting: () => false };
 
 const ST = window.HADCM3_STATE, V1 = window.HAD_V1, HN = window.HadNet;
 const D2R = Math.PI / 180;
@@ -2506,7 +2508,7 @@ function initScene() {
 }
 function resize() {
   const el = $('#stage'), w = el.clientWidth, h = el.clientHeight;
-  if (!w || !h) return;
+  if (!w || !h || HOOKS.presenting()) return;
   renderer.setSize(w, h, false); camera.aspect = w / h;
   camera.fov = Math.max(30, 2 * Math.atan(Math.tan(15 * D2R) / Math.min(camera.aspect, 1)) / D2R);
   camera.updateProjectionMatrix();
@@ -2976,6 +2978,7 @@ function updateCutLabels() {
 const FX = {};
 let CAMTWEEN = null;
 function camTo(lat, lon, d, dur = 1.6) {
+  if (HOOKS.camTo && HOOKS.camTo(lat, lon, d, dur)) return;
   if (REDUCED || !VIEW.autoCam) { if (VIEW.autoCam) camera.position.copy(xyz(lat, lon, d)); return; }
   const from = camera.position.clone(), to = xyz(lat, lon, d);
   CAMTWEEN = { from, to, t: 0, dur };
@@ -3754,16 +3757,16 @@ async function main() {
   renderStatic();
   go(0, 0);
   $('#loading').hidden = true;
+  HOOKS.init.forEach(f => f());
   let last = performance.now();
-  const loop = t => {
+  const loop = (t, frame) => {
     const dt = Math.min((t - last) / 1000, 0.1); last = t;
     animate(dt, t / 1000);
-    controls.update();
-    updateLabels(); tipTick();
-    renderer.render(scene, camera);
-    requestAnimationFrame(loop);
+    if (!HOOKS.presenting()) { controls.update(); updateLabels(); tipTick(); }
+    HOOKS.frame.forEach(f => f(dt, t / 1000, frame));
+    renderer.render(HOOKS.scene ? HOOKS.scene() : scene, camera);
   };
-  requestAnimationFrame(loop);
+  renderer.setAnimationLoop(loop);   /* the same as requestAnimationFrame outside WebXR; the headset's frame loop inside it */
   window.HAD3D = { P, VIEW, go, F, FX, camera, scene, renderer, MACRO, advance, LINES, OBJ,
     settle() { if (CAMTWEEN) { camera.position.copy(CAMTWEEN.to); CAMTWEEN = null; } REGRID.t = 99; } };
 }
