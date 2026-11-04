@@ -5,6 +5,7 @@ Inputs
   v3/src/page.html        page skeleton with @@CSS@@, @@CONTENT@@ and @@APP@@ placeholders
   v3/src/app.css          styles
   v3/src/app.js           the 3D application (ES module, three.js from jsDelivr)
+  v3/src/vr.js, vr.css    the WebXR additions, appended to app.js / app.css for the VR page
   ../HadCM3_timestep_walkthrough_{en,zh}.html   step cards (STEPS) and parameter tables (MODS)
   ../v2/src/hadcm3_net.js                       per-component process networks (NETS, bilingual)
 
@@ -14,9 +15,12 @@ with a plain script tag, so it works from disk and when published with that file
 Run: python3 v3/build_v3.py               -> v3/HadCM3_3D.html (language follows the browser, toggle in the header)
                                              and v3/HadCM3_3D_zh.html (opens in Chinese); full documents,
                                              for opening from disk
+                                          -> v3/HadCM3_3D_VR.html, the same page with WebXR (Meta Quest):
+                                             Enter VR in the header; needs HTTPS or localhost
      python3 v3/build_v3.py --bare F      -> also F, the first page without the doctype/charset/viewport lines,
                                              for publishing as an Artifact (the host adds its own skeleton)
      python3 v3/build_v3.py --bare-zh F   -> the same for the Chinese page
+     python3 v3/build_v3.py --bare-vr F   -> the same for the VR page
 """
 import os
 import re
@@ -67,12 +71,22 @@ def main():
                       '<meta name="description" content="HadCM3（UM vn4.5）在三维地球上走完一个耦合日：'
                       '各子程序按调用顺序作用在模式自己的网格上，场取自工业革命前启动 dump。">')
              .replace('Loading HadCM3 fields…', '正在载入 HadCM3 场…'))
+    # VR page: the same application with src/vr.js appended to the module and src/vr.css to the styles
+    vr = (page.replace('@@CSS@@', css + read(HERE, 'src', 'vr.css')).replace('@@CONTENT@@', content)
+              .replace('@@APP@@', app + '\n' + read(HERE, 'src', 'vr.js')).replace('@@LANGBOOT@@', '')
+              .replace('<title>HadCM3 in 3D</title>', '<title>HadCM3 in VR</title>')
+              .replace('<h1>HadCM3 <span>3D</span></h1>', '<h1>HadCM3 <span>VR</span></h1>')
+              .replace(re.search(r'<meta name="description" content="[^"]*">', out).group(0),
+                       '<meta name="description" content="HadCM3 (UM vn4.5) stepping through one coupled day on a globe '
+                       'you can hold in VR (WebXR, Meta Quest): each routine in call order on the model\u2019s own grids, '
+                       'with the controls on your left hand.">'))
     out = out.replace('@@LANGBOOT@@', '')
     head = ('<!doctype html>\n<html lang="%s">\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n')
     targets = [(os.path.join(HERE, 'HadCM3_3D.html'), head % 'en' + out),
-               (os.path.join(HERE, 'HadCM3_3D_zh.html'), head % 'zh-CN' + zh)]
-    for flag, text in (('--bare', out), ('--bare-zh', zh)):
+               (os.path.join(HERE, 'HadCM3_3D_zh.html'), head % 'zh-CN' + zh),
+               (os.path.join(HERE, 'HadCM3_3D_VR.html'), head % 'en' + vr)]
+    for flag, text in (('--bare', out), ('--bare-zh', zh), ('--bare-vr', vr)):
         if flag in sys.argv:
             targets.append((sys.argv[sys.argv.index(flag) + 1], text))
     for dst, text in targets:
