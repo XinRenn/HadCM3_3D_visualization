@@ -511,7 +511,7 @@ import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
       btn('l:' + id + '+', c.x + c.w - 60, c.y, 60, h, '+', { sz: 30 }, plus);
       text(label, c.x + c.w / 2, c.y + h / 2 + 8, 22, dim ? K.faint : K.ink, 400, FB, 'center', c.w - 136);
     };
-    chk('follow', U.follow, VIEW.follow, tog('follow'), true);
+    chk('follow', U.follow, VIEW.follow, tog('follow')); chk('plants', U.plants, VIEW.plants, tog('plants'));
     chk('clouds', U.clouds, VIEW.clouds, tog('clouds')); chk('towers', U.towers, VIEW.towers, tog('towers'));
     chk('rain', U.rain, VIEW.rain, () => { VIEW.rain = VIEW.rain ? '' : 'ls'; RAIN.kind = ''; viewChanged(); }); chk('ice', U.ice, VIEW.ice, tog('ice'));
     chk('winds', U.winds, VIEW.winds, () => { VIEW.winds = VIEW.winds ? 0 : VR.windLev; viewChanged(); });
@@ -533,7 +533,7 @@ import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
     cy('vmode', U.vscale, tx(VIEW.vmode === 'levels' ? U.vLevels : U.vPhys), cyc('vmode', ['levels', 'phys']));
     chk('spin', U.spin, VIEW.spin, () => { VIEW.spin = !VIEW.spin; controls.autoRotate = VIEW.spin; const b = $('#btnSpin'); if (b) b.setAttribute('aria-pressed', String(VIEW.spin)); });
     chk('cap', VU.caption, VR.cap, () => { VR.cap = !VR.cap; });
-    chk('detail', U.detail, P.detail, toggleDetail, true);
+    chk('cutCur', U.cutCur, VIEW.cutCur, tog('cutCur')); chk('detail', U.detail, P.detail, toggleDetail);
   }
   function colorbar(s, x, y, w, h, tsz) {
     if (s.cat) {

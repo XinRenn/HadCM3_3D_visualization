@@ -2006,6 +2006,7 @@ const U = {
   follow: L('Layers follow the step', '图层随步骤切换'), followHint: L('Untick to keep your own layer choice while playing.', '取消勾选后，播放时保留你自己选的图层。'),
   clouds: L('Layer cloud (19 levels)', '层状云（19 层）'), towers: L('Convective cloud', '对流云'), winds: L('Wind particles', '风场粒子'), level: L('Level', '层'),
   currents: L('Ocean currents', '洋流'), depth: L('Depth', '深度'), ice: L('Sea ice', '海冰'), psi: L('Streamfunction contours', '流函数等值线'), rain: L('Rain and snow', '雨雪'), runoff: L('Runoff to the coast', '径流入海'),
+  plants: L('3D vegetation (tile mix)', '立体植被（地表类型组成）'), cutCur: L('Current arrows on the section', '剖面上的洋流箭头'),
   gridA: L('Atmosphere 96 × 73', '大气 96 × 73'), gridO: L('Ocean 288 × 144', '海洋 288 × 144'),
   cut: L('Cut away a wedge', '切开一个楔形'), cutLon: L('Western face (°E)', '西侧剖面（°E）'), cutW: L('Wedge width (°)', '楔形宽度（°）'),
   cutA: L('Atmosphere section', '大气剖面'), cutO: L('Ocean section', '海洋剖面'), cutFollow: L('Wedge follows the camera', '楔形跟随视角'),
@@ -2113,7 +2114,7 @@ function cornersO(arr, j, i) {
 /* ================================================================ geometry and vertical axes */
 const ATM_H = 0.26, OCN_H = 0.22, SOIL_DZ = 0.011, RELIEF_MAX = 0.03;
 const VIEW = {
-  surf: 'tstar', clouds: false, towers: false, winds: 0, currents: 0, ice: true, psi: false, rain: '', runoff: false,
+  surf: 'tstar', clouds: false, towers: false, winds: 0, currents: 0, ice: true, psi: false, rain: '', runoff: false, plants: false, cutCur: false,
   gridA: false, gridO: false, cut: true, cutLon: 315, cutW: 76, cutA: 'temp', cutO: 'T', cutFollow: true,
   shade: true, relief: 'smooth', vmode: 'levels', autoCam: !REDUCED, spin: false, follow: true,
 };
@@ -2404,15 +2405,17 @@ void main() {
   lineV: `attribute vec4 acol; attribute float at;
 varying vec4 vC; varying float vT; varying vec3 vW;
 void main() { vC = acol; vT = at; vW = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-  lineF: `uniform vec3 uCut; uniform float uTime; uniform float uDash; uniform float uSpeed; uniform float uAlpha; uniform float uNoCut;
+  lineF: `uniform vec3 uCut; uniform float uTime; uniform float uDash; uniform float uSpeed; uniform float uAlpha; uniform float uNoCut; uniform float uFloor; uniform float uEdge;
 varying vec4 vC; varying float vT; varying vec3 vW;
 bool inCut(float lon) { return uCut.x > 0.5 && mod(lon - uCut.y + 720.0, 360.0) < uCut.z; }
 void main() {
   if (uNoCut < 0.5) { vec3 n = normalize(vW); float lon = mod(degrees(atan(-n.z, n.x)) + 360.0, 360.0); if (inCut(lon)) discard; }
   float a = vC.a * uAlpha;
-  if (uDash > 0.0) { float f = fract(vT * uDash - uTime * uSpeed); a *= smoothstep(0.0, 0.12, f) * (1.0 - smoothstep(0.45, 0.6, f)); }
+  if (uDash > 0.0 && vT < 999.0) { float f = fract(vT * uDash - uTime * uSpeed); a *= mix(uFloor, 1.0, smoothstep(0.0, 0.12, f) * (1.0 - smoothstep(0.45, 0.6, f))); }
   if (a < 0.01) discard;
-  gl_FragColor = vec4(vC.rgb, a);
+  vec3 col = vC.rgb;
+  if (uEdge > 0.0) { float e = smoothstep(0.5, 0.95, abs(vT)); col = mix(col, vec3(0.02, 0.05, 0.08), e * uEdge); a = mix(a, min(1.0, a * 1.4), e * uEdge); }
+  gl_FragColor = vec4(col, a);
 }`,
   haloV: `varying vec3 vN; varying vec3 vV;
 void main() { vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
@@ -2506,7 +2509,7 @@ function initScene() {
   OBJ.sun = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
   OBJ.sun.scale.set(2.2, 2.2, 1); scene.add(OBJ.sun);
 
-  buildShells(); buildTowers(); buildGwdBoxes(); buildParticles(); buildLines(); buildCut();
+  buildShells(); buildTowers(); buildGwdBoxes(); buildParticles(); buildLines(); buildPrecipModels(); buildPlants(); buildCutCurMesh(); buildCut();
   window.addEventListener('resize', resize);
   if (window.ResizeObserver) new ResizeObserver(resize).observe($('#stage'));
   resize();
@@ -2564,12 +2567,22 @@ function buildTowers() {
   for (let a = 0; a < 96 * 73; a++) {
     if (cca[a] > 0.01 && ccb[a] >= 1 && cct[a] >= ccb[a]) TOWERS.push({ a, lat: latA(Math.floor(a / 96)), lon: lonA(a % 96), cca: cca[a], b: ccb[a], t: cct[a] });
   }
+  /* white boxes filling the whole grid box from cloud base to cloud top; the opacity carries the
+     amount: CCA_MAX (the largest CCA in the dump) is drawn at 50 %, smaller amounts in proportion */
+  CCA_MAX = TOWERS.reduce((a, t) => Math.max(a, t.cca), 0.01);
   const geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
-  OBJ.towers = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x1d1830, transparent: true, opacity: 0.9 }), Math.max(TOWERS.length, 1));
-  const c = new THREE.Color();
-  TOWERS.forEach((t, i) => { const deep = clamp((t.t - t.b) / 10, 0, 1); c.setRGB(lerp(0.80, 0.80, deep), lerp(0.82, 0.70, deep), lerp(0.86, 1.0, deep)); OBJ.towers.setColorAt(i, c); });
-  OBJ.towers.visible = false; OBJ.towers.renderOrder = 8; scene.add(OBJ.towers);
+  const al = new Float32Array(Math.max(TOWERS.length, 1));
+  TOWERS.forEach((t, i) => { al[i] = 0.5 * clamp(t.cca / CCA_MAX, 0, 1); });
+  geo.setAttribute('aAlpha', new THREE.InstancedBufferAttribute(al, 1));
+  const mat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x4a4f57, transparent: true, depthWrite: false });
+  mat.onBeforeCompile = sh => {
+    sh.vertexShader = 'attribute float aAlpha;\nvarying float vAlpha;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvAlpha = aAlpha;');
+    sh.fragmentShader = 'varying float vAlpha;\n' + sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );', 'vec4 diffuseColor = vec4( diffuse, opacity * vAlpha );');
+  };
+  OBJ.towers = new THREE.InstancedMesh(geo, mat, Math.max(TOWERS.length, 1));
+  OBJ.towers.visible = false; OBJ.towers.renderOrder = 8; OBJ.towers.frustumCulled = false; scene.add(OBJ.towers);
 }
+let CCA_MAX = 1;
 const _m = new THREE.Matrix4(), _e = new THREE.Vector3(), _n = new THREE.Vector3(), _u = new THREE.Vector3(), _p = new THREE.Vector3(), _h = new THREE.Vector3();
 /* a box standing on an atmosphere grid box, from level boundary kb0 to kb1, s = fraction of the box width */
 function boxAt(mesh, i, lat, lon, kb0, kb1, s) {
@@ -2583,7 +2596,7 @@ function boxAt(mesh, i, lat, lon, kb0, kb1, s) {
   mesh.setMatrixAt(i, _m);
 }
 function placeTowers(kNow = 99) {
-  TOWERS.forEach((t, i) => boxAt(OBJ.towers, i, t.lat, t.lon, t.b - 1, Math.min(t.t, kNow), Math.sqrt(t.cca) * 0.95));
+  TOWERS.forEach((t, i) => boxAt(OBJ.towers, i, t.lat, t.lon, t.b - 1, Math.min(t.t, kNow), 0.97));
   OBJ.towers.instanceMatrix.needsUpdate = true;
 }
 let GWD = [];
@@ -2609,7 +2622,7 @@ function moveGwdMarks(t) {
 /* ---------------------------------------------------------------- particles */
 function lineMat(o = {}) {
   return new THREE.ShaderMaterial({
-    uniforms: { uCut: SHARED.uCut, uTime: SHARED.uTime, uDash: { value: o.dash || 0 }, uSpeed: { value: o.speed || 0 }, uAlpha: { value: o.alpha == null ? 1 : o.alpha }, uNoCut: { value: o.nocut ? 1 : 0 } },
+    uniforms: { uCut: SHARED.uCut, uTime: SHARED.uTime, uDash: { value: o.dash || 0 }, uSpeed: { value: o.speed || 0 }, uAlpha: { value: o.alpha == null ? 1 : o.alpha }, uNoCut: { value: o.nocut ? 1 : 0 }, uFloor: { value: o.floor || 0 }, uEdge: { value: o.edge || 0 } },
     vertexShader: SH.lineV, fragmentShader: SH.lineF, transparent: true, depthWrite: false, blending: o.additive ? THREE.AdditiveBlending : THREE.NormalBlending,
   });
 }
@@ -2655,6 +2668,81 @@ class Flow {
     this.geo.attributes.position.needsUpdate = true; this.geo.attributes.acol.needsUpdate = true;
   }
 }
+/* streamline ribbons in the style of NASA's flow pictures (Perpetual Ocean, GEOS-5 winds): every
+   particle drags a real trail of its own recent positions, drawn as a flat ribbon lying on the
+   sphere, widest and brightest at the head and tapering to nothing at the tail. Widths are in globe
+   units, so the traces stay readable at any zoom and in the headset (GL lines are always 1 px). */
+const _rh = new THREE.Vector3();
+class Ribbon {
+  constructor(n, m, o) {
+    Object.assign(this, { n, m, o, h: 0, tRec: 0 });
+    this.lat = new Float32Array(n); this.lon = new Float32Array(n); this.age = new Float32Array(n); this.life = new Float32Array(n);
+    this.hn = new Uint8Array(n); this.hist = new Float32Array(n * m * 3);
+    const nv = n * m * 2, g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(nv * 3), 3).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('acol', new THREE.BufferAttribute(new Float32Array(nv * 4), 4).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('at', new THREE.BufferAttribute(new Float32Array(nv), 1));
+    const idx = new Uint32Array(n * (m - 1) * 6);
+    for (let p = 0, q = 0; p < n; p++) for (let k = 0; k < m - 1; k++) { const v = (p * m + k) * 2; idx.set([v, v + 1, v + 2, v + 1, v + 3, v + 2], q); q += 6; }
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    this.geo = g;
+    if (o.edge) { const T = g.attributes.at.array; for (let v = 0; v < nv; v++) T[v] = v % 2 ? -1 : 1; }
+    this.obj = new THREE.Mesh(g, lineMat({ additive: o.additive, edge: o.edge })); this.obj.material.side = THREE.DoubleSide;
+    this.obj.renderOrder = o.order || 30; this.obj.visible = false; this.obj.frustumCulled = false; scene.add(this.obj);
+    this.lut = lut(o.cmap);
+  }
+  reset() { for (let i = 0; i < this.n; i++) this.spawn(i, true); }
+  spawn(i, first) {
+    const [la, lo] = this.o.spawn(); this.lat[i] = la; this.lon[i] = lo; this.hn[i] = 0;
+    this.life[i] = this.o.life[0] + Math.random() * this.o.life[1]; this.age[i] = first ? Math.random() * this.life[i] : 0;
+  }
+  update(dt) {
+    if (!this.obj.visible) return;
+    const o = this.o, m = this.m, H = this.hist, P = this.geo.attributes.position.array, C = this.geo.attributes.acol.array, LU = this.lut;
+    if (!this.W) {                 // per-point taper of width, opacity and the white-hot head, the same for every particle
+      this.W = new Float32Array(m); this.A = new Float32Array(m); this.T = new Float32Array(m); this.Q = new Float32Array(m * 3);
+      for (let k = 0; k < m; k++) { const t = k / (m - 1); this.W[k] = o.width * Math.pow(1 - t, 0.55); this.A[k] = Math.pow(1 - t, 1.3); this.T[k] = Math.pow(1 - t, 6) * 0.55; }
+    }
+    const W = this.W, A = this.A, TH = this.T, Q = this.Q;
+    this.tRec += dt; const rec = this.tRec >= o.rec;
+    if (rec) { this.tRec %= o.rec; this.h = (this.h + 1) % m; }
+    for (let i = 0; i < this.n; i++) {
+      let [u, v] = o.sample(this.lat[i], this.lon[i]);
+      this.age[i] += dt;
+      if (!(u === u) || !(v === v) || this.age[i] > this.life[i] || Math.abs(this.lat[i]) > 88.5) {
+        this.spawn(i); [u, v] = o.sample(this.lat[i], this.lon[i]); if (!(u === u) || !(v === v)) { u = 0; v = 0; }
+      }
+      const cl = Math.max(Math.cos(this.lat[i] * D2R), 0.08), cap = 8 * dt;
+      this.lat[i] += clamp(v * o.speed * dt, -cap, cap); this.lon[i] = wrap360(this.lon[i] + clamp(u * o.speed * dt / cl, -cap / cl, cap / cl));
+      const la = this.lat[i], lo = this.lon[i];
+      xyz(la, lo, o.radius(la, lo), _rh);
+      if (rec) { const s = (i * m + this.h) * 3; H[s] = _rh.x; H[s + 1] = _rh.y; H[s + 2] = _rh.z; if (this.hn[i] < m - 1) this.hn[i]++; }
+      /* gather the trail: Q[0] the live head, then the recorded positions, newest first */
+      const nv = 1 + this.hn[i];
+      Q[0] = _rh.x; Q[1] = _rh.y; Q[2] = _rh.z;
+      for (let k = 1; k < nv; k++) { const s = (((this.h - k + 1) % m + m) % m + i * m) * 3; Q[k * 3] = H[s]; Q[k * 3 + 1] = H[s + 1]; Q[k * 3 + 2] = H[s + 2]; }
+      const sp = Math.hypot(u, v), ci = Math.round(clamp(sp / o.vmax, 0, 1) * 255) * 3;
+      const cr = LU[ci] / 255, cg = LU[ci + 1] / 255, cb = LU[ci + 2] / 255;
+      const fade = Math.min(1, this.age[i] * 2, (this.life[i] - this.age[i]) * 2) * o.alpha;
+      let vb = i * m * 2 * 3, cbx = i * m * 2 * 4;
+      for (let k = 0; k < m; k++, vb += 6, cbx += 8) {
+        const kk = k < nv ? k : nv - 1, x = Q[kk * 3], y = Q[kk * 3 + 1], z = Q[kk * 3 + 2];
+        /* direction along the trail: central difference, reaching one further if two samples coincide */
+        const k0 = kk > 0 ? kk - 1 : 0; let k1 = kk + 1 < nv ? kk + 1 : nv - 1;
+        let tx_ = Q[k0 * 3] - Q[k1 * 3], ty = Q[k0 * 3 + 1] - Q[k1 * 3 + 1], tz = Q[k0 * 3 + 2] - Q[k1 * 3 + 2];
+        if (tx_ * tx_ + ty * ty + tz * tz < 1e-12 && kk + 2 < nv) { k1 = kk + 2; tx_ = Q[k0 * 3] - Q[k1 * 3]; ty = Q[k0 * 3 + 1] - Q[k1 * 3 + 1]; tz = Q[k0 * 3 + 2] - Q[k1 * 3 + 2]; }
+        /* side = radial × direction, scaled to the half-width */
+        let sx = y * tz - z * ty, sy = z * tx_ - x * tz, sz = x * ty - y * tx_;
+        const sl = Math.sqrt(sx * sx + sy * sy + sz * sz), live = k < nv && sl > 1e-9, f = live ? W[k] / sl : 0;
+        sx *= f; sy *= f; sz *= f;
+        P[vb] = x + sx; P[vb + 1] = y + sy; P[vb + 2] = z + sz; P[vb + 3] = x - sx; P[vb + 4] = y - sy; P[vb + 5] = z - sz;
+        const hot = TH[k], a = live ? fade * A[k] : 0, r = cr + (1 - cr) * hot, g = cg + (1 - cg) * hot, b = cb + (1 - cb) * hot;
+        C[cbx] = C[cbx + 4] = r; C[cbx + 1] = C[cbx + 5] = g; C[cbx + 2] = C[cbx + 6] = b; C[cbx + 3] = C[cbx + 7] = a;
+      }
+    }
+    this.geo.attributes.position.needsUpdate = true; this.geo.attributes.acol.needsUpdate = true;
+  }
+}
 const FLOW = {};
 let WET = [], ICY = [];
 function randomSphere() { return [Math.asin(Math.random() * 2 - 1) / D2R, Math.random() * 360]; }
@@ -2667,17 +2755,17 @@ function pickCell(list, grid) {
 }
 function buildParticles() {
   const gAU = ST.grids.AU, gOU = ST.grids.OU;
-  FLOW.wind = new Flow(5200, {
-    cmap: 'wind', vmax: 60, speed: 0.11, trail: 0.42, alpha: 0.9, additive: true,
+  FLOW.wind = new Ribbon(3000, 14, {
+    cmap: 'wind', vmax: 60, speed: 0.11, rec: 0.075, width: 0.006, life: [2.2, 2.2], alpha: 0.95, edge: 0.6,
     spawn: randomSphere,
     sample: (la, lo) => { const k = VIEW.winds - 1; return [bilin(F.u.lev(k), gAU, la, lo), bilin(F.v.lev(k), gAU, la, lo)]; },
     radius: (la, lo) => atmR(VIEW.winds - 0.5, la, lo) + 0.002,
   });
-  FLOW.cur = new Flow(6000, {
-    cmap: 'cur', vmax: 40, speed: 0.07, trail: 0.7, alpha: 0.95,
+  FLOW.cur = new Ribbon(3000, 16, {
+    cmap: 'cur', vmax: 40, speed: 0.24, rec: 0.12, width: 0.0075, life: [4, 3], alpha: 1, edge: 0.85,
     spawn: () => WET.length ? pickCell(WET, 'O') : randomSphere(),
     sample: (la, lo) => { const k = VIEW.currents - 1; return [bilin(F.U.lev(k), gOU, la, lo), bilin(F.V.lev(k), gOU, la, lo)]; },
-    radius: () => 1.004,
+    radius: () => 1.0045,
   });
   FLOW.ice = new Flow(2200, {
     cmap: 'drift', vmax: 0.25, speed: 9, trail: 0.6, alpha: 1, order: 31,
@@ -2712,9 +2800,9 @@ function writer(Lr) {
 }
 const rgba = (h, a) => { const c = hex3(h); return [c[0] / 255, c[1] / 255, c[2] / 255, a]; };
 function buildLines() {
-  makeLines('spikes', 96 * 73 * 4, {}); makeLines('stress', 40000, {}); makeLines('runoff', 120000, { dash: 3, speed: 0.6 });
+  makeLines('spikes', 96 * 73 * 4, {}); makeLines('stress', 40000, {});
   makeLines('rays', 4000, { dash: 1.6, speed: 0.9, nocut: true, additive: true });
-  makeLines('lw', 4000, { dash: 1.2, speed: 0.8, nocut: true, additive: true }); makeLines('rain', 9000, {});
+  makeLines('lw', 4000, { dash: 1.2, speed: 0.8, nocut: true, additive: true });
   makeLines('gsum', 4000, { dash: 1, speed: 0.7, nocut: true, additive: true });
   makeLines('cutLines', 30000, { nocut: true, order: 3 }); makeLines('cutHi', 6000, { nocut: true, order: 4, additive: true });
   makeLines('sunArrow', 8, { nocut: true });
@@ -2749,23 +2837,44 @@ function buildStress(grid) {
   }
   w.done();
 }
+/* runoff: one arrow per land box, arched from the box to its coastal outflow point (0/93); shaft width
+   and colour follow the November-mean runoff, a bright pulse runs down the shaft toward the head */
 function buildRunoff() {
-  const w = writer(LINES.runoff), ro = F.runoff.lev(0), a = new THREE.Vector3(), b = new THREE.Vector3(), A = new THREE.Vector3(), B = new THREE.Vector3(), lu = lut('rain');
-  ST.outflow.forEach(([s, d]) => {
+  const ro = F.runoff.lev(0), lu = lut('rain'), pos = [], col = [], at = [];
+  const A = new THREE.Vector3(), B = new THREE.Vector3(), p0 = new THREE.Vector3(), p1 = new THREE.Vector3(), d = new THREE.Vector3(), sd = new THREE.Vector3();
+  const L0 = new THREE.Vector3(), R0 = new THREE.Vector3(), L1 = new THREE.Vector3(), R1 = new THREE.Vector3();
+  const vtx = (v, c, t) => { pos.push(v.x, v.y, v.z); col.push(c[0], c[1], c[2], c[3]); at.push(t); };
+  const tri = (a, b, c, ca, cb, cc, ta, tb, tc) => { vtx(a, ca, ta); vtx(b, cb, tb); vtx(c, cc, tc); };
+  ST.outflow.forEach(([s, dd]) => {
     const v = ro[s]; if (!(v > 0.08)) return;
-    const la1 = latA((s / 96) | 0), lo1 = lonA(s % 96), la2 = latA((d / 96) | 0), lo2 = lonA(d % 96);
-    if (inCut(lo1) && inCut(lo2)) return;
+    const la1 = latA((s / 96) | 0), lo1 = lonA(s % 96), la2 = latA((dd / 96) | 0), lo2 = lonA(dd % 96);
+    if (inCut(lo1) || inCut(lo2)) return;
     xyz(la1, lo1, 1, A); xyz(la2, lo2, 1, B);
-    const ang = A.angleTo(B), N = clamp(Math.round(ang / 0.03), 2, 24), k = Math.round(norm({ lo: 0, hi: 10, tr: 'sqrt' }, v) * 200 + 55) * 3;
-    const col = [lu[k] / 255, lu[k + 1] / 255, lu[k + 2] / 255, 0.95];
+    const ang = A.angleTo(B); if (ang < 0.01) return;
+    const nr = norm({ lo: 0, hi: 10, tr: 'sqrt' }, v), k = Math.round(nr * 200 + 55) * 3;
+    const c = [lu[k] / 255, lu[k + 1] / 255, lu[k + 2] / 255, 0.95], cHead = [Math.min(1, c[0] * 1.15 + 0.1), Math.min(1, c[1] * 1.15 + 0.1), Math.min(1, c[2] * 1.1 + 0.1), 1];
+    const w = 0.0013 + 0.0032 * nr, hw = 2.4 * w + 0.0012, hl = Math.min(0.45 * ang, 0.012 + 0.012 * nr), tH = 1 - hl / ang;
+    const rel = reliefAt(la1, lo1), P = t => slerpTo(A, B, t, new THREE.Vector3()).multiplyScalar(1 + rel * (1 - t) + 0.006 + 0.05 * ang * Math.sin(Math.PI * t));
+    const side = (t, half, out) => { const a = P(Math.max(t - 0.01, 0)), b = P(Math.min(t + 0.01, 1)); d.subVectors(b, a); return out.crossVectors(P(t).normalize(), d).normalize().multiplyScalar(half); };
+    const N = clamp(Math.round(ang / 0.025), 2, 28);
     for (let q = 0; q < N; q++) {
-      const t0 = q / N, t1 = (q + 1) / N;
-      slerpTo(A, B, t0, a).multiplyScalar(1 + reliefAt(la1, lo1) * (1 - t0) + 0.006 + 0.05 * ang * Math.sin(Math.PI * t0));
-      slerpTo(A, B, t1, b).multiplyScalar(1 + reliefAt(la1, lo1) * (1 - t1) + 0.006 + 0.05 * ang * Math.sin(Math.PI * t1));
-      w.seg(a, b, col, col, t0 * ang * 6, t1 * ang * 6);
+      const t0 = tH * q / N, t1 = tH * (q + 1) / N;
+      p0.copy(P(t0)); p1.copy(P(t1));
+      side(t0, w, sd); L0.addVectors(p0, sd); R0.subVectors(p0, sd);
+      side(t1, w, sd); L1.addVectors(p1, sd); R1.subVectors(p1, sd);
+      const ta = t0 * ang * 6, tb = t1 * ang * 6;
+      tri(L0, R0, L1, c, c, c, ta, ta, tb); tri(R0, R1, L1, c, c, c, ta, tb, tb);
     }
+    p0.copy(P(tH)); side(tH, hw, sd); L0.addVectors(p0, sd); R0.subVectors(p0, sd); p1.copy(P(1));
+    tri(L0, R0, p1, cHead, cHead, cHead, 1000, 1000, 1000);
   });
-  w.done();
+  if (!OBJ.runoff) {
+    OBJ.runoff = new THREE.Mesh(new THREE.BufferGeometry(), lineMat({ dash: 3, speed: 0.6, floor: 0.5 }));
+    OBJ.runoff.material.side = THREE.DoubleSide; OBJ.runoff.renderOrder = 32; OBJ.runoff.frustumCulled = false; scene.add(OBJ.runoff);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('acol', new THREE.Float32BufferAttribute(col, 4)); g.setAttribute('at', new THREE.Float32BufferAttribute(at, 1));
+  OBJ.runoff.geometry.dispose(); OBJ.runoff.geometry = g;
 }
 function slerpTo(A, B, t, out) {
   const ang = A.angleTo(B); if (ang < 1e-6) return out.copy(A);
@@ -2773,12 +2882,11 @@ function slerpTo(A, B, t, out) {
   return out.set(A.x * wa + B.x * wb, A.y * wa + B.y * wb, A.z * wa + B.z * wb).normalize();
 }
 function buildRain(kind) {
-  const w = writer(LINES.rain); w.done();
   const pr = (kind === 'cv' ? F.cvPrecip : F.lsPrecip).lev(0), cdf = [], cells = [];
   let tot = 0;
   for (let k = 0; k < pr.length; k++) { const v = pr[k]; if (v > 0.3) { tot += v * Math.cos(latA((k / 96) | 0) * D2R); cdf.push(tot); cells.push(k); } }
   RAIN.drops = [];
-  const n = 2600, cl = F.cloud, ts = F.tstar.lev(0), cct = F.cct.lev(0);
+  const n = RAIN.max, cl = F.cloud, ts = F.tstar.lev(0), cct = F.cct.lev(0);
   for (let q = 0; q < n && cells.length; q++) {
     const x = Math.random() * tot; let lo = 0, hi = cdf.length - 1;
     while (lo < hi) { const m = (lo + hi) >> 1; if (cdf[m] < x) lo = m + 1; else hi = m; }
@@ -2786,22 +2894,172 @@ function buildRain(kind) {
     let top = 6;
     if (kind === 'cv' && cct[k] > 0) top = cct[k];
     else { let best = 0; for (let l = 0; l < 12; l++) { const c = cl.lev(l)[k]; if (c > best) { best = c; top = l + 1; } } }
-    RAIN.drops.push({ lat, lon, kb: top, h: Math.random(), snow: ts[k] < 271.5 });
+    RAIN.drops.push({ lat, lon, kb: top, h: Math.random(), snow: ts[k] < 271.5, sz: 0.8 + 0.4 * Math.random(),
+      ax: new THREE.Vector3().randomDirection(), spin: Math.random() * 6.3, ws: 1 + Math.random() * 2 });
   }
 }
-const RAIN = { drops: [], kind: '' };
+const RAIN = { drops: [], kind: '', max: 2200 };
+/* 3D drops and flakes: a teardrop (round bottom, point on top) for rain, a six-armed flake that
+   tumbles as it falls for snow; one instanced mesh each */
+function buildPrecipModels() {
+  const prof = [];
+  for (let q = 0; q <= 16; q++) { const t = Math.PI * (1 - q / 16); prof.push(new THREE.Vector2(0.5 * Math.sin(t) * Math.sin(t / 2) + 1e-4, (Math.cos(t) + 1) / 2)); }
+  prof[0].x = prof[prof.length - 1].x = 0;
+  const dropG = new THREE.LatheGeometry(prof, 10);
+  OBJ.rainI = new THREE.InstancedMesh(dropG, new THREE.MeshLambertMaterial({ color: 0x8FD3F5, emissive: 0x1E5578, transparent: true, opacity: 0.92 }), RAIN.max);
+  const arms = [];
+  for (let d = 0; d < 3; d++) arms.push(new THREE.BoxGeometry(1, 0.07, 0.07).rotateY(d * Math.PI / 3));
+  for (let d = 0; d < 6; d++) for (const sgn of [1, -1]) {
+    const th = d * Math.PI / 3, b = new THREE.BoxGeometry(0.26, 0.06, 0.06);
+    b.translate(0.13, 0, 0).rotateY(sgn * 0.8).translate(0.28, 0, 0).rotateY(th); arms.push(b);
+  }
+  const flakeG = mergeNonIndexed(arms.map(g => g.toNonIndexed()));
+  OBJ.snowI = new THREE.InstancedMesh(flakeG, new THREE.MeshLambertMaterial({ color: 0xFFFFFF, emissive: 0x7A8796 }), RAIN.max);
+  for (const o of [OBJ.rainI, OBJ.snowI]) { o.count = 0; o.visible = false; o.frustumCulled = false; o.renderOrder = 34; scene.add(o); }
+}
+const _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _sc = new THREE.Vector3(), Y_UP = new THREE.Vector3(0, 1, 0);
 function updateRain(dt) {
-  const Lr = LINES.rain; if (!Lr.obj.visible) return;
-  const w = writer(Lr), a = new THREE.Vector3(), b = new THREE.Vector3();
-  const cR = rgba('#8FD3F5', 0.85), cR0 = rgba('#8FD3F5', 0), cS = rgba('#FFFFFF', 0.95), cS0 = rgba('#FFFFFF', 0.2);
+  const R = OBJ.rainI, S = OBJ.snowI; if (!R.visible) return;
+  let nr = 0, ns = 0;
   RAIN.drops.forEach(d => {
     d.h -= dt * (d.snow ? 0.22 : 0.6); if (d.h < 0) d.h += 1;
+    d.spin += dt * d.ws;
     if (inCut(d.lon)) return;
-    const kb = d.kb * d.h, r = atmR(kb, d.lat, d.lon), len = d.snow ? 0.004 : 0.016;
-    xyz(d.lat, d.lon, r, a); xyz(d.lat, d.lon, r + len, b);
-    w.seg(a, b, d.snow ? cS : cR, d.snow ? cS0 : cR0);
+    const kb = d.kb * d.h, r = atmR(kb, d.lat, d.lon);
+    xyz(d.lat, d.lon, r, _p); _u.copy(_p).normalize(); _q1.setFromUnitVectors(Y_UP, _u);
+    if (d.snow) { _q1.multiply(_q2.setFromAxisAngle(d.ax, d.spin)); _m.compose(_p, _q1, _sc.setScalar(0.014 * d.sz)); S.setMatrixAt(ns++, _m); }
+    else { _m.compose(_p, _q1, _sc.set(0.011 * d.sz, 0.021 * d.sz, 0.011 * d.sz)); R.setMatrixAt(nr++, _m); }
   });
-  w.done();
+  R.count = nr; S.count = ns; R.instanceMatrix.needsUpdate = S.instanceMatrix.needsUpdate = true;
+}
+/* concatenate non-indexed geometries (position, normal and, if present, colour) */
+function mergeNonIndexed(list) {
+  const names = ['position', 'normal'].concat(list.every(g => g.attributes.color) ? ['color'] : []), out = new THREE.BufferGeometry();
+  for (const nm of names) {
+    const n = list.reduce((a, g) => a + g.attributes[nm].array.length, 0), arr = new Float32Array(n); let o = 0;
+    list.forEach(g => { arr.set(g.attributes[nm].array, o); o += g.attributes[nm].array.length; });
+    out.setAttribute(nm, new THREE.BufferAttribute(arr, 3));
+  }
+  return out;
+}
+
+/* ---------------------------------------------------------------- cartoon vegetation
+   Each land box of the 96 × 73 grid gets up to 4 little models (fewer toward the poles, so the
+   density per area stays even), split between the 9 MOSES surface types in proportion to the tile
+   fractions (0/216). Trees, grass tufts, shrubs, houses, ponds, dunes with a cactus, ice peaks. */
+const PLANT_H = [0.046, 0.048, 0.02, 0.025, 0.023, 0.027, 0.036, 0.04, 0.034];   // model height in globe units
+function part(g, hex, f) {
+  g = g.index ? g.toNonIndexed() : g; if (f) f(g);
+  g.deleteAttribute('uv'); g.computeVertexNormals();
+  const c = new THREE.Color(hex), n = g.attributes.position.count, a = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { a[i * 3] = c.r; a[i * 3 + 1] = c.g; a[i * 3 + 2] = c.b; }
+  g.setAttribute('color', new THREE.BufferAttribute(a, 3));
+  return g;
+}
+function plantModels() {
+  const T = THREE, trunk = '#7A5232';
+  const broad = [part(new T.CylinderGeometry(0.06, 0.08, 0.5, 6), trunk, g => g.translate(0, 0.25, 0)),
+    part(new T.IcosahedronGeometry(0.3, 1), '#3FA33A', g => g.translate(0, 0.66, 0)),
+    part(new T.IcosahedronGeometry(0.21, 0), '#4DB845', g => g.translate(0.2, 0.52, 0.05)),
+    part(new T.IcosahedronGeometry(0.2, 0), '#36923A', g => g.translate(-0.18, 0.5, -0.06))];
+  const needle = [part(new T.CylinderGeometry(0.05, 0.06, 0.25, 6), trunk, g => g.translate(0, 0.125, 0)),
+    part(new T.ConeGeometry(0.3, 0.42, 8), '#1F6B4A', g => g.translate(0, 0.38, 0)),
+    part(new T.ConeGeometry(0.23, 0.36, 8), '#237A52', g => g.translate(0, 0.6, 0)),
+    part(new T.ConeGeometry(0.15, 0.3, 8), '#2A8A5C', g => g.translate(0, 0.84, 0))];
+  const tuft = (hex, h) => { const out = []; for (let q = 0; q < 7; q++) { const a = q / 7 * Math.PI * 2, r = q ? 0.22 : 0; out.push(part(new T.ConeGeometry(0.09, h * (0.75 + 0.25 * ((q * 37) % 5) / 4), 4), hex, g => g.translate(0, h / 2, 0).rotateZ(Math.cos(a) * 0.35 * (q ? 1 : 0)).rotateX(Math.sin(a) * 0.35 * (q ? 1 : 0)).translate(Math.cos(a) * r, 0, Math.sin(a) * r))); } return out; };
+  const c3 = tuft('#7CC24A', 1.0), c4 = tuft('#D8C24E', 1.0).concat([part(new T.IcosahedronGeometry(0.08, 0), '#B8913A', g => g.translate(0, 1.0, 0))]);
+  const shrub = [part(new T.IcosahedronGeometry(0.3, 1), '#6E9A3A', g => g.scale(1, 0.75, 1).translate(0, 0.3, 0)),
+    part(new T.IcosahedronGeometry(0.24, 0), '#80AB45', g => g.scale(1, 0.75, 1).translate(0.26, 0.22, 0.1)),
+    part(new T.IcosahedronGeometry(0.22, 0), '#5F8A33', g => g.scale(1, 0.75, 1).translate(-0.24, 0.2, -0.08))];
+  const urban = [part(new T.BoxGeometry(0.3, 0.75, 0.3), '#B9B2AA', g => g.translate(-0.12, 0.375, 0)),
+    part(new T.BoxGeometry(0.26, 1.0, 0.26), '#9D958E', g => g.translate(0.18, 0.5, 0.1)),
+    part(new T.ConeGeometry(0.26, 0.25, 4), '#C0573E', g => g.rotateY(Math.PI / 4).translate(-0.12, 0.875, 0)),
+    part(new T.BoxGeometry(0.22, 0.45, 0.22), '#C9C2B8', g => g.translate(0.05, 0.225, -0.24))];
+  const water = [part(new T.CylinderGeometry(0.42, 0.42, 0.05, 16), '#3F8FD0', g => g.translate(0, 0.025, 0)),
+    part(new T.CylinderGeometry(0.2, 0.2, 0.055, 12), '#7FC3EE', g => g.translate(0.08, 0.03, 0.06))];
+  const desert = [part(new T.SphereGeometry(0.45, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), '#E3C27E', g => g.scale(1.1, 0.42, 0.75).translate(-0.12, 0, 0)),
+    part(new T.SphereGeometry(0.3, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2), '#D4AE69', g => g.scale(1.1, 0.4, 0.8).translate(0.3, 0, 0.2)),
+    part(new T.CylinderGeometry(0.055, 0.06, 0.62, 7), '#4E9A4C', g => g.translate(0.18, 0.31, -0.18)),
+    part(new T.CylinderGeometry(0.04, 0.04, 0.2, 6), '#4E9A4C', g => g.rotateZ(Math.PI / 2).translate(0.27, 0.32, -0.18)),
+    part(new T.CylinderGeometry(0.04, 0.04, 0.2, 6), '#4E9A4C', g => g.translate(0.36, 0.42, -0.18)),
+    part(new T.CylinderGeometry(0.04, 0.04, 0.16, 6), '#4E9A4C', g => g.rotateZ(Math.PI / 2).translate(0.1, 0.4, -0.18)),
+    part(new T.CylinderGeometry(0.04, 0.04, 0.16, 6), '#4E9A4C', g => g.translate(0.03, 0.48, -0.18))];
+  const ice = [part(new T.ConeGeometry(0.34, 0.95, 5), '#EEF5FB', g => g.translate(0, 0.475, 0)),
+    part(new T.ConeGeometry(0.24, 0.6, 5), '#CFE3F2', g => g.rotateY(0.6).translate(0.28, 0.3, 0.12)),
+    part(new T.ConeGeometry(0.2, 0.45, 5), '#DCEBF6', g => g.rotateY(1.1).translate(-0.25, 0.225, -0.1))];
+  return [broad, needle, c3, c4, shrub, urban, water, desert, ice].map(mergeNonIndexed);
+}
+let PLANTS = null;
+function hash01(a, b) { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); }
+function buildPlants() {
+  const geos = plantModels(), mat = new THREE.MeshToonMaterial({ vertexColors: true });
+  PLANTS = { list: [], meshes: [] };
+  const fr = Array.from({ length: 9 }, (_, p) => F.frac.lev(p)), slots = [[-0.27, -0.25], [0.26, 0.27], [-0.24, 0.26], [0.27, -0.24]];
+  for (let a = 0; a < 96 * 73; a++) {
+    const j = (a / 96) | 0, lat = latA(j), lon = lonA(a % 96), f = fr.map(x => (x[a] === x[a] ? Math.max(x[a], 0) : 0)), tot = f.reduce((x, y) => x + y, 0);
+    if (tot < 0.3) continue;
+    const ns = Math.floor(4 * Math.cos(lat * D2R) + hash01(a, 1)); if (ns < 1) continue;
+    /* largest-remainder split of the ns models between the tile types */
+    const q = f.map(x => x / tot * ns), n = q.map(Math.floor); let left = ns - n.reduce((x, y) => x + y, 0);
+    q.map((x, p) => [x - n[p], p]).sort((x, y) => y[0] - x[0]).forEach(([r, p]) => { if (left > 0 && r > 0.15) { n[p]++; left--; } });
+    let si = 0;
+    n.forEach((cnt, p) => { for (let c = 0; c < cnt && si < 4; c++, si++) {
+      const [dx, dy] = slots[si], jx = (hash01(a, si + 2) - 0.5) * 0.16, jy = (hash01(a, si + 9) - 0.5) * 0.16;
+      PLANTS.list.push({ p, lat: lat + (dy + jy) * 2.5, lon: lon + (dx + jx) * 3.75, yaw: hash01(a, si + 20) * Math.PI * 2, s: PLANT_H[p] * (0.8 + 0.4 * hash01(a, si + 30)) });
+    } });
+  }
+  geos.forEach((g, p) => {
+    const cnt = Math.max(PLANTS.list.filter(x => x.p === p).length, 1), m = new THREE.InstancedMesh(g, mat, cnt);
+    m.visible = false; m.frustumCulled = false; m.renderOrder = 6; scene.add(m); PLANTS.meshes.push(m);
+  });
+}
+function placePlants() {
+  const k = new Array(9).fill(0);
+  PLANTS.list.forEach(t => {
+    const m = PLANTS.meshes[t.p], i = k[t.p]++;
+    if (inCut(t.lon)) { _m.makeScale(0, 0, 0); m.setMatrixAt(i, _m); return; }
+    xyz(t.lat, t.lon, 1 + reliefAt(t.lat, t.lon) - 0.0004, _p); _u.copy(_p).normalize();
+    _q1.setFromUnitVectors(Y_UP, _u).multiply(_q2.setFromAxisAngle(Y_UP, t.yaw));
+    _m.compose(_p, _q1, _sc.setScalar(t.s)); m.setMatrixAt(i, _m);
+  });
+  PLANTS.meshes.forEach(m => { m.instanceMatrix.needsUpdate = true; });
+}
+
+/* ---------------------------------------------------------------- current arrows on the cutaway
+   Horizontal November-mean velocity (U, V) at every level of every third row of each face, drawn as
+   3D arrows standing just in front of the face in the open wedge: northward flow points along the
+   face, eastward and westward flow points out of it or toward it. Length ∝ √speed. */
+const CUTCUR_MAX = 4200;
+function buildCutCurMesh() {
+  const shaft = new THREE.CylinderGeometry(0.42, 0.42, 0.66, 7).translate(0, 0.33, 0).toNonIndexed();
+  const head = new THREE.ConeGeometry(1.15, 0.34, 9).translate(0, 0.83, 0).toNonIndexed();
+  const g = mergeNonIndexed([shaft, head]);
+  OBJ.cutCur = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x9AA6B0 }), CUTCUR_MAX);
+  OBJ.cutCur.count = 0; OBJ.cutCur.visible = false; OBJ.cutCur.frustumCulled = false; OBJ.cutCur.renderOrder = 5; scene.add(OBJ.cutCur);
+}
+function placeCutCur() {
+  const M = OBJ.cutCur, gOU = ST.grids.OU, LU = lut('cur'), col = new THREE.Color(), e = new THREE.Vector3(), nn = new THREE.Vector3(), dir = new THREE.Vector3();
+  let n = 0;
+  [[VIEW.cutLon, 1], [wrap360(VIEW.cutLon + VIEW.cutW), -1]].forEach(([lon, sg]) => {
+    const io = Math.round(wrap360(lon) / 1.25) % 288;
+    for (let j = 1; j < 143; j += 3) {
+      const lat = latO(j), kmt = KMT[j * 288 + io]; if (!kmt) continue;
+      const la = lon * D2R, ph = lat * D2R, cl = Math.max(Math.cos(ph), 0.05);
+      e.set(-Math.sin(la), 0, -Math.cos(la)); nn.set(-Math.sin(ph) * Math.cos(la), Math.cos(ph), Math.sin(ph) * Math.sin(la));
+      for (let k = 1; k <= kmt && n < CUTCUR_MAX; k++) {
+        const u = bilin(F.U.lev(k - 1), gOU, lat, lon), v = bilin(F.V.lev(k - 1), gOU, lat, lon); if (!(u === u) || !(v === v)) continue;
+        const sp = Math.hypot(u, v); if (sp < 0.15) continue;
+        const r = ocnR(k - 0.5), L = Math.min(0.0105 * Math.sqrt(sp), 0.06), ux = u / sp, vy = v / sp;
+        /* stand off the face far enough that an arrow pointing toward it stops just short of it */
+        const off = 0.004 + Math.max(0, -sg * ux * L), lonB = lon + sg * off / (r * cl) / D2R;
+        xyz(lat, lonB, r, _p); dir.copy(e).multiplyScalar(ux).addScaledVector(nn, vy).normalize();
+        _q1.setFromUnitVectors(Y_UP, dir); _m.compose(_p, _q1, _sc.set(0.0034, L, 0.0034)); M.setMatrixAt(n, _m);
+        const ci = Math.round(clamp(Math.sqrt(sp / 50), 0, 1) * 255) * 3; col.setRGB(LU[ci] / 255, LU[ci + 1] / 255, LU[ci + 2] / 255); M.setColorAt(n, col);
+        n++;
+      }
+    }
+  });
+  M.count = n; M.instanceMatrix.needsUpdate = true; if (M.instanceColor) M.instanceColor.needsUpdate = true;
 }
 function buildRays(sun) {
   const w = writer(LINES.rays), s = sun.v, e1 = new THREE.Vector3(), e2 = new THREE.Vector3(), a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
@@ -3094,7 +3352,7 @@ const MDEF = {
   conv: { surf: 'cvPrecip', fx: { towers: 1 }, cutA: 'qt', cam: 'mc' },
   hydro: { surf: 'smc', fx: {}, cutA: 'temp', cam: 'amazon' },
   gwd: { surf: 'sdorog', fx: { gwd: 1, winds: 12 }, cutA: 'u', cam: 'tibet' },
-  veg: { surf: 'veg', fx: {}, cam: 'africa', cut: false },
+  veg: { surf: 'veg', fx: { plants: 1 }, cam: 'africa', cut: false },
   cpl: { surf: 'oTaux', fx: { gridA: 1 }, cam: 'natl' },
   ocn: { surf: 'sst', fx: { currents: 1 }, cutO: 'T', cutA: 'temp', cam: 'atl' },
   ice: { surf: 'aice', fx: { iceDrift: 1 }, cam: 'arctic', cut: false },
@@ -3132,9 +3390,9 @@ const PRE = {
   r8: { cutA: 'swHeat', hud: L('The heating rates are stored for the next 5 steps (RADINCS), shortwave per unit of incoming sunlight.', '加热率存下供后 5 步使用（RADINCS），短波按单位入射日照存储。') },
   r9: { hud: L('The net radiative heating of each column joins the day’s energy budget.', '每个气柱的净辐射加热计入当天的能量收支。') },
   r10: { surf: 't15', fx: { sunpos: 1, zenith: 1 }, cutA: 'swHeat', cam: 'sun', hud: L('Between radiation steps the stored shortwave heating is rescaled to this step’s sun angle, so day and night still move smoothly; longwave is reapplied as stored.', '两次辐射计算之间，存下的短波加热按本步太阳高度角重新缩放，昼夜交替因此仍是平滑的；长波原样加回。') },
-  r11: { surf: 'veg', fx: { sunpos: 1 }, cam: 'africa', hud: L('RAD_MOSES: net radiation for each of the 9 surface tiles.', 'RAD_MOSES：9 种地表 tile 各自的净辐射。') },
-  b1: { surf: 'veg', fx: {}, cam: 'africa', hud: L('TILEPTS: lists of the points that carry each of the 9 surface types.', 'TILEPTS：列出拥有每种地表类型（共 9 种）的格点。') },
-  b2: { surf: 'gpp', fx: {}, cam: 'africa', hud: L('PHYSIOL: stomatal conductance, photosynthesis and respiration of the 5 plant types (colours: November-mean GPP).', 'PHYSIOL：5 种植物功能型的气孔导度、光合与呼吸（颜色：11 月平均 GPP）。') },
+  r11: { surf: 'veg', fx: { sunpos: 1, plants: 1 }, cam: 'africa', hud: L('RAD_MOSES: net radiation for each of the 9 surface tiles.', 'RAD_MOSES：9 种地表 tile 各自的净辐射。') },
+  b1: { surf: 'veg', fx: { plants: 1 }, cam: 'africa', hud: L('TILEPTS: lists of the points that carry each of the 9 surface types.', 'TILEPTS：列出拥有每种地表类型（共 9 种）的格点。') },
+  b2: { surf: 'gpp', fx: { plants: 1 }, cam: 'africa', hud: L('PHYSIOL: stomatal conductance, photosynthesis and respiration of the 5 plant types (colours: November-mean GPP).', 'PHYSIOL：5 种植物功能型的气孔导度、光合与呼吸（颜色：11 月平均 GPP）。') },
   b3: { fx: { kband: [0, 5] } },
   b4: { hud: L('SF_EXCH: exchange coefficients and fluxes for sea, sea ice and each land tile. Spikes: November-mean sensible (orange) and latent (cyan) heat flux.', 'SF_EXCH：海面、海冰和每个陆面 tile 的交换系数与通量。竖线：11 月平均感热（橙）和潜热（青）通量。') },
   b5: { fx: { kband: [0, 5], bltop: 1 } }, b6: { fx: { kband: [0, 5], bltop: 1 } },
@@ -3229,6 +3487,7 @@ function applyStage(opts = {}) {
     const fx = pre.fx || {};
     VIEW.winds = fx.winds || 0; VIEW.currents = fx.currents ? (VIEW.currents || 1) : 0;
     VIEW.clouds = !!fx.clouds; VIEW.towers = !!fx.towers; VIEW.rain = fx.rain || ''; VIEW.runoff = !!fx.runoff; VIEW.psi = !!fx.psi;
+    VIEW.plants = !!fx.plants; VIEW.cutCur = !!fx.currents;
     VIEW.gridA = !!fx.gridA; VIEW.gridO = !!fx.gridO;
     VIEW.cut = pre.cut !== false;
     if (pre.cutA) VIEW.cutA = pre.cutA;
@@ -3273,9 +3532,11 @@ function refreshAll() {
   LINES.spikes.obj.visible = !!FX.spikes; if (FX.spikes) once('spikes', geoKey, buildSpikes);
   const sg = FX.stressO ? 'O' : 'A';
   LINES.stress.obj.visible = !!(FX.stressA || FX.stressO); if (FX.stressA || FX.stressO) once('stress', geoKey + sg, () => buildStress(sg));
-  LINES.runoff.obj.visible = VIEW.runoff; if (VIEW.runoff) once('runoff', geoKey, buildRunoff);
+  if (VIEW.runoff) once('runoff', geoKey, buildRunoff); if (OBJ.runoff) OBJ.runoff.visible = VIEW.runoff;
+  PLANTS.meshes.forEach(m => { m.visible = VIEW.plants; }); if (VIEW.plants) once('plants', geoKey, placePlants);
+  OBJ.cutCur.visible = VIEW.cut && VIEW.cutCur; if (OBJ.cutCur.visible) once('cutCur', geoKey, placeCutCur);
   OBJ.gwdCols.visible = OBJ.gwdMark.visible = !!FX.gwd && GWD.length > 0; if (FX.gwd) once('gwd', geoKey, placeGwd);
-  LINES.rain.obj.visible = !!VIEW.rain; if (VIEW.rain && RAIN.kind !== VIEW.rain) { RAIN.kind = VIEW.rain; buildRain(VIEW.rain); }
+  OBJ.rainI.visible = OBJ.snowI.visible = !!VIEW.rain; if (VIEW.rain && RAIN.kind !== VIEW.rain) { RAIN.kind = VIEW.rain; buildRain(VIEW.rain); }
   LINES.lw.obj.visible = !!FX.lw; if (FX.lw) once('lw', geoKey, buildLW);
   LINES.gsum.obj.visible = !!FX.gsum; if (FX.gsum) once('gsum', geoKey, buildGsum);
   LINES.rays.obj.visible = !!FX.rays;
@@ -3431,7 +3692,8 @@ function buildLayers() {
   const zc = ST.levels.ocn.z, dOpts = zc.map((z, i) => opt(i + 1, `${i + 1} · ${Math.round(z)} m`, VIEW.currents || 1)).join('');
   el.innerHTML = `
   <div class="lg"><label><input type="checkbox" id="chkFollow"${VIEW.follow ? ' checked' : ''}> ${esc(tx(U.follow))}</label><p class="hint">${esc(tx(U.followHint))}</p></div>
-  <div class="lg"><h3>${esc(tx(U.surfH))}</h3><select id="selSurf" aria-label="${esc(tx(U.surfH))}">${surfSel}</select></div>
+  <div class="lg"><h3>${esc(tx(U.surfH))}</h3><select id="selSurf" aria-label="${esc(tx(U.surfH))}">${surfSel}</select>
+    <label><input type="checkbox" id="chkPlants"${VIEW.plants ? ' checked' : ''}> ${esc(tx(U.plants))}</label></div>
   <div class="lg"><h3>${esc(tx(U.atmH))}</h3>
     <label><input type="checkbox" id="chkClouds"${VIEW.clouds ? ' checked' : ''}> ${esc(tx(U.clouds))}</label>
     <label><input type="checkbox" id="chkTowers"${VIEW.towers ? ' checked' : ''}> ${esc(tx(U.towers))}</label>
@@ -3449,6 +3711,7 @@ function buildLayers() {
   <div class="lg"><h3>${esc(tx(U.cutH))}</h3>
     <label><input type="checkbox" id="chkCut"${VIEW.cut ? ' checked' : ''}> ${esc(tx(U.cut))}</label>
     <label><input type="checkbox" id="chkCutFollow"${VIEW.cutFollow ? ' checked' : ''}> ${esc(tx(U.cutFollow))}</label>
+    <label><input type="checkbox" id="chkCutCur"${VIEW.cutCur ? ' checked' : ''}> ${esc(tx(U.cutCur))}</label>
     <label class="col"><span>${esc(tx(U.cutLon))}: <b id="cutLonV">${VIEW.cutLon}</b></span><input type="range" id="rngCutLon" min="0" max="359" step="1" value="${VIEW.cutLon}"></label>
     <label class="col"><span>${esc(tx(U.cutW))}: <b id="cutWV">${VIEW.cutW}</b></span><input type="range" id="rngCutW" min="20" max="140" step="5" value="${VIEW.cutW}"></label>
     <label class="col"><span>${esc(tx(U.cutA))}</span><select id="selCutA">${Object.entries(CUTA).map(([k, v]) => opt(k, tx(v.name), VIEW.cutA)).join('')}</select></label>
@@ -3474,6 +3737,8 @@ function buildLayers() {
   on('chkGridO', 'change', e => { VIEW.gridO = e.target.checked; refreshAll(); });
   on('chkCut', 'change', e => { VIEW.cut = e.target.checked; refreshAll(); });
   on('chkCutFollow', 'change', e => { VIEW.cutFollow = e.target.checked; });
+  on('chkCutCur', 'change', e => { VIEW.cutCur = e.target.checked; refreshAll(); });
+  on('chkPlants', 'change', e => { VIEW.plants = e.target.checked; refreshAll(); });
   let ct = null;
   on('rngCutLon', 'input', e => { VIEW.cutLon = +e.target.value; $('#cutLonV').textContent = VIEW.cutLon; clearTimeout(ct); ct = setTimeout(refreshAll, 60); });
   on('rngCutW', 'input', e => { VIEW.cutW = +e.target.value; $('#cutWV').textContent = VIEW.cutW; clearTimeout(ct); ct = setTimeout(refreshAll, 60); });
@@ -3488,7 +3753,7 @@ function syncLayers() {
   const set = (id, v) => { const e = $('#' + id); if (e) { if (e.type === 'checkbox') e.checked = !!v; else e.value = String(v); } };
   set('selSurf', VIEW.surf); set('chkClouds', VIEW.clouds); set('chkTowers', VIEW.towers); set('chkRain', VIEW.rain); set('chkWinds', VIEW.winds);
   if (VIEW.winds) set('selWindLev', VIEW.winds); set('chkCur', VIEW.currents); if (VIEW.currents) set('selCurLev', VIEW.currents);
-  set('chkIce', VIEW.ice); set('chkRunoff', VIEW.runoff); set('chkGridA', VIEW.gridA); set('chkGridO', VIEW.gridO); set('chkCut', VIEW.cut);
+  set('chkIce', VIEW.ice); set('chkRunoff', VIEW.runoff); set('chkPlants', VIEW.plants); set('chkCutCur', VIEW.cutCur); set('chkGridA', VIEW.gridA); set('chkGridO', VIEW.gridO); set('chkCut', VIEW.cut);
   set('rngCutLon', VIEW.cutLon); set('rngCutW', VIEW.cutW); set('selCutA', VIEW.cutA); set('selCutO', VIEW.cutO);
   const a = $('#cutLonV'); if (a) a.textContent = VIEW.cutLon;
 }
@@ -3582,14 +3847,15 @@ function visList() {
   const out = [], s = SURF[VIEW.surf];
   if (s) out.push(fmt(L('Surface: {n} — {t}, {src}', '地表：{n}——{t}，{src}'), { n: tx(s.name), t: timeLabel(s), src: srcOf(s) }));
   if (VIEW.clouds) out.push(tx(L('Layer cloud on each of the 19 levels: 9/201, November mean', '19 个模式层上的层状云：9/201，11 月平均')));
-  if (VIEW.towers) out.push(tx(L('Convective cloud from base level to top level (0/14, 0/15), width ∝ amount (0/13): start dump', '对流云从云底层到云顶层（0/14、0/15），宽度 ∝ 云量（0/13）：启动 dump')));
-  if (VIEW.winds) out.push(fmt(L('Wind particles on level {k} (≈ {p} hPa): u, v from the start dump (0/2, 0/3)', '风场粒子：第 {k} 层（约 {p} hPa），启动 dump 的 u、v（0/2、0/3）'), { k: VIEW.winds, p: fmtP(levelP(VIEW.winds)) }));
-  if (VIEW.currents) out.push(fmt(L('Ocean-current particles at {z} m: November-mean total velocity (30/320, 30/321)', '{z} m 处的洋流粒子：11 月平均总速度（30/320、30/321）'), { z: Math.round(ST.levels.ocn.z[VIEW.currents - 1]) }));
-  if (VIEW.rain) out.push(tx(VIEW.rain === 'cv' ? L('Convective rain and snow, falling from the cloud top, density ∝ November-mean rate (5/205, 5/206)', '对流雨雪从云顶落下，密度 ∝ 11 月平均降水率（5/205、5/206）') : L('Large-scale rain and snow, falling from the cloudiest level, density ∝ November-mean rate (4/203, 4/204)', '大尺度雨雪从云量最大的层落下，密度 ∝ 11 月平均降水率（4/203、4/204）')));
+  if (VIEW.towers) out.push(fmt(L('Convective cloud: white boxes from base level to top level (0/14, 0/15); opacity ∝ amount (0/13), 50 % at the largest amount ({m}): start dump', '对流云：白色方块从云底层到云顶层（0/14、0/15）；不透明度 ∝ 云量（0/13），最大云量（{m}）为 50%：启动 dump'), { m: CCA_MAX.toFixed(2) }));
+  if (VIEW.winds) out.push(fmt(L('Wind streaks on level {k} (≈ {p} hPa), each trailing its last second of motion: u, v from the start dump (0/2, 0/3)', '风场流线：第 {k} 层（约 {p} hPa），每条拖着自己最近 1 秒的轨迹：启动 dump 的 u、v（0/2、0/3）'), { k: VIEW.winds, p: fmtP(levelP(VIEW.winds)) }));
+  if (VIEW.currents) out.push(fmt(L('Ocean-current streaks at {z} m, each trailing its recent path (brighter = faster): November-mean total velocity (30/320, 30/321)', '{z} m 处的洋流流线，每条拖着自己最近的路径（越亮越快）：11 月平均总速度（30/320、30/321）'), { z: Math.round(ST.levels.ocn.z[VIEW.currents - 1]) }));
+  if (VIEW.rain) out.push(tx(VIEW.rain === 'cv' ? L('Convective rain (blue drops) and snow (white flakes), falling from the cloud top, density ∝ November-mean rate (5/205, 5/206)', '对流雨（蓝色雨滴）和雪（白色雪花）从云顶落下，密度 ∝ 11 月平均降水率（5/205、5/206）') : L('Large-scale rain (blue drops) and snow (white flakes), falling from the cloudiest level, density ∝ November-mean rate (4/203, 4/204)', '大尺度雨（蓝色雨滴）和雪（白色雪花）从云量最大的层落下，密度 ∝ 11 月平均降水率（4/203、4/204）')));
   if (FX.spikes) out.push(tx(L('Spikes: November-mean sensible (orange) and latent (cyan) heat flux (3/217, 3/234)', '竖线：11 月平均感热（橙）和潜热（青）通量（3/217、3/234）')));
   if (FX.stressA) out.push(tx(L('Arrows: wind stress on the atmosphere grid, 30 Nov daily mean (3/219, 3/220)', '箭头：大气网格上的风应力，11 月 30 日日平均（3/219、3/220）')));
   if (FX.stressO) out.push(tx(L('Arrows: wind stress as the ocean received it, on the ocean grid (0/150, 0/151)', '箭头：海洋收到的风应力，海洋网格（0/150、0/151）')));
-  if (VIEW.runoff) out.push(tx(L('Arcs: runoff from each land box to its coastal outflow point (0/93), November-mean rate', '弧线：每个陆地格点的径流到它的入海点（0/93），11 月平均径流率')));
+  if (VIEW.runoff) out.push(tx(L('Arrows: runoff from each land box to its coastal outflow point (0/93); width and colour ∝ November-mean rate', '箭头：每个陆地格点的径流流向它的入海点（0/93）；宽度和颜色 ∝ 11 月平均径流率')));
+  if (VIEW.plants) out.push(tx(L('Little models: the mix of the 9 MOSES surface types in each land box (tile fractions 0/216): trees, grass, shrubs, towns, lakes, desert, ice', '小模型：每个陆地格点 9 种 MOSES 地表类型的组成（tile 比例 0/216）：树、草、灌木、城镇、湖泊、沙漠、冰')));
   if (FX.gwd) out.push(tx(L('Columns: land boxes with sub-grid orography above 380 m (0/34), where the drag is largest', '竖柱：次网格地形标准差大于 380 m 的陆地格点（0/34），拖曳在这些地方最大')));
   if (FX.rays) out.push(tx(L('Rays: sunlight onto the day side; the share reflected follows the November-mean planetary albedo', '光线：照向白天一侧的太阳光；反射比例按 11 月平均行星反照率')));
   if (FX.lw) out.push(tx(L('Dashes: outgoing longwave from the model top, density ∝ November-mean OLR (2/205)', '短线：从模式顶射出的长波，密度 ∝ 11 月平均 OLR（2/205）')));
@@ -3605,6 +3871,7 @@ function visList() {
   if (VIEW.gridA) out.push(tx(L('White grid: atmosphere boxes, 3.75° × 2.5°', '白色网格：大气格点，3.75° × 2.5°')));
   if (VIEW.gridO) out.push(tx(L('Cyan grid: ocean boxes, 1.25° × 1.25°', '青色网格：海洋格点，1.25° × 1.25°')));
   if (FX.regrid) out.push(tx(FX.regrid === 'a2o' ? L('Fade: τx on the atmosphere grid (30 Nov) becomes τx on the ocean grid', '渐变：大气网格上的 τx（11 月 30 日）变为海洋网格上的 τx') : L('Fade: SST on the ocean grid becomes its area mean on the atmosphere grid (computed here)', '渐变：海洋网格上的 SST 变为大气网格上的面积平均（本页计算）')));
+  if (VIEW.cut && VIEW.cutCur) out.push(tx(L('Arrows on the section: November-mean horizontal current at every level (30/320, 30/321), every third row; length ∝ √speed', '剖面上的箭头：每一层的 11 月平均水平流速（30/320、30/321），每 3 行取一行；长度 ∝ √速度')));
   if (VIEW.cut) out.push(fmt(L('Cutaway at {a}°E and {b}°E: atmosphere {fa}; ocean {fo}; 4 soil layers under land', '剖面位于 {a}°E 和 {b}°E：大气 {fa}；海洋 {fo}；陆地下为 4 个土壤层'), { a: VIEW.cutLon, b: Math.round(wrap360(VIEW.cutLon + VIEW.cutW)), fa: tx(CUTA[VIEW.cutA].name), fo: tx(CUTO[VIEW.cutO].name) }));
   return out;
 }
@@ -3772,7 +4039,7 @@ async function main() {
     renderer.render(HOOKS.scene ? HOOKS.scene() : scene, camera);
   };
   renderer.setAnimationLoop(loop);   /* the same as requestAnimationFrame outside WebXR; the headset's frame loop inside it */
-  window.HAD3D = { P, VIEW, go, F, FX, camera, scene, renderer, MACRO, advance, LINES, OBJ,
+  window.HAD3D = { P, VIEW, go, F, FX, camera, controls, scene, renderer, MACRO, advance, LINES, OBJ, FLOW, refreshAll, get PLANTS() { return PLANTS; },
     settle() { if (CAMTWEEN) { camera.position.copy(CAMTWEEN.to); CAMTWEEN = null; } REGRID.t = 99; } };
 }
 main().catch(e => { console.error(e); const l = $('#loading'); l.hidden = false; l.classList.add('err'); $('#loadMsg').textContent = String(e && e.message || e); });
@@ -4290,7 +4557,7 @@ import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
       btn('l:' + id + '+', c.x + c.w - 60, c.y, 60, h, '+', { sz: 30 }, plus);
       text(label, c.x + c.w / 2, c.y + h / 2 + 8, 22, dim ? K.faint : K.ink, 400, FB, 'center', c.w - 136);
     };
-    chk('follow', U.follow, VIEW.follow, tog('follow'), true);
+    chk('follow', U.follow, VIEW.follow, tog('follow')); chk('plants', U.plants, VIEW.plants, tog('plants'));
     chk('clouds', U.clouds, VIEW.clouds, tog('clouds')); chk('towers', U.towers, VIEW.towers, tog('towers'));
     chk('rain', U.rain, VIEW.rain, () => { VIEW.rain = VIEW.rain ? '' : 'ls'; RAIN.kind = ''; viewChanged(); }); chk('ice', U.ice, VIEW.ice, tog('ice'));
     chk('winds', U.winds, VIEW.winds, () => { VIEW.winds = VIEW.winds ? 0 : VR.windLev; viewChanged(); });
@@ -4312,7 +4579,7 @@ import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
     cy('vmode', U.vscale, tx(VIEW.vmode === 'levels' ? U.vLevels : U.vPhys), cyc('vmode', ['levels', 'phys']));
     chk('spin', U.spin, VIEW.spin, () => { VIEW.spin = !VIEW.spin; controls.autoRotate = VIEW.spin; const b = $('#btnSpin'); if (b) b.setAttribute('aria-pressed', String(VIEW.spin)); });
     chk('cap', VU.caption, VR.cap, () => { VR.cap = !VR.cap; });
-    chk('detail', U.detail, P.detail, toggleDetail, true);
+    chk('cutCur', U.cutCur, VIEW.cutCur, tog('cutCur')); chk('detail', U.detail, P.detail, toggleDetail);
   }
   function colorbar(s, x, y, w, h, tsz) {
     if (s.cat) {
