@@ -1,0 +1,1058 @@
+<title>把地球装进电脑</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A plain-language tour of how the climate model HadCM3 works, in eight short chapters on a globe drawn from the model's own data. Works in a browser or a VR headset.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
+<style>
+/* Layout: the globe is the page. One short caption beside it, eight chapters along the bottom.
+   One dark world, like the planetarium of the full v3 page, so a single theme; larger type for a room or a projector. */
+:root {
+  --space: #060B11;
+  --panel: #0C141B;
+  --raise: #15222C;
+  --line: #2A3D4B;
+  --ink: #EEF3F4;
+  --muted: #A6B5BC;
+  --faint: #76878F;
+  --accent: #E7B04C;
+  --air: #6FAEE0;
+  --sea: #35B6C2;
+  --font-display: "Source Serif 4", "Noto Serif SC", Georgia, "Songti SC", serif;
+  --font-body: "IBM Plex Sans", "Noto Sans SC", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --side: max(16px, env(safe-area-inset-left, 0px));
+  --side-r: max(16px, env(safe-area-inset-right, 0px));
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--space); color: var(--ink); font: 17px/1.65 var(--font-body); overflow: hidden; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { position: fixed; inset: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; }
+.main { position: relative; min-height: 0; }
+.stage { position: absolute; inset: 0; overflow: hidden; }
+#gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#gl:active { cursor: grabbing; }
+
+.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.lbl {
+  position: absolute; left: 0; top: 0; white-space: nowrap; font-size: 14px; line-height: 1.25; font-weight: 500;
+  padding: 3px 8px; border-radius: 4px; background: rgba(6, 11, 17, 0.8); border-left: 3px solid var(--air);
+}
+.lbl.sea { border-left-color: var(--sea); }
+.lbl.uk { border-left-color: var(--accent); }
+
+.tools {
+  position: absolute; z-index: 3; top: 12px; right: var(--side-r); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+}
+.tbtn {
+  height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--line); background: rgba(12, 20, 27, 0.85);
+  cursor: pointer; font-size: 14px; color: var(--ink); display: inline-flex; align-items: center;
+}
+.tbtn:hover { border-color: var(--muted); }
+.tbtn.vr { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: rgba(12, 20, 27, 0.85); }
+.lang button { height: 32px; padding: 0 11px; border: 0; background: transparent; cursor: pointer; font-size: 14px; color: var(--muted); }
+.lang button[aria-pressed="true"] { background: var(--raise); color: var(--ink); }
+.about {
+  position: absolute; z-index: 3; top: 54px; right: var(--side-r); width: min(380px, calc(100% - 32px)); padding: 14px 16px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; font-size: 14px; line-height: 1.55; color: var(--muted);
+}
+.about p { margin: 0; }
+.about p + p { margin-top: 8px; }
+.about b { color: var(--ink); font-weight: 600; }
+
+.story {
+  position: absolute; z-index: 2; left: var(--side); top: 50%; transform: translateY(-50%);
+  width: min(430px, 36vw); max-height: calc(100% - 24px); overflow-y: auto; display: grid; gap: 14px; padding-block: 8px;
+}
+.brand { font: 500 13px/1 var(--font-mono); color: var(--accent); letter-spacing: 0.06em; }
+.story h1 { margin: 0; font: 600 clamp(29px, 3vw, 42px)/1.2 var(--font-display); text-wrap: balance; }
+.story .body { margin: 0; color: var(--ink); }
+.story .note { margin: 0; font-size: 14px; line-height: 1.5; color: var(--faint); }
+
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stat b { display: block; font: 600 30px/1.15 var(--font-display); font-variant-numeric: tabular-nums; }
+.stat.air b { color: var(--air); }
+.stat.sea b { color: var(--sea); }
+.stat span { display: block; font-size: 14px; line-height: 1.35; color: var(--muted); }
+
+.legend { display: grid; gap: 4px; max-width: 340px; }
+.legend .lt { font-size: 14px; color: var(--muted); }
+.legend .bar { height: 12px; border-radius: 3px; }
+.legend .ticks { position: relative; height: 20px; font: 500 13px/20px var(--font-mono); color: var(--muted); }
+.legend .ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.legend .ticks span:first-child { transform: none; }
+.legend .ticks span:last-child { transform: translateX(-100%); }
+.cats { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; color: var(--muted); }
+.cats span { display: inline-flex; align-items: center; gap: 6px; }
+.cats i { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+
+.relay { display: grid; gap: 8px; }
+.relay .state { font-size: 16px; font-weight: 600; min-height: 1.65em; }
+.relay .state small { font: 500 13px var(--font-mono); color: var(--muted); margin-left: 8px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.relay .track { display: flex; gap: 6px; align-items: stretch; height: 28px; }
+.relay .run { position: relative; border-radius: 4px; background: var(--raise); overflow: hidden; min-width: 0; }
+.relay .run i { position: absolute; inset: 0 auto 0 0; width: 0; }
+.relay .run.a { flex: 48; } .relay .run.a i { background: var(--air); }
+.relay .run.o { flex: 24; } .relay .run.o i { background: var(--sea); }
+.relay .run.s { flex: 7; } .relay .run.s i { background: var(--accent); }
+.relay .keys { display: flex; gap: 6px; font-size: 13px; color: var(--muted); }
+.relay .keys span { min-width: 0; white-space: nowrap; }
+.relay .keys .a { flex: 48; } .relay .keys .o { flex: 24; } .relay .keys .s { flex: 7; text-align: center; color: var(--accent); }
+
+.nav {
+  display: flex; align-items: center; gap: 10px; background: var(--panel); border-top: 1px solid var(--line); z-index: 4;
+  padding: 8px var(--side-r) calc(8px + env(safe-area-inset-bottom, 0px)) var(--side);
+}
+.tabs { flex: 1; min-width: 0; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.tab {
+  flex: 1 1 0; min-width: fit-content; position: relative; height: 42px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; cursor: pointer;
+  color: var(--muted); font-size: 15px; white-space: nowrap; overflow: hidden;
+}
+.tab:hover { color: var(--ink); background: var(--raise); }
+.tab.cur { color: var(--ink); background: var(--raise); font-weight: 600; }
+.tab::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--line); }
+.tab.done::after, .tab.cur::after { background: var(--accent); }
+.tab .fill { position: absolute; left: 0; bottom: 0; height: 3px; width: 0; background: #FFE6A8; z-index: 1; }
+.ctl { height: 42px; min-width: 42px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--raise); cursor: pointer; font-size: 15px; white-space: nowrap; }
+.ctl:hover { border-color: var(--muted); }
+.ctl:disabled { opacity: 0.35; cursor: default; }
+.ctl.next { background: var(--accent); border-color: var(--accent); color: #1D1505; font-weight: 600; }
+.ctl.next:disabled { background: var(--raise); border-color: var(--line); color: var(--ink); }
+.ctl[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+
+.loading { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; background: var(--space); z-index: 5; color: var(--muted); text-align: center; padding: 16px; }
+.loading .spin { width: 34px; height: 34px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: rot 0.9s linear infinite; }
+.loading.err .spin { display: none; }
+@keyframes rot { to { transform: rotate(360deg); } }
+
+@media (max-width: 820px) {
+  html, body { height: auto; }
+  body { overflow: auto; }
+  .app { position: static; display: flex; flex-direction: column; min-height: 100svh; }
+  .main { flex: 1; display: flex; flex-direction: column; }
+  .stage { position: relative; inset: auto; flex: none; height: 50svh; min-height: 300px; }
+  .story { position: static; transform: none; width: auto; max-height: none; overflow: visible; flex: 1; padding: 14px var(--side-r) 18px var(--side); }
+  .story h1 { font-size: 27px; }
+  .nav { position: sticky; bottom: 0; flex-wrap: wrap; gap: 8px; }
+  .tabs { order: -1; flex: 1 0 100%; }
+  .tab { height: 36px; padding: 0 10px; font-size: 14px; }
+  .ctl { flex: 1; height: 40px; }
+  .lbl { font-size: 12.5px; }
+}
+@media (prefers-reduced-motion: reduce) { .loading .spin { animation: none; } }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+
+<div class="app" id="app">
+  <div class="main">
+    <main class="stage" id="stage">
+      <canvas id="gl" aria-label="Globe"></canvas>
+      <div class="labels" id="labels" aria-hidden="true"></div>
+    </main>
+    <div class="tools">
+      <button type="button" class="tbtn vr" id="btnVR" hidden></button>
+      <button type="button" class="tbtn" id="btnAbout" aria-expanded="false" aria-controls="about"></button>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="zh">中文</button>
+        <button type="button" data-lang="en">EN</button>
+      </div>
+    </div>
+    <div class="about" id="about" hidden></div>
+    <section class="story" id="story" aria-live="polite"></section>
+    <div class="loading" id="loading"><div class="spin"></div><p id="loadMsg">正在载入模型数据 / Loading model data</p></div>
+  </div>
+  <nav class="nav" aria-label="Chapters">
+    <button type="button" class="ctl" id="btnPrev"></button>
+    <div class="tabs" id="tabs"></div>
+    <button type="button" class="ctl" id="btnAuto" aria-pressed="false"></button>
+    <button type="button" class="ctl next" id="btnNext"></button>
+  </nav>
+</div>
+
+<script>window.EARTH_DATA = @@DATA@@;</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================================================================ helpers */
+const ST = window.EARTH_DATA;
+const D2R = Math.PI / 180;
+const $ = s => document.querySelector(s);
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const wrap360 = x => ((x % 360) + 360) % 360;
+const hex3 = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } } };
+
+let LANG = store.get('earth-lang') || ((navigator.language || 'en').toLowerCase().startsWith('zh') ? 'zh' : 'en');
+const tx = o => o[LANG];
+const L = (zh, en) => ({ zh, en });
+
+/* ================================================================ the words */
+const U = {
+  title: L('把地球装进电脑', 'Earth in a Computer'),
+  prev: L('上一章', 'Back'), next: L('下一章', 'Next'), again: L('重新开始', 'Start over'),
+  auto: L('自动播放', 'Autoplay'), stop: L('停止播放', 'Stop'),
+  about: L('关于数据', 'About the data'), vr: L('进入 VR', 'Enter VR'), load: L('正在载入模型数据', 'Loading model data'),
+  fail: L('页面无法载入地球。请检查网络后刷新，并确认浏览器支持 WebGL。', 'The globe could not load. Check your connection, reload, and make sure the browser supports WebGL.'),
+  aboutBody: L(
+    '<p><b>HadCM3</b> 是英国气象局哈德利中心开发的气候模型。这里画的是它算出的工业革命前气候（CO₂ 约 280 ppm）。</p><p>数据来自布里斯托大学 BRIDGE 团队的一组 HadCM3 起始场：海温、海冰和风是 12 月 1 日的状态，气温、云和雨是 11 月平均，海流也是 11 月平均。</p><p>模型并没有在你的浏览器里运行。页面只是把存下的结果画出来，流动的线条是沿着存下的风场和海流场走的示意，速度经过放大。</p>',
+    '<p><b>HadCM3</b> is a climate model from the UK Met Office Hadley Centre. This page shows the pre-industrial climate it calculates (CO₂ about 280 ppm).</p><p>The data are a HadCM3 start state used by the BRIDGE group at the University of Bristol. Sea temperature, sea ice and winds are the state on 1 December. Air temperature, clouds, rain and ocean currents are November averages.</p><p>The model is not running in your browser. The page draws stored results, and the moving lines follow the stored winds and currents at an exaggerated speed.</p>'),
+  c19: L('19 层大气', '19 layers of air'), c20: L('20 层海水', '20 layers of ocean'), cUK: L('不列颠岛', 'Great Britain'),
+  sAtm: L('大气在算', 'The atmosphere is running'), sOcn: L('海洋在算', 'The ocean is running'),
+  sA2O: L('大气把风、热量和雨水交给海洋', 'Atmosphere hands wind, heat and rain to the ocean'),
+  sO2A: L('海洋把海面温度和海冰交回大气', 'Ocean hands sea temperature and sea ice back'),
+  step: L('第 {i} / {n} 步', 'step {i} of {n}'), day: L('模型第 {d} 天', 'model day {d}'),
+  kA: L('大气 48 步', 'Air, 48 steps'), kO: L('海洋 24 步', 'Ocean, 24 steps'), kS: L('交接', 'swap'),
+  vrHint: L('右手扣动扳机或捏合：下一章　左手：上一章　右摇杆：转动地球', 'Right trigger or pinch: next   Left: back   Right stick: turn the globe'),
+};
+const T_COLS = ['#26307F', '#3573B8', '#7FBCDB', '#EDEFD8', '#F5D27A', '#EC8E3F', '#B8322A'];
+const SST_COLS = ['#0F2A63', '#14609A', '#21A0B5', '#7FD1A0', '#EBE27A', '#F08A3C'];
+const RAIN_COLS = ['#1A3F5C', '#1F6FB0', '#2F9FE0', '#63C8F5', '#B8ECFF'];
+const LAND_PAL = ['#2E6B34', '#1F5244', '#8FB35A', '#C7B95F', '#8A8F4E', '#8A8A82', '#2F6F9E', '#C8A874', '#F2F6FA'];
+const rainPos = v => Math.sqrt(v / 25);
+
+const CH = [
+  { key: 'earth', nav: L('地球', 'Earth'),
+    h: L('这个地球是算出来的', 'This Earth was calculated'),
+    b: L('它不是卫星照片。科学家告诉气候模型 HadCM3 陆地的形状和高度、太阳有多亮、空气里有多少 CO₂。云、风、海流和海冰都是它按物理定律自己算出来的。',
+      'This is not a satellite photo. Scientists tell the climate model HadCM3 the shape and height of the land, how bright the Sun is and how much CO₂ is in the air. It works out the clouds, winds, currents and sea ice from the laws of physics.'),
+    legend: 'land', surf: 'natural', view: [18, 15], clouds: 0.8, spin: true },
+  { key: 'grid', nav: L('格子', 'Boxes'),
+    h: L('先把地球切成小格子', 'First, cut the Earth into boxes'),
+    b: L('电脑算不了连续的世界，只能算一个个格子。大气的一格约有 417 × 278 公里（赤道上），不列颠岛只占四五格。每个格子只记一组数：温度、风速、湿度。',
+      'A computer cannot calculate a continuous world, so the model works with boxes. One air box is about 417 × 278 km at the equator, and Great Britain fills only four or five of them. Each box holds one set of numbers: temperature, wind, moisture.'),
+    n: L('图中的柱子放大了很多。真实的大气层比这薄得多。', 'The column is greatly enlarged. The real atmosphere is far thinner.'),
+    stats: [['air', '133,152', L('个大气格子', 'air boxes')], ['sea', '454,339', L('个海洋格子，每格更小', 'ocean boxes, each one smaller')]],
+    surf: 'blocky', view: [38, 352], grid: 1, column: true, bright: 0.92 },
+  { key: 'sun', nav: L('太阳', 'Sun'),
+    h: L('太阳给地球加热', 'The Sun heats the Earth'),
+    b: L('这是模型里平均的一天，颜色是贴近地面的气温。阳光扫到哪里，那里就升温，陆地升得比海面快。赤道得到的阳光比两极多，这个温差推动了后面的一切。',
+      'This is an average day in the model, coloured by the air temperature near the ground. Wherever sunlight sweeps, the air warms, and land warms faster than sea. The equator gets more sunlight than the poles, and that difference drives everything that follows.'),
+    legend: 'temp', surf: 'temp', sun: true, view: [6, 0] },
+  { key: 'wind', nav: L('风', 'Wind'),
+    h: L('风把热量搬走', 'Winds carry the heat away'),
+    b: L('暖空气上升，冷空气流过来补位，地球自转又把气流推歪，于是有了赤道附近的信风和中纬度的西风。模型每 30 分钟更新一次每个格子里的风。',
+      'Warm air rises, cool air flows in to replace it, and the spinning Earth bends the flow. That gives the trade winds near the equator and the westerlies further north and south. The model updates the wind in every box each 30 minutes.'),
+    n: L('这里是约 1 公里高处的风，流动速度经过放大。', 'These are winds about 1 km up, with the motion speeded up.'),
+    surf: 'natural', view: [18, 322], bright: 0.5, wind: 1 },
+  { key: 'water', nav: L('云和雨', 'Rain'),
+    h: L('水升上天，变成云和雨', 'Water rises and falls as rain'),
+    b: L('海面蒸发的水汽被风带走，升高、变冷，凝成云，再落成雨雪。蓝色越亮雨越多，赤道附近那条亮带是地球上最多雨的地方。云比一个格子小得多，所以模型只能估算每格里有多少云。',
+      'Water evaporates from the sea, rides the wind, rises, cools and forms clouds, then falls as rain or snow. Brighter blue means more rain, and the bright belt near the equator is the wettest place on Earth. Clouds are much smaller than a box, so the model estimates how much of each box is cloudy.'),
+    legend: 'rain', surf: 'rain', view: [6, 128], clouds: 0.34, rain: 1 },
+  { key: 'ocean', nav: L('海洋', 'Ocean'),
+    h: L('海洋是巨大的热量仓库', 'The ocean is a giant heat store'),
+    b: L('海水变化比空气慢得多，却能存下大量的热。模型每小时更新一次 20 层海水怎么流动，海流把赤道的热带往两极。白色是海冰，它把阳光反射回太空。',
+      'Sea water changes far more slowly than air, and it stores a huge amount of heat. The model updates how its 20 layers flow each hour, and the currents carry heat from the equator toward the poles. White is sea ice, which reflects sunlight back to space.'),
+    n: L('这里是最上层的海流，流动速度放大了很多倍。', 'These are the top-layer currents, speeded up many times.'),
+    legend: 'sst', surf: 'sst', view: [30, 305], cur: 1 },
+  { key: 'relay', nav: L('接力', 'Relay'),
+    h: L('大气和海洋轮流算', 'Air and ocean take turns'),
+    b: L('大气先走 48 步，每步半小时。海洋再走 24 步，每步一小时。两边交换一次数据，模型里的一天就过去了。模型的一年有 360 天，也就是 25,920 步。',
+      'The atmosphere takes 48 half-hour steps. The ocean then takes 24 one-hour steps. They swap data once, and one model day has passed. A model year has 360 days, which comes to 25,920 steps.'),
+    surf: 'natural', view: [8, 205], relay: true },
+  { key: 'whatif', nav: L('假如', 'What if'),
+    h: L('然后就可以问“假如”', 'Then we can ask “what if?”'),
+    b: L('地球只有一个，没法拿来做实验，模型可以。把 CO₂ 翻倍、挪动大陆、改变地球的轨道，再算上几百年，看气候怎么变。比如约 3000 万年前的渐新世：大陆的位置和今天不同，南极冰盖才形成不久。',
+      'We have only one Earth and cannot experiment on it, but a model can. Double the CO₂, move the continents or change the Earth’s orbit, run it for hundreds of years, and see how the climate responds. One example is the Oligocene, about 30 million years ago, when the continents sat in different places and the Antarctic ice sheet was young.'),
+    surf: 'natural', view: [-28, 40], clouds: 0.8, spin: true },
+];
+
+/* ================================================================ model data */
+const FWD = { lin: v => v, int: v => v, sqrt: v => Math.sqrt(Math.max(v, 0)), ssqrt: v => Math.sign(v) * Math.sqrt(Math.abs(v)), log1p: v => Math.log10(1 + Math.max(v, 0)) };
+const INV = { lin: x => x, int: x => x, sqrt: x => x * x, ssqrt: x => Math.sign(x) * x * x, log1p: x => Math.pow(10, x) - 1 };
+const F = {};
+function decodeAtlas(a) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      g.drawImage(img, 0, 0);
+      const px = g.getImageData(0, 0, img.width, img.height).data, out = [];
+      for (let t = 0; t < a.n; t++) {
+        const r0 = Math.floor(t / a.cols) * a.th, c0 = (t % a.cols) * a.tw, u = new Uint8Array(a.tw * a.th);
+        for (let j = 0; j < a.th; j++) { const row = ((r0 + j) * img.width + c0) * 4; for (let i = 0; i < a.tw; i++) u[j * a.tw + i] = px[row + i * 4]; }
+        out.push(u);
+      }
+      res(out);
+    };
+    img.onerror = () => rej(new Error('atlas decode failed'));
+    img.src = a.png;
+  });
+}
+async function loadData() {
+  const tiles = {};
+  for (const [g, a] of Object.entries(ST.atlases)) tiles[g] = await decodeAtlas(a);
+  for (const [name, m] of Object.entries(ST.fields)) {
+    const f = FWD[m.tr], inv = INV[m.tr];
+    F[name] = {
+      g: ST.grids[m.grid],
+      lev: m.tiles.map((t, k) => {
+        const c = tiles[m.grid][t], a = new Float32Array(c.length), lo = f(m.lo[k]), hi = f(m.hi[k]);
+        for (let i = 0; i < c.length; i++) a[i] = c[i] === 0 ? NaN : inv(lo + (c[i] - 1) / 254 * (hi - lo));
+        return a;
+      }),
+    };
+  }
+}
+/* bilinear on a model grid, skipping missing corners; NaN if all four are missing */
+function sample(arr, g, lat, lon) {
+  let x = (wrap360(lon) - g.lon0) / g.dlon; x = ((x % g.nx) + g.nx) % g.nx;
+  const y = clamp((lat - g.lat0) / g.dlat, 0, g.ny - 1.0001);
+  const i0 = x | 0, i1 = (i0 + 1) % g.nx, fx = x - i0, j0 = y | 0, j1 = Math.min(j0 + 1, g.ny - 1), fy = y - j0;
+  let s = 0, w = 0, v, q;
+  v = arr[j0 * g.nx + i0]; q = (1 - fx) * (1 - fy); if (v === v) { s += v * q; w += q; }
+  v = arr[j0 * g.nx + i1]; q = fx * (1 - fy); if (v === v) { s += v * q; w += q; }
+  v = arr[j1 * g.nx + i0]; q = (1 - fx) * fy; if (v === v) { s += v * q; w += q; }
+  v = arr[j1 * g.nx + i1]; q = fx * fy; if (v === v) { s += v * q; w += q; }
+  return w > 0 ? s / w : NaN;
+}
+const fld = (name, lat, lon, k = 0) => sample(F[name].lev[k], F[name].g, lat, lon);
+function xyz(lat, lon, r, out = new THREE.Vector3()) {
+  const p = lat * D2R, l = lon * D2R, c = Math.cos(p);
+  return out.set(r * c * Math.cos(l), r * Math.sin(p), -r * c * Math.sin(l));
+}
+function sunAt(tHours) {
+  const d = (330 + tHours / 24) * 365.25 / 360;
+  const decl = -23.44 * Math.cos(2 * Math.PI * (d + 10) / 365.25);
+  const B = 2 * Math.PI * (d - 81) / 364, eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+  const lon = wrap360(15 * (12 - ((tHours % 24) + eot / 60)));
+  return { decl, lon, v: xyz(decl, lon, 1).normalize() };
+}
+
+/* ================================================================ surface pictures, painted once on first use */
+const TW = 720, TH = 360;
+const ramp = cols => { const st = cols.map(hex3); return t => { const x = clamp(t, 0, 1) * (st.length - 1), k = Math.min(x | 0, st.length - 2), f = x - k; return [lerp(st[k][0], st[k + 1][0], f), lerp(st[k][1], st[k + 1][1], f), lerp(st[k][2], st[k + 1][2], f)]; }; };
+const rTemp = ramp(T_COLS), rSst = ramp(SST_COLS), rRain = ramp(RAIN_COLS);
+let LANDF, SHADE, KMTA, KMTB;
+function initBase() {
+  KMTA = F.kmt.lev[0];
+  KMTB = new Float32Array(KMTA.length);
+  for (let i = 0; i < KMTA.length; i++) KMTB[i] = KMTA[i] === 0 ? 1 : 0;
+  LANDF = new Float32Array(TW * TH); SHADE = new Float32Array(TW * TH);
+  const go = F.kmt.g, oro = F.orog.lev[0], ga = F.orog.g, e = 0.9;
+  for (let j = 0; j < TH; j++) {
+    const lat = -90 + (j + 0.5) * 180 / TH, cl = Math.max(Math.cos(lat * D2R), 0.15);
+    for (let i = 0; i < TW; i++) {
+      const lon = (i + 0.5) * 360 / TW, o = j * TW + i;
+      LANDF[o] = sample(KMTB, go, lat, lon);
+      if (LANDF[o] > 0.05) {
+        const hx = (sample(oro, ga, lat, lon + e / cl) - sample(oro, ga, lat, lon - e / cl)), hy = (sample(oro, ga, lat + e, lon) - sample(oro, ga, lat - e, lon));
+        SHADE[o] = clamp(1 - (hx - hy) / 2600, 0.68, 1.32);
+      } else SHADE[o] = 1;
+    }
+  }
+}
+const LP = LAND_PAL.map(hex3);
+function naturalAt(lat, lon, out) {
+  /* land: the 9 surface types mixed by the fraction of each, whitened by snow */
+  let r = 0, g = 0, b = 0, w = 0;
+  for (let p = 0; p < 9; p++) {
+    const v = fld('frac', lat, lon, p);
+    if (v > 0.005) { r += v * LP[p][0]; g += v * LP[p][1]; b += v * LP[p][2]; w += v; }
+  }
+  if (w > 0) { r /= w; g /= w; b /= w; } else { [r, g, b] = LP[7]; }
+  const sn = smooth(1.2, 30, fld('snow', lat, lon) || 0) * 0.82;
+  out.land = [lerp(r, 240, sn), lerp(g, 245, sn), lerp(b, 250, sn)];
+  /* ocean: blue by depth, whitened by sea ice */
+  const d = (sample(KMTA, F.kmt.g, lat, lon) || 0) / 20, ice = fld('aice', lat, lon) || 0, ia = Math.pow(clamp(ice, 0, 1), 0.8);
+  out.sea = [lerp(lerp(44, 9, d), 236, ia), lerp(lerp(120, 38, d), 242, ia), lerp(lerp(150, 80, d), 248, ia)];
+}
+function compose(o, lf, land, sea, coast, data) {
+  const m = smooth(0.38, 0.62, lf), s = SHADE[o];
+  let r = lerp(sea[0], land[0] * s, m), g = lerp(sea[1], land[1] * s, m), b = lerp(sea[2], land[2] * s, m);
+  if (coast > 0) { const q = (1 - smooth(0, 0.3, Math.abs(lf - 0.5))) * coast; r = lerp(r, 12, q); g = lerp(g, 18, q); b = lerp(b, 24, q); }
+  data[o * 4] = clamp(r, 0, 255); data[o * 4 + 1] = clamp(g, 0, 255); data[o * 4 + 2] = clamp(b, 0, 255); data[o * 4 + 3] = 255;
+}
+const PAINT = {
+  natural: data => {
+    const c = {};
+    for (let j = 0; j < TH; j++) { const lat = -90 + (j + 0.5) * 180 / TH; for (let i = 0; i < TW; i++) { const lon = (i + 0.5) * 360 / TW; naturalAt(lat, lon, c); compose(j * TW + i, LANDF[j * TW + i], c.land, c.sea, 0, data); } }
+  },
+  blocky: data => {
+    /* what the model sees: one colour per 3.75° × 2.5° box, land or sea by the model's own mask */
+    const cells = [], lsm = F.lsm.lev[0], c = {};
+    for (let a = 0; a < 96 * 73; a++) { const lat = 90 - 2.5 * Math.floor(a / 96), lon = 3.75 * (a % 96); naturalAt(lat, lon, c); cells.push(lsm[a] > 0.5 ? c.land : c.sea); }
+    for (let j = 0; j < TH; j++) {
+      const lat = -90 + (j + 0.5) * 180 / TH, aj = clamp(Math.round((90 - lat) / 2.5), 0, 72);
+      for (let i = 0; i < TW; i++) {
+        const lon = (i + 0.5) * 360 / TW, a = aj * 96 + Math.round(lon / 3.75) % 96, o = j * TW + i, q = cells[a];
+        data[o * 4] = q[0]; data[o * 4 + 1] = q[1]; data[o * 4 + 2] = q[2]; data[o * 4 + 3] = 255;
+      }
+    }
+  },
+  sst: data => {
+    const land = [66, 72, 74];
+    for (let j = 0; j < TH; j++) {
+      const lat = -90 + (j + 0.5) * 180 / TH;
+      for (let i = 0; i < TW; i++) {
+        const lon = (i + 0.5) * 360 / TW, o = j * TW + i, v = fld('T', lat, lon);
+        let sea = v === v ? rSst((v + 2) / 32) : land;
+        const ia = Math.pow(clamp(fld('aice', lat, lon) || 0, 0, 1), 0.8);
+        if (ia > 0) sea = [lerp(sea[0], 240, ia), lerp(sea[1], 245, ia), lerp(sea[2], 250, ia)];
+        compose(o, LANDF[o], land, sea, 0.45, data);
+      }
+    }
+  },
+  rain: data => {
+    /* dim true colour with the rain painted over it */
+    const c = {};
+    for (let j = 0; j < TH; j++) {
+      const lat = -90 + (j + 0.5) * 180 / TH;
+      for (let i = 0; i < TW; i++) {
+        const lon = (i + 0.5) * 360 / TW, o = j * TW + i;
+        naturalAt(lat, lon, c);
+        const p = (fld('lsPrecip', lat, lon) || 0) + (fld('cvPrecip', lat, lon) || 0), t = rainPos(p), q = rRain(t), a = smooth(0.12, 0.42, t) * 0.96;
+        const land = [lerp(c.land[0] * 0.42, q[0], a), lerp(c.land[1] * 0.42, q[1], a), lerp(c.land[2] * 0.42, q[2], a)];
+        const sea = [lerp(c.sea[0] * 0.5, q[0], a), lerp(c.sea[1] * 0.5, q[1], a), lerp(c.sea[2] * 0.5, q[2], a)];
+        compose(o, LANDF[o], land, sea, 0.2, data);
+      }
+    }
+  },
+};
+for (let h = 0; h < 8; h++) {
+  PAINT['t' + h] = data => {
+    for (let j = 0; j < TH; j++) {
+      const lat = -90 + (j + 0.5) * 180 / TH;
+      for (let i = 0; i < TW; i++) {
+        const lon = (i + 0.5) * 360 / TW, o = j * TW + i, q = rTemp((fld('t15', lat, lon, h) - 273.15 + 45) / 85);
+        compose(o, LANDF[o], q, q, 0.5, data);
+      }
+    }
+  };
+}
+const TEX = {};
+function surfTex(key) {
+  if (TEX[key]) return TEX[key];
+  const data = new Uint8Array(TW * TH * 4);
+  PAINT[key](data);
+  const t = new THREE.DataTexture(data, TW, TH, THREE.RGBAFormat, THREE.UnsignedByteType);
+  t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.ClampToEdgeWrapping;
+  t.magFilter = t.minFilter = key === 'blocky' ? THREE.NearestFilter : THREE.LinearFilter;
+  t.generateMipmaps = false; t.needsUpdate = true;
+  return (TEX[key] = t);
+}
+
+/* ================================================================ scene */
+const stage = $('#stage'), canvas = $('#gl');
+let renderer, scene, camera, world, earth, globeMat, cloudMat, haloMat, sunSprite, labels = {};
+const U_GLOBE = {
+  uPrev: { value: null }, uA: { value: null }, uB: { value: null }, uFade: { value: 1 }, uMix: { value: 0 },
+  uSun: { value: new THREE.Vector3(0, 0, 1) }, uNight: { value: 0.8 }, uGrid: { value: 0 }, uBright: { value: 1 }, uWarm: { value: 0 },
+};
+const GLOBE_V = `varying vec3 vN; varying vec3 vVN; varying vec3 vV;
+void main() { vN = normalize(position); vVN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`;
+const GLOBE_F = `uniform sampler2D uPrev; uniform sampler2D uA; uniform sampler2D uB; uniform float uFade; uniform float uMix;
+uniform vec3 uSun; uniform float uNight; uniform float uGrid; uniform float uBright; uniform float uWarm;
+varying vec3 vN; varying vec3 vVN; varying vec3 vV;
+float gl1(float x) { float w = fwidth(x); return 1.0 - smoothstep(0.0, 1.2 * w, abs(fract(x - 0.5) - 0.5)); }
+float glon(float lon, float off, float d) {
+  float x1 = (lon - off) / d, x2 = (mod(lon + 180.0, 360.0) - 180.0 - off) / d;
+  float a = gl1(x1), b = gl1(x2), w = min(fwidth(x1), fwidth(x2));
+  return (fwidth(x1) < fwidth(x2) ? a : b) * (1.0 - smoothstep(0.22, 0.5, w));
+}
+void main() {
+  vec3 n = normalize(vN);
+  float lon = mod(degrees(atan(-n.z, n.x + 1e-7)) + 360.0, 360.0), lat = degrees(asin(clamp(n.y, -1.0, 1.0)));
+  vec2 uv = vec2(lon / 360.0, (lat + 90.0) / 180.0);
+  vec3 col = mix(texture2D(uPrev, uv).rgb, mix(texture2D(uA, uv).rgb, texture2D(uB, uv).rgb, uMix), uFade) * uBright;
+  float d = dot(n, uSun), day = smoothstep(-0.12, 0.16, d);
+  col *= mix(uNight, 1.0, day) * mix(1.0, 0.92 + 0.22 * clamp(d, 0.0, 1.0), step(uNight, 0.99));
+  col += uWarm * vec3(0.05, 0.03, 0.0) * clamp(d, 0.0, 1.0);
+  col += uWarm * vec3(0.55, 0.30, 0.10) * (1.0 - smoothstep(0.0, 0.06, abs(d))) * 0.22;
+  if (uGrid > 0.0) { float g = max(glon(lon, 1.875, 3.75), gl1((lat + 88.75) / 2.5)); col = mix(col, vec3(0.03, 0.06, 0.09), g * uGrid * 0.6 * (1.0 - smoothstep(72.0, 84.0, abs(lat)))); }
+  float rim = pow(1.0 - clamp(dot(normalize(vVN), normalize(vV)), 0.0, 1.0), 3.0);
+  col += vec3(0.28, 0.48, 0.72) * rim * 0.42;
+  gl_FragColor = vec4(col, 1.0);
+}`;
+
+function buildScene() {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+  renderer.setClearColor(0x060B11, 1);
+  renderer.xr.enabled = true;
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(28, 1, 0.05, 80);
+  camera.position.set(0, 0, 5);
+  world = new THREE.Group(); scene.add(world);
+  earth = new THREE.Group(); earth.rotation.order = 'XYZ'; world.add(earth);
+
+  U_GLOBE.uPrev.value = U_GLOBE.uA.value = U_GLOBE.uB.value = surfTex('natural');
+  globeMat = new THREE.ShaderMaterial({ vertexShader: GLOBE_V, fragmentShader: GLOBE_F, uniforms: U_GLOBE });
+  earth.add(new THREE.Mesh(new THREE.SphereGeometry(1, 128, 96), globeMat));
+
+  /* clouds: the model's total cloud amount as a soft shell */
+  const cData = new Uint8Array(TW * TH * 4);
+  for (let j = 0; j < TH; j++) {
+    const lat = -90 + (j + 0.5) * 180 / TH;
+    for (let i = 0; i < TW; i++) {
+      const v = fld('cloudTot', lat, (i + 0.5) * 360 / TW) || 0, o = (j * TW + i) * 4;
+      cData[o] = cData[o + 1] = cData[o + 2] = 255; cData[o + 3] = 255 * Math.pow(smooth(0.3, 1.0, v), 1.25);
+    }
+  }
+  const cTex = new THREE.DataTexture(cData, TW, TH, THREE.RGBAFormat, THREE.UnsignedByteType);
+  cTex.wrapS = THREE.RepeatWrapping; cTex.magFilter = cTex.minFilter = THREE.LinearFilter; cTex.generateMipmaps = false; cTex.needsUpdate = true;
+  cloudMat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { uTex: { value: cTex }, uAlpha: { value: 0 }, uSun: U_GLOBE.uSun },
+    vertexShader: 'varying vec3 vN; void main() { vN = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform sampler2D uTex; uniform float uAlpha; uniform vec3 uSun; varying vec3 vN;
+void main() { vec3 n = normalize(vN); float lon = mod(degrees(atan(-n.z, n.x + 1e-7)) + 360.0, 360.0), lat = degrees(asin(clamp(n.y, -1.0, 1.0)));
+  float a = texture2D(uTex, vec2(lon / 360.0, (lat + 90.0) / 180.0)).a * uAlpha; if (a < 0.006) discard;
+  float day = smoothstep(-0.12, 0.2, dot(n, uSun)); gl_FragColor = vec4(vec3(mix(0.42, 1.0, day)), a); }`,
+  });
+  const cl = new THREE.Mesh(new THREE.SphereGeometry(1.012, 96, 64), cloudMat); cl.renderOrder = 2; earth.add(cl);
+
+  /* thin glow of air around the disc */
+  haloMat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.BackSide, blending: THREE.AdditiveBlending,
+    uniforms: { uGlow: { value: 0.75 } },
+    vertexShader: 'varying vec3 vN; varying vec3 vV; void main() { vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform float uGlow; varying vec3 vN; varying vec3 vV; void main() { float a = smoothstep(0.0, 0.62, -dot(normalize(vN), normalize(vV))); gl_FragColor = vec4(vec3(0.36, 0.62, 1.0), a * a * uGlow); }',
+  });
+  world.add(new THREE.Mesh(new THREE.SphereGeometry(1.14, 64, 48), haloMat));
+
+  /* stars */
+  const sp = [], M = 1400;
+  for (let i = 0; i < M; i++) { const u = Math.random() * 2 - 1, a = Math.random() * 6.283, r = 40, c = Math.sqrt(1 - u * u); sp.push(r * c * Math.cos(a), r * u, r * c * Math.sin(a)); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
+  scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xBFD0E0, size: 1.4, sizeAttenuation: false, transparent: true, opacity: 0.55 })));
+
+  /* the Sun, for one chapter */
+  const gc = document.createElement('canvas'); gc.width = gc.height = 256;
+  const gg = gc.getContext('2d'), rg = gg.createRadialGradient(128, 128, 4, 128, 128, 128);
+  rg.addColorStop(0, 'rgba(255,250,225,1)'); rg.addColorStop(0.1, 'rgba(255,226,140,0.95)'); rg.addColorStop(0.32, 'rgba(250,170,70,0.28)'); rg.addColorStop(1, 'rgba(250,150,50,0)');
+  gg.fillStyle = rg; gg.fillRect(0, 0, 256, 256);
+  sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(gc), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0 }));
+  sunSprite.scale.setScalar(1.05); world.add(sunSprite);
+
+  const li = new THREE.DirectionalLight(0xffffff, 2.4); li.position.set(-1, 1, 2); scene.add(li);
+  scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+}
+
+/* ================================================================ flowing lines: tapered ribbons that follow a stored (u, v) */
+class Flow {
+  constructor(o) {
+    Object.assign(this, o);
+    const { N, T } = this, nv = N * (T + 1) * 2;
+    this.lat = new Float32Array(N); this.lon = new Float32Array(N); this.age = new Float32Array(N); this.max = new Float32Array(N);
+    this.spd = new Float32Array(N);
+    this.hist = new Float32Array(N * (T + 1) * 3); this.acc = 0;
+    this.posA = new THREE.BufferAttribute(new Float32Array(nv * 3), 3).setUsage(THREE.DynamicDrawUsage);
+    this.colA = new THREE.BufferAttribute(new Float32Array(nv * 4), 4).setUsage(THREE.DynamicDrawUsage);
+    const idx = new Uint32Array(N * T * 6);
+    let q = 0;
+    for (let n = 0; n < N; n++) for (let t = 0; t < T; t++) {
+      const a = (n * (T + 1) + t) * 2;
+      idx[q++] = a; idx[q++] = a + 1; idx[q++] = a + 2; idx[q++] = a + 1; idx[q++] = a + 3; idx[q++] = a + 2;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', this.posA); geo.setAttribute('acol', this.colA); geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    this.mat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { uAlpha: { value: 0 } },
+      vertexShader: 'attribute vec4 acol; varying vec4 vC; void main() { vC = acol; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+      fragmentShader: 'uniform float uAlpha; varying vec4 vC; void main() { float a = vC.a * uAlpha; if (a < 0.01) discard; gl_FragColor = vec4(vC.rgb, a); }',
+    });
+    this.mesh = new THREE.Mesh(geo, this.mat); this.mesh.frustumCulled = false; this.mesh.renderOrder = 3; this.mesh.visible = false;
+    earth.add(this.mesh);
+    for (let n = 0; n < N; n++) { this.spawn(n); this.age[n] = Math.random() * this.max[n]; }
+    for (let k = 0; k < T + 2; k++) this.step(this.push);
+  }
+  vel(lat, lon) {
+    const u = sample(this.u, this.g, lat, lon), v = sample(this.v, this.g, lat, lon);
+    return (u === u && v === v) ? [u, v] : null;
+  }
+  spawn(n) {
+    for (let tries = 0; tries < 40; tries++) {
+      const lat = Math.asin(Math.random() * 2 - 1) / D2R, lon = Math.random() * 360, w = this.vel(lat, lon);
+      if (!w || Math.hypot(w[0], w[1]) < this.minSpd) continue;
+      this.lat[n] = lat; this.lon[n] = lon; this.age[n] = 0; this.max[n] = 2.2 + Math.random() * 3.5;
+      const o = n * (this.T + 1) * 3, p = xyz(lat, lon, this.r, TMP);
+      for (let t = 0; t <= this.T; t++) { this.hist[o + t * 3] = p.x; this.hist[o + t * 3 + 1] = p.y; this.hist[o + t * 3 + 2] = p.z; }
+      return;
+    }
+    this.max[n] = 0;
+  }
+  step(dt) {
+    const { N, T, hist, r } = this;
+    this.acc += dt;
+    const shift = this.acc >= this.push;
+    if (shift) this.acc -= this.push;
+    for (let n = 0; n < N; n++) {
+      this.age[n] += dt;
+      const w = this.vel(this.lat[n], this.lon[n]);
+      if (!w || this.age[n] > this.max[n]) { this.spawn(n); continue; }
+      const sp = Math.hypot(w[0], w[1]), vis = this.speed(sp), k = sp > 1e-6 ? vis / sp : 0, cl = Math.max(Math.cos(this.lat[n] * D2R), 0.12);
+      this.lat[n] = clamp(this.lat[n] + w[1] * k * dt, -89, 89); this.lon[n] = wrap360(this.lon[n] + w[0] * k * dt / cl); this.spd[n] = sp;
+      const o = n * (T + 1) * 3;
+      if (shift) hist.copyWithin(o, o + 3, o + (T + 1) * 3);
+      const p = xyz(this.lat[n], this.lon[n], r, TMP);
+      hist[o + T * 3] = p.x; hist[o + T * 3 + 1] = p.y; hist[o + T * 3 + 2] = p.z;
+    }
+    this.write();
+  }
+  write() {
+    const { N, T, hist, width } = this, P = this.posA.array, C = this.colA.array;
+    for (let n = 0; n < N; n++) {
+      const o = n * (T + 1) * 3, life = Math.min(1, this.age[n] / 0.5) * Math.min(1, Math.max(0, this.max[n] - this.age[n]) / 0.5), col = this.color(this.spd[n]);
+      for (let t = 0; t <= T; t++) {
+        const a = o + t * 3, b = o + (t < T ? t + 1 : t) * 3, a0 = o + (t < T ? t : t - 1) * 3;
+        const px = hist[a], py = hist[a + 1], pz = hist[a + 2];
+        let tx_ = hist[b] - hist[a0], ty = hist[b + 1] - hist[a0 + 1], tz = hist[b + 2] - hist[a0 + 2];
+        let sx = py * tz - pz * ty, sy = pz * tx_ - px * tz, sz = px * ty - py * tx_;
+        const len = Math.hypot(sx, sy, sz) || 1, f = t / T, wd = width * (0.25 + 0.75 * f) / len;
+        sx *= wd; sy *= wd; sz *= wd;
+        const v = (n * (T + 1) + t) * 2;
+        P[v * 3] = px + sx; P[v * 3 + 1] = py + sy; P[v * 3 + 2] = pz + sz;
+        P[v * 3 + 3] = px - sx; P[v * 3 + 4] = py - sy; P[v * 3 + 5] = pz - sz;
+        const al = f * f * life;
+        for (let s = 0; s < 2; s++) { const q = (v + s) * 4; C[q] = col[0]; C[q + 1] = col[1]; C[q + 2] = col[2]; C[q + 3] = al; }
+      }
+    }
+    this.posA.needsUpdate = true; this.colA.needsUpdate = true;
+  }
+  set alpha(a) { this.mat.uniforms.uAlpha.value = a; this.mesh.visible = a > 0.01; }
+  get alpha() { return this.mat.uniforms.uAlpha.value; }
+}
+const TMP = new THREE.Vector3();
+const FLOW = {};
+function buildFlows() {
+  FLOW.wind = new Flow({
+    N: 1700, T: 12, push: 0.085, r: 1.014, width: 0.0064, u: F.u.lev[0], v: F.v.lev[0], g: F.u.g, minSpd: 1.5,
+    speed: s => 1.6 + s * 0.52,
+    color: s => { const t = clamp(s / 16, 0, 1); return [lerp(0.72, 1, t), lerp(0.88, 1, t), 1]; },
+  });
+  FLOW.cur = new Flow({
+    N: 1900, T: 12, push: 0.085, r: 1.004, width: 0.0052, u: F.U.lev[0], v: F.V.lev[0], g: F.U.g, minSpd: 0.8,
+    speed: s => 1.2 + 1.05 * Math.sqrt(s),
+    color: s => { const t = clamp(Math.sqrt(s) / 7, 0, 1); return [lerp(0.86, 1, t), lerp(0.97, 1, t), 1]; },
+  });
+}
+
+/* ================================================================ drops: rain falling, and data handed between air and ocean */
+class Drops {
+  constructor(N) {
+    this.N = N; this.lat = new Float32Array(N); this.lon = new Float32Array(N); this.r = new Float32Array(N); this.vr = new Float32Array(N);
+    this.mode = 'rain'; this.px = 15;
+    this.posA = new THREE.BufferAttribute(new Float32Array(N * 3), 3).setUsage(THREE.DynamicDrawUsage);
+    this.colA = new THREE.BufferAttribute(new Float32Array(N * 4), 4).setUsage(THREE.DynamicDrawUsage);
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', this.posA); geo.setAttribute('acol', this.colA);
+    this.mat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, uniforms: { uAlpha: { value: 0 }, uPx: { value: 1 } },
+      vertexShader: 'attribute vec4 acol; uniform float uPx; varying vec4 vC; void main() { vC = acol; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = uPx / -mv.z; gl_Position = projectionMatrix * mv; }',
+      fragmentShader: 'uniform float uAlpha; varying vec4 vC; void main() { float d = length(gl_PointCoord - 0.5); float a = (1.0 - smoothstep(0.22, 0.5, d)) * vC.a * uAlpha; if (a < 0.01) discard; gl_FragColor = vec4(vC.rgb, a); }',
+    });
+    this.mesh = new THREE.Points(geo, this.mat); this.mesh.frustumCulled = false; this.mesh.renderOrder = 4; this.mesh.visible = false;
+    earth.add(this.mesh);
+    this.setMode('rain');
+  }
+  setMode(m) {
+    this.mode = m;
+    this.mat.uniforms.uPx.value = this.px * (m === 'rain' ? 1 : 1.9);
+    const C = this.colA.array, pal = m === 'rain' ? [[0.85, 0.96, 1]] : m === 'down' ? [[0.91, 0.69, 0.3], [0.5, 0.8, 1], [1, 1, 1]] : [[0.21, 0.78, 0.85], [1, 1, 1]];
+    for (let n = 0; n < this.N; n++) { const c = pal[n % pal.length]; C[n * 4] = c[0]; C[n * 4 + 1] = c[1]; C[n * 4 + 2] = c[2]; C[n * 4 + 3] = 1; this.spawn(n, true); }
+    this.colA.needsUpdate = true;
+  }
+  spawn(n, scatter) {
+    let lat = 0, lon = 0;
+    for (let t = 0; t < 30; t++) {
+      lat = Math.asin(Math.random() * 2 - 1) / D2R; lon = Math.random() * 360;
+      if (this.mode === 'rain') { const p = (fld('lsPrecip', lat, lon) || 0) + (fld('cvPrecip', lat, lon) || 0); if (Math.random() < rainPos(p) * 1.35 - 0.1) break; }
+      else if (sample(KMTA, F.kmt.g, lat, lon) > 0.5) break;
+    }
+    this.lat[n] = lat; this.lon[n] = lon;
+    if (this.mode === 'rain') { this.vr[n] = -0.035 - Math.random() * 0.02; this.r[n] = scatter ? lerp(1.002, 1.038, Math.random()) : 1.038; }
+    else if (this.mode === 'down') { this.vr[n] = -0.13 - Math.random() * 0.05; this.r[n] = scatter ? lerp(1, 1.2, Math.random()) : 1.2; }
+    else { this.vr[n] = 0.13 + Math.random() * 0.05; this.r[n] = scatter ? lerp(1, 1.2, Math.random()) : 1; }
+  }
+  step(dt) {
+    const P = this.posA.array, lo = this.mode === 'up' ? -9 : 1.002, hi = this.mode === 'up' ? 1.2 : 9;
+    for (let n = 0; n < this.N; n++) {
+      this.r[n] += this.vr[n] * dt;
+      if (this.r[n] < lo || this.r[n] > hi) this.spawn(n, false);
+      const p = xyz(this.lat[n], this.lon[n], this.r[n], TMP); P[n * 3] = p.x; P[n * 3 + 1] = p.y; P[n * 3 + 2] = p.z;
+    }
+    this.posA.needsUpdate = true;
+  }
+  set alpha(a) { this.mat.uniforms.uAlpha.value = a; this.mesh.visible = a > 0.01; }
+  get alpha() { return this.mat.uniforms.uAlpha.value; }
+}
+let DROPS;
+
+/* ================================================================ one model column: 19 slabs of air above the surface, 20 of ocean below */
+const COL_LAT = 15, COL_LON = 63.75;      // one real atmosphere box, in the Arabian Sea: at the globe's edge when Britain faces you
+const COLUMN = { air: null, sea: null, t: 0, target: 0 };
+function buildColumn() {
+  const geo = new THREE.BoxGeometry(1, 1, 1), up = xyz(COL_LAT, COL_LON, 1).normalize();
+  const east = new THREE.Vector3(0, 1, 0).cross(up).normalize(), south = new THREE.Vector3().crossVectors(east, up).normalize();
+  const basis = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(east, up, south));
+  const wE = 0.14, wN = 0.14;       // far wider than a real box, so the layers can be counted
+  COLUMN.items = [];
+  const air = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ transparent: true }), 19);
+  const sea = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ transparent: true, depthTest: false }), 20);
+  const cAir = ramp(['#BFE3FF', '#6FAEE0', '#3A6FB5', '#2A4C8F']), cSea = ramp(['#7FE3E8', '#35B6C2', '#147A96', '#0E456E']);
+  for (let k = 0; k < 19; k++) { COLUMN.items.push({ mesh: air, i: k, kind: 'air', k, h: 0.0155, s: 1.012 + 0.0215 * k }); air.setColorAt(k, new THREE.Color(...cAir(k / 18).map(x => x / 255))); }
+  for (let k = 0; k < 20; k++) { COLUMN.items.push({ mesh: sea, i: k, kind: 'sea', k, h: 0.0125, s: 0.988 - 0.0185 * k }); sea.setColorAt(k, new THREE.Color(...cSea(k / 19).map(x => x / 255))); }
+  air.frustumCulled = sea.frustumCulled = false; air.renderOrder = 5; sea.renderOrder = 5;
+  earth.add(air); earth.add(sea);
+  COLUMN.air = air; COLUMN.sea = sea; COLUMN.up = up; COLUMN.basis = basis; COLUMN.wE = wE; COLUMN.wN = wN;
+  writeColumn();
+}
+const M4 = new THREE.Matrix4(), V3a = new THREE.Vector3(), V3b = new THREE.Vector3();
+function writeColumn() {
+  const t = COLUMN.t;
+  for (const it of COLUMN.items) {
+    const q = clamp(t * 40 - it.k - (it.kind === 'sea' ? 1 : 0), 0, 1), e = q * q * (3 - 2 * q);
+    V3a.copy(COLUMN.up).multiplyScalar(it.s); V3b.set(COLUMN.wE * Math.max(e, 0.0001), it.h * Math.max(e, 0.0001), COLUMN.wN * Math.max(e, 0.0001));
+    M4.compose(V3a, COLUMN.basis, V3b); it.mesh.setMatrixAt(it.i, M4);
+  }
+  COLUMN.air.instanceMatrix.needsUpdate = true; COLUMN.sea.instanceMatrix.needsUpdate = true;
+  COLUMN.air.visible = COLUMN.sea.visible = t > 0.001;
+}
+
+/* ================================================================ DOM labels for the column */
+function setLabel(id, text, cls) {
+  if (!labels[id]) { const el = document.createElement('div'); el.className = 'lbl ' + cls; $('#labels').appendChild(el); labels[id] = el; }
+  labels[id].textContent = text;
+}
+const LV = new THREE.Vector3();
+function placeLabels() {
+  const show = COLUMN.t > 0.7 && !renderer.xr.isPresenting;
+  const r = stage.getBoundingClientRect();
+  for (const [id, s, dy] of [['air', 1.44, -26], ['sea', 0.83, -44], ['uk', 0, -30]]) {
+    const el = labels[id]; if (!el) continue;
+    el.hidden = !show; if (!show) continue;
+    if (id === 'uk') xyz(54, 358, 1, LV); else LV.copy(COLUMN.up).multiplyScalar(s);
+    earth.localToWorld(LV); LV.project(camera);
+    const half = el.offsetWidth / 2, x = clamp((LV.x + 1) / 2 * r.width, half + 6, r.width - half - 6);
+    el.style.transform = `translate(${x.toFixed(1)}px, ${((1 - LV.y) / 2 * r.height + dy).toFixed(1)}px) translateX(-50%)`;
+  }
+}
+
+/* ================================================================ state, chapter by chapter */
+const STATE = { ch: 0, auto: false, autoT: 0, curSurf: 'natural' };
+const VIEW = { lat: 18, lon: 15, tLat: 18, tLon: 15, dLat: 0, dLon: 0, drag: false };
+const TGT = { clouds: 0, wind: 0, cur: 0, rain: 0, grid: 0, night: 0.8, bright: 1, warm: 0, sun: 0, glow: 0.75 };
+const NOW = Object.assign({}, TGT);
+const RELAY = { t: 0, day: 1, phase: '' };
+const R_ATM = 4.4, R_SWAP = 1.7, R_OCN = 3.4, R_DAY = R_ATM + R_OCN + 2 * R_SWAP;
+let MODEL_H = 12;
+
+function setSurf(key) {
+  if (STATE.curSurf === key) return;
+  U_GLOBE.uPrev.value = mixedTex(); U_GLOBE.uFade.value = REDUCED ? 1 : 0;
+  STATE.curSurf = key;
+  if (key !== 'temp') { U_GLOBE.uA.value = U_GLOBE.uB.value = surfTex(key); U_GLOBE.uMix.value = 0; }
+  else setDiurnal();
+}
+const mixedTex = () => U_GLOBE.uMix.value > 0.5 ? U_GLOBE.uB.value : U_GLOBE.uA.value;
+function setDiurnal() {
+  const x = ((MODEL_H % 24) + 24) % 24 / 3, h0 = Math.floor(x) % 8, h1 = (h0 + 1) % 8;
+  U_GLOBE.uA.value = surfTex('t' + h0); U_GLOBE.uB.value = surfTex('t' + h1); U_GLOBE.uMix.value = x - Math.floor(x);
+}
+function show(i, opts = {}) {
+  STATE.ch = clamp(i, 0, CH.length - 1);
+  const c = CH[STATE.ch];
+  setSurf(c.surf);
+  VIEW.tLat = c.view[0]; VIEW.tLon = c.view[1]; VIEW.dLat = 0; VIEW.dLon = 0;
+  Object.assign(TGT, { clouds: c.clouds || 0, wind: c.wind || 0, cur: c.cur || 0, rain: c.rain || 0, grid: c.grid || 0, night: c.sun ? 0.3 : 0.86, bright: c.bright || 1, warm: c.sun ? 1 : 0, sun: c.sun ? 1 : 0, glow: 0.75 });
+  COLUMN.target = c.column ? 1 : 0;
+  if (c.rain) DROPS.setMode('rain');
+  if (c.relay) { RELAY.t = 0; RELAY.day = 1; RELAY.phase = ''; }
+  STATE.autoT = 0;
+  render();
+  if (!opts.fromHash) { try { history.replaceState(null, '', '#' + c.key); } catch (e) { /* no history in this frame */ } }
+  if (opts.user) stopAuto();
+  document.querySelector('.tab.cur')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+}
+function stopAuto() { STATE.auto = false; renderAuto(); }
+function renderAuto() {
+  const b = $('#btnAuto'); b.textContent = tx(STATE.auto ? U.stop : U.auto); b.setAttribute('aria-pressed', String(STATE.auto));
+}
+
+/* ================================================================ HTML */
+const gradCSS = cols => `linear-gradient(90deg, ${cols.join(', ')})`;
+function legendHTML(kind) {
+  const bar = (title, cols, ticks) => `<div class="legend"><span class="lt">${title}</span><div class="bar" style="background:${gradCSS(cols)}"></div><div class="ticks">${ticks.map(([p, s]) => `<span style="left:${(p * 100).toFixed(1)}%">${s}</span>`).join('')}</div></div>`;
+  if (kind === 'temp') return bar(LANG === 'zh' ? '近地面气温' : 'Air temperature near the ground', T_COLS, [[0, '−45 °C'], [45 / 85, '0'], [1, '+40 °C']]);
+  if (kind === 'sst') return bar(LANG === 'zh' ? '海面温度' : 'Sea surface temperature', SST_COLS, [[0, '−2 °C'], [12 / 32, '10'], [22 / 32, '20'], [1, '30 °C']]);
+  if (kind === 'rain') return bar(LANG === 'zh' ? '降水量（毫米 / 天）' : 'Rain and snow (mm per day)', RAIN_COLS, [[0, '0'], [rainPos(4), '4'], [rainPos(9), '9'], [1, '25']]);
+  if (kind === 'land') {
+    const it = [['#2E6B34', L('森林', 'Forest')], ['#8FB35A', L('草地', 'Grass')], ['#C8A874', L('荒漠', 'Desert')], ['#F2F6FA', L('冰雪', 'Ice and snow')], ['#14507C', L('海洋', 'Ocean')]];
+    return `<div class="cats">${it.map(([c, n]) => `<span><i style="background:${c}"></i>${tx(n)}</span>`).join('')}</div>`;
+  }
+  return '';
+}
+function relayHTML() {
+  return `<div class="relay"><div class="state" id="rState"></div>
+    <div class="track"><div class="run a"><i id="rA"></i></div><div class="run s"><i id="rS1"></i></div><div class="run o"><i id="rO"></i></div><div class="run s"><i id="rS2"></i></div></div>
+    <div class="keys"><span class="a">${tx(U.kA)}</span><span class="s">${tx(U.kS)}</span><span class="o">${tx(U.kO)}</span><span class="s"></span></div></div>`;
+}
+function render() {
+  const c = CH[STATE.ch];
+  document.documentElement.lang = LANG === 'zh' ? 'zh' : 'en';
+  document.title = tx(U.title);
+  $('#story').innerHTML = `<div class="brand">HadCM3 · ${STATE.ch + 1} / ${CH.length}</div><h1>${tx(c.h)}</h1><p class="body">${tx(c.b)}</p>`
+    + (c.stats ? `<div class="stats">${c.stats.map(([k, n, s]) => `<div class="stat ${k}"><b>${n}</b><span>${tx(s)}</span></div>`).join('')}</div>` : '')
+    + (c.legend ? legendHTML(c.legend) : '') + (c.relay ? relayHTML() : '') + (c.n ? `<p class="note">${tx(c.n)}</p>` : '');
+  $('#tabs').innerHTML = CH.map((x, i) => `<button type="button" class="tab${i === STATE.ch ? ' cur' : i < STATE.ch ? ' done' : ''}" data-i="${i}"${i === STATE.ch ? ' aria-current="step"' : ''}>${tx(x.nav)}<span class="fill"></span></button>`).join('');
+  $('#btnPrev').textContent = tx(U.prev); $('#btnPrev').disabled = STATE.ch === 0;
+  $('#btnNext').textContent = STATE.ch === CH.length - 1 ? tx(U.again) : tx(U.next);
+  $('#btnAbout').textContent = tx(U.about); $('#about').innerHTML = tx(U.aboutBody);
+  $('#btnVR').textContent = tx(U.vr);
+  document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === LANG)));
+  setLabel('air', tx(U.c19), 'air'); setLabel('sea', tx(U.c20), 'sea'); setLabel('uk', tx(U.cUK), 'uk');
+  renderAuto();
+  if (c.relay) RELAY.phase = '';
+  drawPanel();
+}
+
+/* ================================================================ the relay chapter */
+function relayTick(dt) {
+  RELAY.t += dt;
+  if (RELAY.t >= R_DAY) { RELAY.t -= R_DAY; RELAY.day++; RELAY.phase = ''; }
+  const t = RELAY.t, a2o = t >= R_ATM && t < R_ATM + R_SWAP, ocn = t >= R_ATM + R_SWAP && t < R_ATM + R_SWAP + R_OCN, o2a = t >= R_ATM + R_SWAP + R_OCN;
+  const phase = a2o ? 'a2o' : ocn ? 'ocn' : o2a ? 'o2a' : 'atm';
+  let i = 0, n = 0, f = 0;
+  if (phase === 'atm') { n = 48; f = t / R_ATM; i = Math.min(47, Math.floor(f * 48)) + 1; }
+  if (phase === 'ocn') { n = 24; f = (t - R_ATM - R_SWAP) / R_OCN; i = Math.min(23, Math.floor(f * 24)) + 1; }
+  if (phase !== RELAY.phase) {
+    RELAY.phase = phase;
+    if (phase === 'atm') { setSurf('natural'); Object.assign(TGT, { wind: 1, cur: 0, rain: 0, clouds: 0.55, glow: 1.05 }); }
+    if (phase === 'a2o') { DROPS.setMode('down'); Object.assign(TGT, { wind: 0.15, cur: 0, rain: 1, clouds: 0.25, glow: 0.75 }); }
+    if (phase === 'ocn') { setSurf('sst'); Object.assign(TGT, { wind: 0, cur: 1, rain: 0, clouds: 0, glow: 0.45 }); }
+    if (phase === 'o2a') { DROPS.setMode('up'); Object.assign(TGT, { wind: 0, cur: 0.15, rain: 1, clouds: 0.1, glow: 0.75 }); }
+    drawPanel();
+  }
+  const el = $('#rState');
+  if (el) {
+    const name = tx(phase === 'atm' ? U.sAtm : phase === 'ocn' ? U.sOcn : phase === 'a2o' ? U.sA2O : U.sO2A);
+    const stepTxt = n ? tx(U.step).replace('{i}', i).replace('{n}', n) + ' · ' : '';
+    const html = `${name}<small>${stepTxt}${tx(U.day).replace('{d}', RELAY.day)}</small>`;
+    if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; }
+    const pct = (id, x) => { $(id).style.width = (clamp(x, 0, 1) * 100).toFixed(1) + '%'; };
+    pct('#rA', t / R_ATM); pct('#rS1', (t - R_ATM) / R_SWAP); pct('#rO', (t - R_ATM - R_SWAP) / R_OCN); pct('#rS2', (t - R_ATM - R_SWAP - R_OCN) / R_SWAP);
+  }
+}
+
+/* ================================================================ layout */
+let OFFSET = 0;
+function resize() {
+  const W = Math.max(stage.clientWidth, 1), H = Math.max(stage.clientHeight, 1);
+  if (renderer.xr.isPresenting) return;
+  renderer.setSize(W, H, false);
+  camera.aspect = W / H;
+  const wide = window.innerWidth > 820;
+  /* the globe sits right of the caption on a wide screen */
+  OFFSET = wide ? Math.min(0.19 * W, 0.5 * (Math.min(430, 0.36 * W))) + 8 : 0;
+  const availW = W - (wide ? 2 * OFFSET + 40 : 24), availH = H - (wide ? 46 : 24);
+  const fit = Math.min(availW / W * camera.aspect, availH / H), tanH = Math.tan(camera.fov * D2R / 2);
+  camera.position.z = 1.34 / (tanH * fit);
+  if (OFFSET) camera.setViewOffset(W, H, -OFFSET, 0, W, H); else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+  DROPS.px = (wide ? 15 : 11) * renderer.getPixelRatio(); DROPS.mat.uniforms.uPx.value = DROPS.px * (DROPS.mode === 'rain' ? 1 : 1.9);
+}
+
+/* ================================================================ frame */
+const WORLD_LIGHT = new THREE.Vector3(-0.45, 0.42, 0.8).normalize();
+const INVQ = new THREE.Quaternion(), V_SUN = new THREE.Vector3();
+function damp(a, b, dt, rate = 3.5) { return lerp(a, b, 1 - Math.exp(-rate * dt)); }
+function angDamp(a, b, dt, rate) { const d = ((b - a + 540) % 360) - 180; return a + d * (1 - Math.exp(-rate * dt)); }
+let lastT = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000 || 0.016); lastT = now;
+  const c = CH[STATE.ch], adt = REDUCED ? 0 : dt, vr = renderer.xr.isPresenting;
+  if (vr) vrInput(dt);
+
+  /* view: drag offsets on top of the chapter's own view */
+  if (c.spin && !VIEW.drag && !REDUCED) VIEW.tLon = wrap360(VIEW.tLon - dt * 5);
+  let sun = null;
+  if (c.sun) {
+    MODEL_H = (MODEL_H + adt * 24 / 15) % 24;
+    setDiurnal();
+    sun = sunAt(MODEL_H);
+    VIEW.tLon = wrap360(sun.lon - 52);
+  }
+  VIEW.lat = damp(VIEW.lat, clamp(VIEW.tLat + VIEW.dLat, -82, 82), dt, REDUCED ? 60 : 2.4);
+  VIEW.lon = angDamp(VIEW.lon, wrap360(VIEW.tLon + VIEW.dLon), dt, REDUCED ? 60 : (c.sun && U_GLOBE.uFade.value >= 1 ? 8 : 2.4));
+  earth.rotation.set(VIEW.lat * D2R, (-90 - VIEW.lon) * D2R, 0);
+
+  /* blend everything toward this chapter */
+  for (const k in TGT) NOW[k] = REDUCED ? TGT[k] : damp(NOW[k], TGT[k], dt);
+  if (U_GLOBE.uFade.value < 1) U_GLOBE.uFade.value = Math.min(1, U_GLOBE.uFade.value + dt / 0.9);
+  cloudMat.uniforms.uAlpha.value = NOW.clouds;
+  U_GLOBE.uGrid.value = NOW.grid; U_GLOBE.uNight.value = NOW.night; U_GLOBE.uBright.value = NOW.bright; U_GLOBE.uWarm.value = NOW.warm;
+  haloMat.uniforms.uGlow.value = NOW.glow;
+  FLOW.wind.alpha = NOW.wind; FLOW.cur.alpha = NOW.cur; DROPS.alpha = NOW.rain;
+  if (FLOW.wind.mesh.visible && adt) FLOW.wind.step(adt);
+  if (FLOW.cur.mesh.visible && adt) FLOW.cur.step(adt);
+  if (DROPS.mesh.visible) DROPS.step(adt);
+
+  /* the light: the real Sun in one chapter, a soft fixed light otherwise */
+  earth.updateMatrixWorld(); INVQ.copy(earth.quaternion).invert();
+  V_SUN.copy(WORLD_LIGHT).applyQuaternion(INVQ);
+  if (sun) V_SUN.lerp(sun.v, NOW.sun).normalize();
+  U_GLOBE.uSun.value.copy(V_SUN);
+  sunSprite.material.opacity = NOW.sun;
+  sunSprite.visible = NOW.sun > 0.01;
+  if (sun) { sunSprite.position.copy(sun.v).applyQuaternion(earth.quaternion).multiplyScalar(1.72); }
+
+  /* the column rises slab by slab */
+  if (COLUMN.t !== COLUMN.target) {
+    COLUMN.t = REDUCED ? COLUMN.target : (COLUMN.target > COLUMN.t ? Math.min(1, COLUMN.t + dt / 2.2) : Math.max(0, COLUMN.t - dt / 0.5));
+    writeColumn();
+  }
+  if (c.relay) relayTick(adt);
+
+  /* autoplay */
+  if (STATE.auto) {
+    STATE.autoT += dt;
+    const dur = c.relay ? R_DAY * 2 : 15;
+    const fill = document.querySelector('.tab.cur .fill'); if (fill) fill.style.width = clamp(STATE.autoT / dur * 100, 0, 100).toFixed(1) + '%';
+    if (STATE.autoT >= dur) show((STATE.ch + 1) % CH.length);
+  } else { const fill = document.querySelector('.tab.cur .fill'); if (fill && fill.style.width) fill.style.width = ''; }
+
+  placeLabels();
+  renderer.render(scene, camera);
+}
+
+/* ================================================================ controls */
+function bindControls() {
+  $('#btnNext').onclick = () => show((STATE.ch + 1) % CH.length, { user: true });
+  $('#btnPrev').onclick = () => show(STATE.ch - 1, { user: true });
+  $('#tabs').onclick = e => { const b = e.target.closest('.tab'); if (b) show(+b.dataset.i, { user: true }); };
+  $('#btnAuto').onclick = () => { STATE.auto = !STATE.auto; STATE.autoT = 0; renderAuto(); };
+  $('#btnAbout').onclick = () => { const a = $('#about'); a.hidden = !a.hidden; $('#btnAbout').setAttribute('aria-expanded', String(!a.hidden)); };
+  document.querySelectorAll('.lang button').forEach(b => { b.onclick = () => { LANG = b.dataset.lang; store.set('earth-lang', LANG); render(); }; });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') show(Math.min(STATE.ch + 1, CH.length - 1), { user: true });
+    if (e.key === 'ArrowLeft') show(STATE.ch - 1, { user: true });
+  });
+  window.addEventListener('hashchange', () => { const i = CH.findIndex(c => '#' + c.key === location.hash); if (i >= 0 && i !== STATE.ch) show(i, { fromHash: true }); });
+  let px = 0, py = 0;
+  canvas.addEventListener('pointerdown', e => { VIEW.drag = true; px = e.clientX; py = e.clientY; canvas.setPointerCapture(e.pointerId); stopAuto(); });
+  canvas.addEventListener('pointermove', e => {
+    if (!VIEW.drag) return;
+    const k = 0.28 * Math.min(1, 700 / Math.max(stage.clientHeight, 300));
+    VIEW.dLon -= (e.clientX - px) * k; VIEW.dLat = clamp(VIEW.dLat + (e.clientY - py) * k, -100, 100); px = e.clientX; py = e.clientY;
+  });
+  const up = () => { VIEW.drag = false; };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  window.addEventListener('resize', resize);
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
+}
+
+/* ================================================================ VR: the globe in front of you, a caption beneath it, two buttons */
+let panel, panelCtx, panelTex;
+function wrapText(g, text, x, y, maxW, lh) {
+  const cjk = /[　-鿿＀-￯]/.test(text), parts = cjk ? Array.from(text) : text.split(' ');
+  let line = '';
+  for (const p of parts) {
+    const test = line + (cjk || !line ? '' : ' ') + p;
+    if (g.measureText(test).width > maxW && line) { g.fillText(line, x, y); y += lh; line = p; } else line = test;
+  }
+  if (line) g.fillText(line, x, y);
+  return y + lh;
+}
+function drawPanel() {
+  if (!panel || !panel.visible) return;
+  const g = panelCtx, W = 1280, H = 640, c = CH[STATE.ch], sans = '"Noto Sans SC", "IBM Plex Sans", system-ui, sans-serif';
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = 'rgba(12,20,27,0.92)'; g.fillRect(0, 0, W, H);
+  g.textBaseline = 'top'; g.fillStyle = '#E7B04C'; g.font = `500 30px ${sans}`;
+  g.fillText(`HadCM3 · ${STATE.ch + 1} / ${CH.length}`, 48, 36);
+  g.fillStyle = '#EEF3F4'; g.font = `600 58px ${sans}`;
+  let y = wrapText(g, tx(c.h), 48, 84, W - 96, 70);
+  g.font = `400 34px ${sans}`; g.fillStyle = '#DDE5E8';
+  y = wrapText(g, tx(c.b), 48, y + 14, W - 96, 47);
+  if (c.relay && RELAY.phase) {
+    g.fillStyle = '#E7B04C'; g.font = `600 34px ${sans}`;
+    wrapText(g, tx(RELAY.phase === 'atm' ? U.sAtm : RELAY.phase === 'ocn' ? U.sOcn : RELAY.phase === 'a2o' ? U.sA2O : U.sO2A), 48, H - 110, W - 96, 44);
+  }
+  g.fillStyle = '#76878F'; g.font = `400 26px ${sans}`;
+  g.fillText(tx(U.vrHint), 48, H - 54);
+  panelTex.needsUpdate = true;
+}
+function buildVR() {
+  const c = document.createElement('canvas'); c.width = 1280; c.height = 640;
+  panelCtx = c.getContext('2d');
+  panelTex = new THREE.CanvasTexture(c);
+  panel = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.5), new THREE.MeshBasicMaterial({ map: panelTex, transparent: true }));
+  panel.visible = false; scene.add(panel);
+  const onSelect = hand => { if (hand === 'left') show(STATE.ch - 1); else show((STATE.ch + 1) % CH.length); };
+  for (let i = 0; i < 2; i++) {
+    const ctl = renderer.xr.getController(i); let hand = 'right';
+    ctl.addEventListener('connected', e => { hand = e.data.handedness; });
+    ctl.addEventListener('selectstart', () => onSelect(hand));
+    scene.add(ctl);
+  }
+  const btn = $('#btnVR');
+  if (!navigator.xr || !navigator.xr.isSessionSupported) return;
+  navigator.xr.isSessionSupported('immersive-vr').then(ok => { btn.hidden = !ok; }).catch(() => {});
+  btn.onclick = async () => {
+    try {
+      const s = await navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor', 'hand-tracking'] });
+      renderer.xr.setReferenceSpaceType('local-floor');
+      await renderer.xr.setSession(s);
+    } catch (e) { btn.textContent = String(e.message || e).slice(0, 60); }
+  };
+  renderer.xr.addEventListener('sessionstart', () => {
+    world.scale.setScalar(0.34); world.position.set(0, 1.35, -1.0);
+    panel.position.set(0, 0.72, -0.8); panel.rotation.x = -0.45; panel.visible = true; drawPanel();
+    DROPS.px = 16; DROPS.mat.uniforms.uPx.value = DROPS.px * (DROPS.mode === 'rain' ? 1 : 1.9); stopAuto();
+  });
+  renderer.xr.addEventListener('sessionend', () => {
+    world.scale.setScalar(1); world.position.set(0, 0, 0); panel.visible = false; camera.position.set(0, 0, 5); resize();
+  });
+}
+function vrInput(dt) {
+  const s = renderer.xr.getSession(); if (!s) return;
+  for (const src of s.inputSources) {
+    if (src.handedness !== 'right' || !src.gamepad || src.gamepad.axes.length < 4) continue;
+    const ax = src.gamepad.axes[2], ay = src.gamepad.axes[3];
+    if (Math.abs(ax) > 0.15) VIEW.dLon += ax * dt * 70;
+    if (Math.abs(ay) > 0.15) VIEW.dLat = clamp(VIEW.dLat + ay * dt * 50, -100, 100);
+  }
+}
+
+/* ================================================================ start */
+async function main() {
+  try {
+    render0();
+    await loadData();
+    initBase();
+    buildScene();
+    buildFlows();
+    DROPS = new Drops(1900);
+    buildColumn();
+    buildVR();
+    bindControls();
+    const i = CH.findIndex(c => '#' + c.key === location.hash);
+    STATE.ch = Math.max(i, 0);
+    const c0 = CH[STATE.ch];
+    VIEW.lat = c0.view[0]; VIEW.lon = c0.view[1];
+    resize();
+    show(STATE.ch, { fromHash: true });
+    if (c0.surf !== 'natural') U_GLOBE.uFade.value = 1;
+    Object.assign(NOW, TGT);
+    $('#loading').hidden = true;
+    renderer.setAnimationLoop(frame);
+  } catch (e) {
+    console.error(e);
+    const l = $('#loading'); l.classList.add('err'); $('#loadMsg').textContent = tx(U.fail);
+  }
+}
+function render0() { document.title = tx(U.title); $('#loadMsg').textContent = tx(U.load); }
+main();
+</script>
