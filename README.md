@@ -1,5 +1,18 @@
 # HadCM3 visualization
 
+Interactive views of HadCM3 (UM vn4.5, HadCM3B-M2.1aD), the coupled atmosphere–ocean climate model, in your browser. Start with one of these two pages:
+
+| Page | Who it is for |
+|---|---|
+| **[Earth in a Computer / 把地球装进电脑](https://xinrenn.github.io/HadCM3_3D_visualization/popsci/HadCM3_popsci.html)** | Science-communication version: eight short chapters on the globe (Earth, boxes, Sun, wind, rain, ocean, the air/ocean relay, what if). No prior knowledge needed. 中文 + EN. |
+| **[HadCM3 3D](https://xinrenn.github.io/HadCM3_3D_visualization/v3/HadCM3_3D.html)** | The full 3D globe: about 45 surface fields, cutaway, 3D layers (cloud, wind, currents, sea ice, rain) and a step player through one coupled day, routine by routine. 中文 + EN. |
+
+Everything below is detail: the earlier 2D walkthroughs (v1, v2), the full feature list of the 3D page, the VR version, the build steps and the basis of the model setup.
+
+---
+
+## Details
+
 An interactive, step-by-step walkthrough of how HadCM3 (UM vn4.5, HadCM3B-M2.1aD) advances through one coupled day.
 
 - **Overview flowchart**: one coupled day (48 atmosphere steps of 30 min, swap, 24 ocean steps of 1 h, swap back) and the call order inside one atmosphere step and one ocean step.
@@ -13,7 +26,7 @@ An interactive, step-by-step walkthrough of how HadCM3 (UM vn4.5, HadCM3B-M2.1aD
 
 Open either file in a browser. They are self-contained apart from Google Fonts. Opened locally, the language switch and the cGENIE companion link point to the sibling files; on the published pages they point to the published artifacts.
 
-## Versions
+### Versions
 
 The two files above are **version 1** (git tag `v1`): each component tab is a linear chart of its routines.
 
@@ -58,7 +71,7 @@ WebXR needs a secure page: open it over HTTPS (e.g. GitHub Pages) or from `http:
 - VR is kept in its simplest form: the globe in front of you with a caption under it; right trigger or pinch for the next chapter, left for the previous one, right stick to turn the globe. **Enter VR** appears only where the browser supports WebXR, so it needs HTTPS or localhost, as for the v3 VR page. Checked in Chromium under Meta's Immersive Web Emulation Runtime only; try it on a headset before relying on it.
 - The page is generated: `python3 popsci/CC_build_popsci.py` assembles it from `popsci/src/popsci.html` and the v3 data (needs numpy and Pillow). `--bare <file>` also writes the page without its document skeleton for publishing as an artifact; `--facts` prints the numbers quoted in the captions.
 
-## Basis
+### Basis
 
 - **Job**: `tdaah`, a standard pre-industrial HadCM3B-M2.1aD job in the shared BRIDGE UMUI jobs (`/projects/public/b56i/ggpjv/work/umui_jobs/tdaah`, dated 2026-06-01): 280 ppm CO₂, `preind2` ancillaries, MOSES 2.1 + TRIFFID, 360-day calendar from 1850-12-01. There is no HadCM3 job under the `xinren.b56u` account on bc5, so this shared job stands in as the PI reference. Parameter values come from its `CNTLALL`, `CNTLGEN`, `CNTLATM`, `CNTLOCN`, `SIZES`, `SECT_MODE` and `INITHIS`.
 - **Code**: call order and line numbers from the UM vn4.5 decks in `$UM_HOME/um/vn4.5/source/umpl` (`U_MODEL1`, `SETGRCT1`, `INITTIM1`, `SETTSCT1`, `ATMSTEP1`, `ATMDYN1`, `ATMPHY1`, `RAD_CTL1`, `OCNSTEP1`, `OCNFRST1`, `OCN_CTL`, `OCN_FRST`, `ROWCALC`, `TRACER`, `TROP_CTL`, `ICE_CTL`, `ICEFLOE`, `SWAPA2O2`, `SWAPO2A2`, `TRANA2O1`, `INITA2O1`).
