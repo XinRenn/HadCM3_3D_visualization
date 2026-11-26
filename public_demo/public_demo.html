@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Standing in Bristol's Future</title>
+<meta name="description" content="A cartoon WebXR demo: choose a time and an emissions pathway on a globe, then stand on Bristol's harbourside and see the average conditions. Placeholder data while it is labelled DEMO DATA.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Noto+Sans+SC:wght@500;700;900&display=swap">
+<link rel="stylesheet" href="src/style.css">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+
+<canvas id="gl" aria-label="3D view"></canvas>
+
+<div class="ui" id="ui">
+  <header class="top">
+    <div class="tags" id="tags">
+      <span class="badge" id="badgeDemo" hidden></span>
+      <span class="tag" id="tagScenario"></span>
+      <span class="tag choice" id="tagChoice"></span>
+      <span class="tag" id="tagAverage"></span>
+    </div>
+    <div class="tools">
+      <button type="button" class="tbtn" id="btnSeated" aria-pressed="false" hidden></button>
+      <button type="button" class="tbtn" id="btnAbout" aria-expanded="false" aria-controls="about"></button>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="zh">中文</button>
+      </div>
+      <button type="button" class="tbtn vr" id="btnVR" hidden></button>
+    </div>
+  </header>
+  <div class="about" id="about" hidden></div>
+  <div class="title" id="title"></div>
+  <aside class="legend" id="legend" aria-live="polite"></aside>
+  <p class="hint" id="hint"></p>
+
+  <footer class="dock" id="dock">
+    <div class="row layers" id="layers" role="group"></div>
+    <div class="row paths" id="paths" role="group"></div>
+    <div class="row time">
+      <button type="button" class="arrow" id="btnEarlier"></button>
+      <div class="timewrap">
+        <div class="tlabel" id="tLabel" aria-live="polite"></div>
+        <input type="range" id="tSlider" min="0" max="1000" step="1" aria-labelledby="tLabel">
+        <div class="tmarks" id="tMarks"></div>
+      </div>
+      <button type="button" class="arrow" id="btnLater"></button>
+      <button type="button" class="arrow play" id="btnPlay" aria-pressed="false"></button>
+    </div>
+    <div class="row go">
+      <button type="button" class="big visit" id="btnVisit"></button>
+      <button type="button" class="big back" id="btnBack" hidden></button>
+      <button type="button" class="small" id="btnSummary" hidden></button>
+      <button type="button" class="small reset" id="btnReset"></button>
+      <span class="gohint" id="visitHint"></span>
+    </div>
+  </footer>
+
+  <div class="warn" id="warn" hidden><button type="button" id="warnBtn"></button><ul id="warnList" hidden></ul></div>
+  <div class="debug" id="debug" hidden></div>
+  <div class="card-wrap" id="closing" hidden><div class="card" role="dialog" aria-modal="true" aria-labelledby="cTitle" id="closingCard"></div></div>
+  <div class="loading" id="loading"><div class="spin"></div><p id="loadMsg">Loading / 正在载入</p></div>
+</div>
+
+<script type="module" src="src/main.js"></script>
