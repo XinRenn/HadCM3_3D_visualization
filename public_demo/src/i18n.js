@@ -47,7 +47,7 @@ export const U = {
   summary: L('Compare', '对比'),
   flood: L('Water drawn as one flat level: approximate', '水面按单一平面水位绘制：仅为近似'),
   pastNote: L("Past climate shown around today's buildings", '把过去的气候放在今天的城市里展示'),
-  shelf: L('Dry sea floor estimated from the model sea depth', '露出的海底按模型海深估算'),
+  shelf: L("Sandy land: the model's shallow shelf seas, drawn dry when the sea is 100 m or more lower (rough estimate)", '沙色陆地：模型中的浅海大陆架，海平面低 100 米以上时画成陆地（粗略估计）'),
 
   /* layers */
   l_temp_c: L('Temperature', '气温'), l_rain_mm_yr: L('Rainfall', '降水'), l_snow_depth_cm: L('Snow', '积雪'),

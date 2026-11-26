@@ -142,21 +142,24 @@ export class Globe {
     const sa = sampler(ga), sIce = new Float32Array(LW * LH);
     for (let j = 0; j < LH; j++) { const lat = -90 + (j + 0.5) * 180 / LH; for (let i = 0; i < LW; i++) sIce[j * LW + i] = sa(iceF, lat, (i + 0.5) * 360 / LW) || 0; }
     this.iceTex = sIce;
-    this.landToday = this._landFrac(0);
+    let kmin = 99; for (const c of kmt) if (c > 0 && c < kmin) kmin = c;
+    this.kmin = kmin;                      // HadCM3's shallowest sea columns (8 levels, about 165 m): its shelf seas
+    this.landToday = this._landFrac(false);
   }
-  /* land fraction on the land texture when the sea has dropped below k ocean levels */
-  _landFrac(k) {
-    const g = this.go, ind = new Float32Array(this.kmt.length), lim = k > 0 ? this.bottoms[k - 1] : -1;
-    for (let i = 0; i < ind.length; i++) { const c = this.kmt[i]; ind[i] = c === 0 || (k > 0 && this.bottoms[c - 1] <= lim) ? 1 : 0; }
+  /* Land fraction on the land texture. HadCM3 gives every shelf sea the same minimum depth, so the model grid
+     cannot say which sea floor falls dry for a given drop. As a rough cartoon estimate, a sea level 100 m or
+     more below today turns the model's shallowest columns (its shelf seas) into land. */
+  _landFrac(shelf) {
+    const g = this.go, ind = new Float32Array(this.kmt.length);
+    for (let i = 0; i < ind.length; i++) { const c = this.kmt[i]; ind[i] = c === 0 || (shelf && c <= this.kmin) ? 1 : 0; }
     const s = sampler(g), out = new Float32Array(LW * LH);
     for (let j = 0; j < LH; j++) { const lat = -90 + (j + 0.5) * 180 / LH; for (let i = 0; i < LW; i++) out[j * LW + i] = s(ind, lat, (i + 0.5) * 360 / LW); }
-    return blur(blur(out, LW, LH, 3), LW, LH, 3);       // two box blurs: rounded cartoon coastlines
+    return blur(blur(out, LW, LH, 2), LW, LH, 2);       // two box blurs: rounded cartoon coastlines
   }
   landTex(seaLevel) {
-    let k = 0;
-    if (seaLevel != null && seaLevel < 0) while (k < this.bottoms.length && this.bottoms[k] <= -seaLevel) k++;
+    const k = seaLevel != null && seaLevel <= -100 ? 1 : 0;
     if (!this.landCache.has(k)) {
-      const f = k === 0 ? this.landToday : this._landFrac(k), d = new Uint8Array(LW * LH * 4);
+      const f = k ? this._landFrac(true) : this.landToday, d = new Uint8Array(LW * LH * 4);
       for (let i = 0; i < LW * LH; i++) { d[i * 4] = f[i] * 255; d[i * 4 + 1] = this.landToday[i] * 255; d[i * 4 + 2] = this.iceTex[i] * 255; d[i * 4 + 3] = 255; }
       this.landCache.set(k, dataTex(d, LW, LH));
     }
@@ -231,7 +234,7 @@ export class Globe {
     this.cur = { key, name, info, missing: !L };
     this.legendInfo = this._legend(name, info);
     this.legendInfo.missing = !L;
-    this.legendInfo.shelf = sea != null && sea < -10;
+    this.legendInfo.shelf = sea != null && sea <= -100;
     if (this.onLegend) this.onLegend(this.legendInfo);
   }
   _paint(name, L) {

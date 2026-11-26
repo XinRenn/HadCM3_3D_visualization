@@ -6,8 +6,8 @@ This is real HadCM3 geography (pre-industrial), not placeholder data, and it doe
   lsm  atmosphere grid 96 x 73, 1 = land; row 0 is 90 N
   ice  atmosphere grid 96 x 73, land-ice fraction of the box x 100 (MOSES surface type 9)
   level_bottom_m  depth of the bottom of each of the 20 HadCM3 ocean levels, so a column of kmt levels is
-                  level_bottom_m[kmt - 1] deep. The globe uses it to show sea floor that falls dry when the
-                  sea level drops (for example by 120 m in the ice age).
+                  level_bottom_m[kmt - 1] deep. Note: HadCM3 gives every shelf sea its minimum depth of 8 levels
+                  (about 165 m), so the globe can only treat those shallowest columns as one "shelf" class.
 Each grid is stored as base64 of its raw bytes (uint8), row by row.
 
 Input: v3/data/hadcm3_state.js (made by v3/build_data.py).
