@@ -175,6 +175,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .card dd { margin: 0; font-size: 24px; font-weight: 900; text-align: right; font-variant-numeric: tabular-nums; }
 .card .hope { margin: 16px 0 14px; font-size: 17px; font-weight: 700; line-height: 1.5; }
 .card .demo { font-size: 13px; color: var(--demo); font-weight: 900; }
+.card .closecard { background: #2D8CFF; color: #fff; }
 
 .loading { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; background: #1D3A6E; color: #fff; z-index: 10; text-align: center; padding: 20px; }
 .loading .spin { width: 46px; height: 46px; border: 6px solid rgba(255, 255, 255, 0.25); border-top-color: var(--sun); border-radius: 50%; animation: rot 0.9s linear infinite; }

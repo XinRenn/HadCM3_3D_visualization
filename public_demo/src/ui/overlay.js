@@ -119,7 +119,7 @@ export class Overlay {
       + `<div class="cols">${col(c.low, 'low', 0)}${col(c.high, 'high', 3)}</div>`
       + `<p class="hope">${esc(tx(U.c_hope))}</p>`
       + (d.placeholder ? `<p class="demo">${esc(sourceLabel(d.sourceLabel))}: ${esc(tx(U.demoDataLong))}</p>` : '')
-      + `<button type="button" class="big visit" data-close>${esc(tx(U.c_close))}</button>`;
+      + `<button type="button" class="big closecard" data-close>${esc(tx(U.c_close))}</button>`;
     const btn = $('#closingCard [data-close]'); if (btn && document.activeElement !== btn) btn.focus({ preventScroll: true });
   }
 
