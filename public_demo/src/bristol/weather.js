@@ -20,6 +20,8 @@ const CHOP = { still: 0.08, breezy: 0.45, stormy: 1.0 };
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
+const TMP = { cw: new THREE.Vector3(), M: new THREE.Matrix4(), Q: new THREE.Quaternion(), E: new THREE.Euler(), S: new THREE.Vector3(1, 1, 1), V: new THREE.Vector3() };   // reused every frame
+
 export default class Weather {
   constructor(city) { this.city = city; this.wind = 'breezy'; this.t = 0; }
 
@@ -228,7 +230,7 @@ void main() { float w = sin(vU.x * 260.0 + sin(vU.y * 9.0 + uTime * 2.2) * 2.5 +
 
   /* ---------------------------------------------------------------- per frame */
   update(dt, t, c, camera) {
-    const cw = new THREE.Vector3(); camera.getWorldPosition(cw); c.root.worldToLocal(cw);
+    const { cw, M, Q, E, S, V } = TMP; camera.getWorldPosition(cw); c.root.worldToLocal(cw);
     this.rainMat.uniforms.uCenter.value.copy(cw); this.snowMat.uniforms.uCenter.value.copy(cw);
     this.haze.position.set(cw.x, Math.max(c.waterY, c.quay) + 0.2, cw.z);
     const w = this.wind, amp = { still: 0.02, breezy: 0.14, stormy: 0.32 }[w], sp = { still: 1.2, breezy: 4.5, stormy: 9 }[w];
@@ -242,7 +244,6 @@ void main() { float w = sin(vU.x * 260.0 + sin(vU.y * 9.0 + uTime * 2.2) * 2.5 +
     }
     P.needsUpdate = true;
     /* bunting */
-    const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), S = new THREE.Vector3(1, 1, 1), V = new THREE.Vector3();
     const ba = { still: 0.04, breezy: 0.35, stormy: 0.9 }[w], bs = { still: 0.8, breezy: 3, stormy: 7 }[w];
     this.buntPts.forEach((p, i) => { E.set(Math.sin(t * bs + i * 0.7) * ba + ba * 0.6, 0, 0); Q.setFromEuler(E); M.compose(V.set(p[0], p[1], p[2]), Q, S); this.bunt.setMatrixAt(i, M); });
     this.bunt.instanceMatrix.needsUpdate = true;

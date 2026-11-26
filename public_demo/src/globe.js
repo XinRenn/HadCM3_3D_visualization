@@ -119,6 +119,8 @@ export function labelSprite(text, px = 44, color = "#1B2A4A") {
   return s;
 }
 
+const G = { m: new THREE.Matrix4(), ray: new THREE.Ray(), v: new THREE.Vector3(), unit: new THREE.Sphere(new THREE.Vector3(), 1), q: new THREE.Quaternion(), c: new THREE.Vector3(), off: new THREE.Vector3(-0.5, 0.6, 0) };   // reused every frame
+
 export class Globe {
   constructor(base, data) {
     this.data = data;
@@ -270,9 +272,9 @@ export class Globe {
   /* lat/lon under a world-space ray, or null */
   latLonAt(ray) {
     this.earth.updateWorldMatrix(true, false);
-    const inv = new THREE.Matrix4().copy(this.earth.matrixWorld).invert();
-    const r = ray.clone().applyMatrix4(inv), hit = new THREE.Vector3();
-    if (!r.intersectSphere(new THREE.Sphere(new THREE.Vector3(), 1), hit)) return null;
+    const inv = G.m.copy(this.earth.matrixWorld).invert();
+    const r = G.ray.copy(ray).applyMatrix4(inv), hit = G.v;
+    if (!r.intersectSphere(G.unit, hit)) return null;
     hit.normalize();
     return { lat: Math.asin(clamp(hit.y, -1, 1)) / D2R, lon: wrap360(Math.atan2(-hit.z, hit.x) / D2R), dist: hit.applyMatrix4(this.earth.matrixWorld).distanceTo(ray.origin) };
   }
@@ -292,10 +294,9 @@ export class Globe {
     /* light from over the viewer's left shoulder, whatever way the globe is turned */
     if (camWorld) {
       this.earth.updateWorldMatrix(true, false);
-      const q = new THREE.Quaternion(); this.earth.getWorldQuaternion(q); q.invert();
-      const c = new THREE.Vector3(); this.root.getWorldPosition(c);
-      const dir = camWorld.clone().sub(c).normalize().add(new THREE.Vector3(-0.5, 0.6, 0)).normalize().applyQuaternion(q);
-      this.U.uLight.value.copy(dir);
+      const q = G.q; this.earth.getWorldQuaternion(q); q.invert();
+      const c = G.c; this.root.getWorldPosition(c);
+      this.U.uLight.value.copy(camWorld).sub(c).normalize().add(G.off).normalize().applyQuaternion(q);
     }
   }
   /* turn by a drag: moves both the shown and the target view so the grabbed point stays under the pointer */

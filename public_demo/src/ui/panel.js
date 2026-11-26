@@ -32,6 +32,8 @@ export function para(g, s, x, y, maxW, size, lh, o = {}) {
   return y + ls.length * lh;
 }
 
+const PT = { m: new THREE.Matrix4(), ray: new THREE.Ray() };   // reused for every hit test
+
 export class Panel {
   constructor({ px = [1024, 512], width = 1.0, name = 'panel', depthTest = true }) {
     this.name = name; this.W = px[0]; this.H = px[1]; this.width = width; this.height = width * this.H / this.W; this.ppm = this.W / width;
@@ -96,7 +98,7 @@ export class Panel {
     let p = m;
     while (p) { if (!p.visible) return null; p = p.parent; }
     m.updateWorldMatrix(true, false);
-    const inv = new THREE.Matrix4().copy(m.matrixWorld).invert(), r = ray.clone().applyMatrix4(inv);
+    const inv = PT.m.copy(m.matrixWorld).invert(), r = PT.ray.copy(ray).applyMatrix4(inv);
     if (Math.abs(r.direction.z) < 1e-6) return null;
     const t = -r.origin.z / r.direction.z;
     if (t <= 0) return null;

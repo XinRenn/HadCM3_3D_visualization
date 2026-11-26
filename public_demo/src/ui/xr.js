@@ -13,6 +13,8 @@ const PATH_COL = { ssp126: '#2FB65A', ssp245: '#E9A92C', ssp370: '#F07A3A', ssp5
 export const pathColor = (p, k = 0) => PATH_COL[p && p.id] || ['#2FB65A', '#E9A92C', '#F07A3A', '#D93B4B', '#8E5BD8'][k % 5];
 export const pathIcon = (p, k = 0) => (p && p.icon) || ['leaf', 'road', 'factory', 'smoke'][Math.min(k, 3)];
 
+const FT = { h: new V3(), q: new THREE.Quaternion(), fwd: new V3(), up: new V3(), target: new V3() };   // reused every frame
+
 export class XRUI {
   constructor(app, { sim = false } = {}) {
     this.app = app; this.sim = sim;
@@ -172,10 +174,10 @@ export class XRUI {
   }
   /* the label strip follows your view lazily, a little above the centre */
   _follow(dt) {
-    const cam = this.app.camera, h = new V3(), q = new THREE.Quaternion();
+    const cam = this.app.camera, { h, q, fwd, up, target } = FT;
     cam.getWorldPosition(h); cam.getWorldQuaternion(q);
-    const fwd = new V3(0, 0, -1).applyQuaternion(q), up = new V3(0, 1, 0).applyQuaternion(q);
-    const target = h.clone().addScaledVector(fwd, 1.45).addScaledVector(up, 0.62);
+    fwd.set(0, 0, -1).applyQuaternion(q); up.set(0, 1, 0).applyQuaternion(q);
+    target.copy(h).addScaledVector(fwd, 1.45).addScaledVector(up, 0.62);
     if (!this.hudReady) { this.hudPos.copy(target); this.hudReady = true; }
     this.hudPos.lerp(target, 1 - Math.exp(-dt * 5));
     this.hud.mesh.position.copy(this.hudPos); this.hud.mesh.lookAt(h);

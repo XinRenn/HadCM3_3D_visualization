@@ -1,6 +1,7 @@
 /* Standing in Bristol's Future: boot, app state, the two scenes (globe, Bristol), teleport fades, the
    desktop camera and the frame loop. URL options: ?lang=zh|en  ?stop=<id>  ?pathway=<id>  ?mode=city
-   ?xrsim=1 (VR panels on a desktop, mouse = controller)  ?debug=1 (override values, frame time) */
+   ?xrsim=1 (VR panels on a desktop, mouse = controller)  ?debug=1 (override values, frame time)
+   ?data=<folder> (another data folder next to this page, same format as data/) */
 import * as THREE from 'three';
 import { loadData, LAYER_VARS } from './data.js';
 import { U, tx, fmt, LANG, setLang, onLang } from './i18n.js';
@@ -12,6 +13,7 @@ import { closingStop } from './format.js';
 const $ = s => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const SIM = params.get('xrsim') === '1';
+const DATA_DIR = (/^[\w-]+(\/[\w-]+)*$/.test(params.get('data') || '') ? params.get('data') : 'data') + '/';
 const D2R = Math.PI / 180;
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const FADE_S = 0.3;            // seconds to black, and the same back
@@ -136,7 +138,7 @@ function placeCamera() {
   if (renderer.xr.isPresenting) return;
   if (S.mode === 'globe' && !SIM) { camera.position.set(0, 0, VIEW.dist); camera.quaternion.identity(); return; }
   camera.position.set(0, EYE, 0);
-  camera.quaternion.setFromEuler(new THREE.Euler(VIEW.pitch * D2R, VIEW.yaw * D2R, 0, 'YXZ'));
+  camera.quaternion.setFromEuler(EUL.set(VIEW.pitch * D2R, VIEW.yaw * D2R, 0, 'YXZ'));
 }
 app.look = (dx, dy) => { VIEW.yaw -= dx * 0.18; VIEW.pitch = clamp(VIEW.pitch - dy * 0.18, -70, 70); };
 
@@ -187,7 +189,7 @@ function buildGlobeEnv() {
 
 /* ---------------------------------------------------------------- frame */
 let lastT = 0, fpsAcc = 0, fpsN = 0, fpsMax = 0;
-const camW = new THREE.Vector3();
+const camW = new THREE.Vector3(), EUL = new THREE.Euler();
 function frame(t) {
   const dt = Math.min(0.05, (t - lastT) / 1000 || 0.016); lastT = t;
   placeCamera();
@@ -208,7 +210,7 @@ function frame(t) {
 async function main() {
   $('#loadMsg').textContent = tx(U.loading);
   try {
-    app.data = await loadData('data/');
+    app.data = await loadData(DATA_DIR);
     const base = await (await fetch('assets/globe_base.json')).json();
     const d = app.data;
     S.pathway = d.pathway(params.get('pathway')) ? params.get('pathway') : (d.pathway('ssp245') ? 'ssp245' : d.pathways[0]?.id || null);

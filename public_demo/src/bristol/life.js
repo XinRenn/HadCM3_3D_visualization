@@ -55,6 +55,8 @@ const OUTFIT = {
   hot: { body: ['#FFE066', '#FF8A6E', '#7FD6FF', '#FFFFFF', '#B9F28A'], legs: ['#F2C14E', '#5AB0E0', '#F08A5D'], coat: false, scarf: false, hat: 'sunhat', arms: 'skin', shorts: true },
 };
 
+const TMP = { M: new THREE.Matrix4(), Mb: new THREE.Matrix4(), Q: new THREE.Quaternion(), E: new THREE.Euler(), V: new THREE.Vector3(), S: new THREE.Vector3(), Z: new THREE.Vector3(), hide: new THREE.Matrix4().makeScale(0, 0, 0) };   // reused every frame
+
 export default class Life {
   constructor(city) { this.city = city; this.veg = null; }
 
@@ -190,9 +192,7 @@ export default class Life {
   }
 
   update(dt, t, c) {
-    const P = this.P, o = OUTFIT[this.outfit] || OUTFIT.cool, M = new THREE.Matrix4(), Mb = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler();
-    const V = new THREE.Vector3(), S = new THREE.Vector3(), Z = new THREE.Vector3(0, 0, 0);
-    const hide = new THREE.Matrix4().makeScale(0, 0, 0), T = c.T;
+    const P = this.P, o = OUTFIT[this.outfit] || OUTFIT.cool, { M, Mb, Q, E, V, S, Z, hide } = TMP, T = c.T;
     this.people.forEach((p, i) => {
       if (p.hidden) { for (const m of Object.values(P)) { if (m.count === this.people.length * 2) { m.setMatrixAt(i * 2, hide); m.setMatrixAt(i * 2 + 1, hide); } else m.setMatrixAt(i, hide); } this.shadow.setMatrixAt(i, hide); return; }
       let walking = p.walk && !p.boat, yaw = p.face, x, y, z;

@@ -268,7 +268,7 @@ export class BristolScene {
     SU.uTime.value = t;
     this.root.updateWorldMatrix(true, false);
     this.root.getWorldPosition(SU.uOrigin.value);
-    const cw = new THREE.Vector3(); camera.getWorldPosition(cw); this.root.worldToLocal(cw);
+    const cw = CW; camera.getWorldPosition(cw); this.root.worldToLocal(cw);
     this.sky.position.copy(cw);
     const chop = this.chop || 0.4;
     for (const b of this.boats) {
@@ -282,6 +282,7 @@ export class BristolScene {
   }
 }
 
+const CW = new THREE.Vector3();
 function lerpC(a, b, t) { return new THREE.Color(a[0]).lerp(new THREE.Color(b[0]), clamp(t, 0, 1)); }
 function fmtNum(v) { return (v < 0 ? '−' : '') + Math.abs(Math.round(v)); }
 function LANG_M() { return tx({ en: ' m', zh: ' 米' }); }
