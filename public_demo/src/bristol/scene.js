@@ -196,15 +196,17 @@ export class BristolScene {
       ['vegetation', U.b_veg, fmtValue('vegetation', v.vegetation)],
     ];
     rows.forEach(([ic, lab, val], k) => {
-      const y = 176 + k * 72;
-      if (k % 2 === 0) { g.fillStyle = COL.paper2; g.fillRect(16, y - 4, W - 32, 72); }
-      if (ic === 'wind') drawWind(g, 52, y + 32, 46); else drawIcon(g, ic, 52, y + 32, 50);
+      const y = 172 + k * 68;
+      if (k % 2 === 0) { g.fillStyle = COL.paper2; g.fillRect(16, y - 2, W - 32, 68); }
+      if (ic === 'wind') drawWind(g, 52, y + 32, 46); else drawIcon(g, ic, 52, y + 32, 48);
       text(g, tx(lab), 92, y + 32, 27, { weight: 700, color: COL.ink2, maxW: 330 });
       const missing = val === tx(U.noData);
       text(g, val, W - 30, y + 32, 31, { align: 'right', weight: 900, color: missing ? COL.demo : COL.ink, maxW: W - 440 });
     });
+    if (st && st.kind === 'past') text(g, tx(U.pastNote), W / 2, H - 70, 22, { align: 'center', weight: 800, color: '#B07A00', maxW: W - 40 });
     text(g, tx(U.average), W / 2, H - 34, 22, { align: 'center', weight: 700, color: COL.ink2, maxW: W - 40 });
   }
+  groundColor(hex) { SU.uGrass.value.set(hex); }
   relabel() {
     const old = this.mshedSign; this.mshedSign = this._sign(tx(U.mshed)); this.mshedSign.position.copy(old.position); this.root.remove(old); this.root.add(this.mshedSign);
     old.material.map.dispose();

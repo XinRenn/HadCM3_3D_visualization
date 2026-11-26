@@ -82,7 +82,7 @@ export class Overlay {
     $('#btnBack').innerHTML = `<img alt="" src="${iconURL('globe', 64)}" style="width:32px;height:32px;margin-right:8px">${esc(tx(U.back))}`;
     $('#visitHint').textContent = tx(U.pinHint);
     $('#btnSummary').hidden = !(S.mode === 'city' && app.canCompare()); $('#btnSummary').textContent = tx(U.summary);
-    $('#hint').textContent = S.mode === 'globe' ? tx(U.dragGlobe) : `${tx(U.dragLook)} · ${tx(U.flood)}`;
+    $('#hint').textContent = S.mode === 'globe' ? tx(U.dragGlobe) : `${tx(U.dragLook)} · ${tx(U.flood)}` + (st && st.kind === 'past' ? ` · ${tx(U.pastNote)}` : '');
     /* warnings */
     const w = d.warnings;
     $('#warn').hidden = !w.length; $('#warnBtn').textContent = '⚠ ' + fmt(U.warnings, { n: w.length });

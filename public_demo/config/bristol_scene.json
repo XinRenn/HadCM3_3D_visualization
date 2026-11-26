@@ -7,7 +7,7 @@
   "terrain": {
     "extent_x": [-300, 300],
     "extent_z": [-260, 170],
-    "cell_m": 5,
+    "cell_m": 6,
     "harbour": { "z_south": -8, "z_north": 22, "floor_m": -3.0 },
     "south_quay_m": 2.0,
     "north_quay_m": 2.2,

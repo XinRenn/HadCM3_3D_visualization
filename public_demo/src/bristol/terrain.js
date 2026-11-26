@@ -43,7 +43,7 @@ function cartoonBristol(T) {
   const xs = []; for (let x = x0; x <= x1 + 1e-6; x += c) xs.push(x);
   const zset = new Set();
   for (let z = z0; z <= z1 + 1e-6; z += c) zset.add(+z.toFixed(3));
-  for (let z = zS - 30; z <= zN + 30; z += 1.5) zset.add(+z.toFixed(3));      // finer near the harbour
+  for (let z = zS - 30; z <= zN + 30; z += 2.5) zset.add(+z.toFixed(3));      // finer near the harbour
   for (const z of [zS - e, zS, zS + e, zS + 2 * e, zN - 2 * e, zN - e, zN, zN + e, T.paved_south_to_z, T.paved_north_to_z]) zset.add(+z.toFixed(3));
   const zs = [...zset].filter(z => z >= z0 && z <= z1).sort((a, b) => a - b);
   const nx = xs.length, nz = zs.length, pos = new Float32Array(nx * nz * 3), surf = new Float32Array(nx * nz * 3), col = new Float32Array(nx * nz * 3);

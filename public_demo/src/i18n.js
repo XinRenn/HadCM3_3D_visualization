@@ -46,6 +46,7 @@ export const U = {
   dragLook: L('Drag to look around', '拖动可以环顾四周'),
   summary: L('Compare', '对比'),
   flood: L('Water drawn as one flat level: approximate', '水面按单一平面水位绘制：仅为近似'),
+  pastNote: L("Past climate shown around today's buildings", '把过去的气候放在今天的城市里展示'),
   shelf: L('Dry sea floor estimated from the model sea depth', '露出的海底按模型海深估算'),
 
   /* layers */

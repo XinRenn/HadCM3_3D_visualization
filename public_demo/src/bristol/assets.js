@@ -46,13 +46,13 @@ export function cyl(rt, rb, h, seg, color, x = 0, y = 0, z = 0, rx = 0, rz = 0) 
 
 /* ---------------------------------------------------------------- buildings (instanced) */
 /* unit body: 1 x 1 x 1, base at 0; scaled per instance. Use with toon({ windows: true }). */
-export function unitBox() { const g = new THREE.BoxGeometry(1, 1, 1); g.translate(0, 0.5, 0); return g.toNonIndexed(); }
+export function unitBox() { const g = new THREE.BoxGeometry(1, 1, 1); g.translate(0, 0.5, 0); return g; }
 /* unit gable roof: ridge along x, 1 wide (z), 1 high, base at 0 */
 export function unitRoof() {
   const s = new THREE.Shape(); s.moveTo(-0.5, 0); s.lineTo(0.5, 0); s.lineTo(0, 1); s.lineTo(-0.5, 0);
   const g = new THREE.ExtrudeGeometry(s, { depth: 1, bevelEnabled: false });
   g.translate(0, 0, -0.5); g.rotateY(Math.PI / 2);
-  return g.toNonIndexed();
+  return g;
 }
 export const HOUSE_COLOURS = ['#F2A65A', '#F7D488', '#9FD8CB', '#F28C8C', '#B5A8E0', '#8EC5F2', '#F5EFE0', '#E5989B', '#C7E39A', '#FFB4A2'];
 export const ROOF_COLOURS = ['#5E5A6B', '#7A4E45', '#4F5D75', '#6B5B53'];

@@ -155,8 +155,9 @@ void main() {
   float w2 = sin(p.y * 0.42 - uTime * 0.9 + sin(p.x * 0.17 - uTime * 0.4) * 2.4);
   float s = w1 * w2;
   vec3 col = mix(uDeep, uShallow, 0.5 + 0.25 * s);
-  float streak = smoothstep(1.0 - 0.12 * uChop - 0.02, 1.0 - 0.06 * uChop, s);
-  col = mix(col, vec3(0.93, 0.98, 1.0), streak * min(1.0, 0.5 + uChop));
+  float g = sin(p.x * 1.9 + uTime * 2.3 + sin(p.y * 1.1 + uTime) * 1.5) * sin(p.y * 2.3 - uTime * 1.9 + sin(p.x * 0.7) * 1.2);
+  float streak = smoothstep(0.985 - 0.09 * uChop, 0.995 - 0.05 * uChop, g) * smoothstep(-0.2, 0.6, s + uChop);
+  col = mix(col, vec3(0.93, 0.98, 1.0), streak * (0.35 + 0.65 * uChop));
   col = mix(col, uFogCol, smoothstep(uFogNear, uFogFar, distance(vW, cameraPosition)));
   gl_FragColor = vec4(col, uAlpha);
   #include <colorspace_fragment>
