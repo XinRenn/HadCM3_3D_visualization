@@ -203,3 +203,6 @@ body.city .dock { gap: 8px; }
   .gohint { display: none; }
   .card .cols { grid-template-columns: 1fr; }
 }
+
+/* ?xrsim=1: the VR panels are in the 3D view, so the HTML dock steps aside */
+body.sim .dock, body.sim .legend, body.sim .title, body.sim .hint { display: none !important; }

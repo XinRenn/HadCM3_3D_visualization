@@ -36,6 +36,7 @@ export const U = {
   noData: L('no data', '无数据'),
   pastAll: L('The past is the same for every pathway', '过去已经发生，每条路径都一样'),
   nowAll: L('Today is the same for every pathway', '今天对每条路径都一样'),
+  allPaths: L('every pathway', '所有路径'),
   bristol: L('Bristol', '布里斯托尔'),
   lang: L('中文', 'EN'),
   loading: L('Loading the demo', '正在载入'),
@@ -111,7 +112,7 @@ export const vegLabel = id => (id == null ? tx(U.noData) : tx(NAMES.veg[id]) || 
 export function sourceLabel(s) { return s === 'DEMO DATA' ? tx(U.demoData) : s; }
 /* the year under a stop's label: "21,000 years ago", "2100", "in 10,000 years" */
 export function yearNote(stop, nowYear = 2025) {
-  if (!stop || typeof stop.year !== 'number') return '';
+  if (!stop || typeof stop.year !== 'number' || /\d/.test(stopLabel(stop))) return '';     // the label already says when
   const y = stop.year, n = v => Math.round(v).toLocaleString(LANG === 'zh' ? 'zh-CN' : 'en-GB');
   if (y < 0) return LANG === 'zh' ? `${n(-y)} 年前` : `${n(-y)} years ago`;
   if (y - nowYear >= 5000) return LANG === 'zh' ? `${n(y - nowYear)} 年后` : `in ${n(y - nowYear)} years`;
