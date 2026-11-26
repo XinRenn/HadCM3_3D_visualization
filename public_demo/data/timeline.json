@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "placeholder": true,
+    "version": 1,
+    "source_label": "DEMO DATA",
+    "note": "Made-up smooth values for testing the demo. Not a model result, not an observation."
+  },
+  "stops": [
+    {
+      "id": "past_cold",
+      "label": "Ice age",
+      "label_zh": "冰期",
+      "kind": "past",
+      "year": -21000
+    },
+    {
+      "id": "past_warm",
+      "label": "Warm period",
+      "label_zh": "温暖期",
+      "kind": "past",
+      "year": -125000
+    },
+    {
+      "id": "now",
+      "label": "Today",
+      "label_zh": "今天",
+      "kind": "now",
+      "year": 2025
+    },
+    {
+      "id": "y2050",
+      "label": "2050",
+      "label_zh": "2050 年",
+      "kind": "ssp",
+      "year": 2050
+    },
+    {
+      "id": "y2100",
+      "label": "2100",
+      "label_zh": "2100 年",
+      "kind": "ssp",
+      "year": 2100
+    },
+    {
+      "id": "y3000",
+      "label": "Year 3000",
+      "label_zh": "3000 年",
+      "kind": "long",
+      "year": 3000
+    },
+    {
+      "id": "y5000",
+      "label": "Year 5000",
+      "label_zh": "5000 年",
+      "kind": "long",
+      "year": 5000
+    },
+    {
+      "id": "y10000",
+      "label": "10,000 years",
+      "label_zh": "1 万年后",
+      "kind": "long",
+      "year": 12025
+    },
+    {
+      "id": "y100000",
+      "label": "100,000 years",
+      "label_zh": "10 万年后",
+      "kind": "long",
+      "year": 102025
+    },
+    {
+      "id": "y1000000",
+      "label": "1 million years",
+      "label_zh": "100 万年后",
+      "kind": "long",
+      "year": 1002025
+    }
+  ]
+}

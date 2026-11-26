@@ -1,0 +1,440 @@
+{
+ "meta": {
+  "placeholder": true,
+  "version": 1,
+  "source_label": "DEMO DATA",
+  "note": "Made-up smooth values for testing the demo. Not a model result, not an observation."
+ },
+ "pathways": [
+  {
+   "id": "ssp126",
+   "label": "Low emissions",
+   "label_zh": "低排放",
+   "ssp": "SSP1-2.6",
+   "icon": "leaf"
+  },
+  {
+   "id": "ssp245",
+   "label": "Middle road",
+   "label_zh": "中间道路",
+   "ssp": "SSP2-4.5",
+   "icon": "road"
+  },
+  {
+   "id": "ssp370",
+   "label": "High emissions",
+   "label_zh": "高排放",
+   "ssp": "SSP3-7.0",
+   "icon": "factory"
+  },
+  {
+   "id": "ssp585",
+   "label": "Very high emissions",
+   "label_zh": "极高排放",
+   "ssp": "SSP5-8.5",
+   "icon": "smoke"
+  }
+ ],
+ "vegetation_types": [
+  "tundra",
+  "steppe",
+  "temperate_forest",
+  "mediterranean",
+  "subtropical",
+  "desert_scrub"
+ ],
+ "bristol": {
+  "now": {
+   "all": {
+    "sea_level_m": 0.0,
+    "temp_c": 10.3,
+    "wind_ms": 5.0,
+    "rain_mm_yr": 830,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     0.0,
+     0.0
+    ]
+   }
+  },
+  "past_cold": {
+   "all": {
+    "sea_level_m": -120,
+    "temp_c": 3,
+    "wind_ms": 7,
+    "rain_mm_yr": 450,
+    "snow_depth_cm": 40,
+    "vegetation": "tundra",
+    "sea_level_m_range": [
+     -144.0,
+     -96.0
+    ]
+   }
+  },
+  "past_warm": {
+   "all": {
+    "sea_level_m": 6,
+    "temp_c": 12.0,
+    "wind_ms": 2.6,
+    "rain_mm_yr": 900,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     4.8,
+     7.2
+    ]
+   }
+  },
+  "y2050": {
+   "ssp126": {
+    "sea_level_m": 0.18,
+    "temp_c": 10.8,
+    "wind_ms": 5.0,
+    "rain_mm_yr": 850,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     0.14,
+     0.22
+    ]
+   },
+   "ssp245": {
+    "sea_level_m": 0.2,
+    "temp_c": 11.1,
+    "wind_ms": 5.1,
+    "rain_mm_yr": 840,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     0.16,
+     0.24
+    ]
+   },
+   "ssp370": {
+    "sea_level_m": 0.22,
+    "temp_c": 11.3,
+    "wind_ms": 5.2,
+    "rain_mm_yr": 830,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     0.18,
+     0.26
+    ]
+   },
+   "ssp585": {
+    "sea_level_m": 0.25,
+    "temp_c": 11.5,
+    "wind_ms": 5.3,
+    "rain_mm_yr": 840,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     0.2,
+     0.3
+    ]
+   }
+  },
+  "y2100": {
+   "ssp126": {
+    "sea_level_m": 0.4,
+    "temp_c": 11.0,
+    "wind_ms": 5.0,
+    "rain_mm_yr": 900,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     0.32,
+     0.48
+    ]
+   },
+   "ssp245": {
+    "sea_level_m": 0.55,
+    "temp_c": 12.1,
+    "wind_ms": 5.2,
+    "rain_mm_yr": 870,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     0.44,
+     0.66
+    ]
+   },
+   "ssp370": {
+    "sea_level_m": 0.7,
+    "temp_c": 13.2,
+    "wind_ms": 5.4,
+    "rain_mm_yr": 820,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     0.56,
+     0.84
+    ]
+   },
+   "ssp585": {
+    "sea_level_m": 0.9,
+    "temp_c": 14.5,
+    "wind_ms": 5.5,
+    "rain_mm_yr": 850,
+    "snow_depth_cm": 0,
+    "vegetation": "mediterranean",
+    "sea_level_m_range": [
+     0.72,
+     1.08
+    ]
+   }
+  },
+  "y3000": {
+   "ssp126": {
+    "sea_level_m": 1.2,
+    "temp_c": 10.9,
+    "wind_ms": 4.8,
+    "rain_mm_yr": 880,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     0.96,
+     1.44
+    ]
+   },
+   "ssp245": {
+    "sea_level_m": 3.0,
+    "temp_c": 12.9,
+    "wind_ms": 5.6,
+    "rain_mm_yr": 900,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     2.4,
+     3.6
+    ]
+   },
+   "ssp370": {
+    "sea_level_m": 6.0,
+    "temp_c": 15.1,
+    "wind_ms": 7.6,
+    "rain_mm_yr": 700,
+    "snow_depth_cm": 0,
+    "vegetation": "mediterranean",
+    "sea_level_m_range": [
+     4.8,
+     7.2
+    ]
+   },
+   "ssp585": {
+    "sea_level_m": 10.0,
+    "temp_c": 16.5,
+    "wind_ms": 6.0,
+    "rain_mm_yr": 950,
+    "snow_depth_cm": 0,
+    "vegetation": "subtropical",
+    "sea_level_m_range": [
+     8.0,
+     12.0
+    ]
+   }
+  },
+  "y5000": {
+   "ssp126": {
+    "sea_level_m": 2.0,
+    "temp_c": 10.8,
+    "wind_ms": 4.5,
+    "rain_mm_yr": 860,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     1.6,
+     2.4
+    ]
+   },
+   "ssp245": {
+    "sea_level_m": 6.0,
+    "temp_c": 12.7,
+    "wind_ms": 5.8,
+    "rain_mm_yr": 920,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     4.8,
+     7.2
+    ]
+   },
+   "ssp370": {
+    "sea_level_m": 14.0,
+    "temp_c": 15.7,
+    "wind_ms": 8.6,
+    "rain_mm_yr": 560,
+    "snow_depth_cm": 0,
+    "vegetation": "mediterranean",
+    "sea_level_m_range": [
+     11.2,
+     16.8
+    ]
+   },
+   "ssp585": {
+    "sea_level_m": 25.0,
+    "temp_c": 17.0,
+    "wind_ms": 5.0,
+    "rain_mm_yr": 1000,
+    "snow_depth_cm": 0,
+    "vegetation": "subtropical",
+    "sea_level_m_range": [
+     20.0,
+     30.0
+    ]
+   }
+  },
+  "y10000": {
+   "ssp126": {
+    "sea_level_m": 2.8,
+    "temp_c": 10.7,
+    "wind_ms": 4.0,
+    "rain_mm_yr": 850,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     2.24,
+     3.36
+    ]
+   },
+   "ssp245": {
+    "sea_level_m": 9.0,
+    "temp_c": 12.3,
+    "wind_ms": 5.5,
+    "rain_mm_yr": 900,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     7.2,
+     10.8
+    ]
+   },
+   "ssp370": {
+    "sea_level_m": 20.0,
+    "temp_c": 16.3,
+    "wind_ms": 8.2,
+    "rain_mm_yr": 480,
+    "snow_depth_cm": 0,
+    "vegetation": "desert_scrub",
+    "sea_level_m_range": [
+     16.0,
+     24.0
+    ]
+   },
+   "ssp585": {
+    "sea_level_m": 34.0,
+    "temp_c": 16.3,
+    "wind_ms": 4.8,
+    "rain_mm_yr": 1150,
+    "snow_depth_cm": 0,
+    "vegetation": "subtropical",
+    "sea_level_m_range": [
+     27.2,
+     40.8
+    ]
+   }
+  },
+  "y100000": {
+   "ssp126": {
+    "sea_level_m": 3.5,
+    "temp_c": 10.5,
+    "wind_ms": 3.6,
+    "rain_mm_yr": 840,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     2.8,
+     4.2
+    ]
+   },
+   "ssp245": {
+    "sea_level_m": 8.0,
+    "temp_c": 11.3,
+    "wind_ms": 5.2,
+    "rain_mm_yr": 860,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     6.4,
+     9.6
+    ]
+   },
+   "ssp370": {
+    "sea_level_m": 15.0,
+    "temp_c": 12.7,
+    "wind_ms": 6.0,
+    "rain_mm_yr": 520,
+    "snow_depth_cm": 0,
+    "vegetation": "steppe",
+    "sea_level_m_range": [
+     12.0,
+     18.0
+    ]
+   },
+   "ssp585": {
+    "sea_level_m": 28.0,
+    "temp_c": 13.3,
+    "wind_ms": 4.9,
+    "rain_mm_yr": 1050,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     22.4,
+     33.6
+    ]
+   }
+  },
+  "y1000000": {
+   "ssp126": {
+    "sea_level_m": 4.0,
+    "temp_c": 10.3,
+    "wind_ms": 3.4,
+    "rain_mm_yr": 830,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     3.2,
+     4.8
+    ]
+   },
+   "ssp245": {
+    "sea_level_m": 3.0,
+    "temp_c": 10.4,
+    "wind_ms": 5.0,
+    "rain_mm_yr": 830,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     2.4,
+     3.6
+    ]
+   },
+   "ssp370": {
+    "sea_level_m": 5.0,
+    "temp_c": 10.6,
+    "wind_ms": 5.1,
+    "rain_mm_yr": 800,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     4.0,
+     6.0
+    ]
+   },
+   "ssp585": {
+    "sea_level_m": 8.0,
+    "temp_c": 10.8,
+    "wind_ms": 5.0,
+    "rain_mm_yr": 880,
+    "snow_depth_cm": 0,
+    "vegetation": "temperate_forest",
+    "sea_level_m_range": [
+     6.4,
+     9.6
+    ]
+   }
+  }
+ }
+}
