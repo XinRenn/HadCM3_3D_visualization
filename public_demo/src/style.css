@@ -206,3 +206,4 @@ body.city .dock { gap: 8px; }
 
 /* ?xrsim=1: the VR panels are in the 3D view, so the HTML dock steps aside */
 body.sim .dock, body.sim .legend, body.sim .title, body.sim .hint { display: none !important; }
+.paths.is-shared .path:not([aria-pressed="true"]) { opacity: 0.6; }

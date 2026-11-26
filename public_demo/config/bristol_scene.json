@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "placeholder": true,
+    "note": "Cartoon layout of Bristol's harbourside. All heights are metres above today's Floating Harbour water level (0). These are guesses for the art placeholder, to be replaced by real terrain through loadTerrain() in src/bristol/terrain.js. x runs along the harbour, -z points from the pontoon towards M Shed."
+  },
+  "city": "bristol",
+  "terrain": {
+    "extent_x": [-300, 300],
+    "extent_z": [-260, 170],
+    "cell_m": 5,
+    "harbour": { "z_south": -8, "z_north": 22, "floor_m": -3.0 },
+    "south_quay_m": 2.0,
+    "north_quay_m": 2.2,
+    "hill": { "start_z": -38, "peak_z": -170, "peak_m": 55, "wobble_m": 7 },
+    "north_rise": { "start_z": 50, "end_z": 170, "top_m": 16 },
+    "paved_south_to_z": -36,
+    "paved_north_to_z": 38
+  },
+  "pontoon": { "x": 0, "z": 12, "size_x": 6, "size_z": 4, "freeboard_m": 0.35 },
+  "mshed": { "x": -8, "z": -22, "length": 64, "height": 9.5, "depth": 13 },
+  "cranes": [ { "x": -34, "turn": 0.8 }, { "x": -21, "turn": 0.4 }, { "x": 7, "turn": -0.45 }, { "x": 20, "turn": -0.85 } ],
+  "crane_z": -11,
+  "tide_pole": { "x": 3.9, "z": 11.5, "top_m": 36 },
+  "river_when_dry": { "width_m": 7, "depth_m": 0.4 }
+}

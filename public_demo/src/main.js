@@ -44,7 +44,7 @@ function refreshGlobe() { globe.show(S.layer, S.stop, S.pathway).then(() => { ov
 function applyCity() {
   if (!city) return;
   city.apply(app.vals(), app.data.stop(S.stop));
-  city.root.position.y = -city.deckY;
+  city.root.position.copy(city.viewOrigin);
   noteSeen();
 }
 /* in the Bristol scene a change of time or pathway moves the water and the pontoon, so it fades like a teleport */

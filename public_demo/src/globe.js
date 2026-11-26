@@ -106,7 +106,7 @@ function dataTex(data, w, h, nearest) {
   t.generateMipmaps = false; t.needsUpdate = true;
   return t;
 }
-function labelSprite(text, px = 44, color = '#1B2A4A') {
+export function labelSprite(text, px = 44, color = "#1B2A4A") {
   const c = document.createElement('canvas'), g = c.getContext('2d'), font = `900 ${px}px Nunito, "Noto Sans SC", system-ui, sans-serif`;
   g.font = font; const w = Math.ceil(g.measureText(text).width) + px, h = Math.ceil(px * 1.7);
   c.width = w; c.height = h; g.font = font; g.textBaseline = 'middle'; g.textAlign = 'center';
