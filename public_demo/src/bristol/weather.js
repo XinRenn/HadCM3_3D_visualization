@@ -18,7 +18,6 @@ const RAIN_N = { dry: 0, light: 900, steady: 2200, heavy: RAIN_MAX };
 const SWAY = { still: 0.12, breezy: 1.0, stormy: 2.6 };
 const CHOP = { still: 0.08, breezy: 0.45, stormy: 1.0 };
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
-const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
 const TMP = { cw: new THREE.Vector3(), M: new THREE.Matrix4(), Q: new THREE.Quaternion(), E: new THREE.Euler(), S: new THREE.Vector3(1, 1, 1), V: new THREE.Vector3() };   // reused every frame
 
@@ -211,8 +210,8 @@ void main() { float w = sin(vU.x * 260.0 + sin(vU.y * 9.0 + uTime * 2.2) * 2.5 +
     this.pud.visible = wet;
     if (wet) { const M = new THREE.Matrix4(); this.pudSpots.forEach(([x, z, s], i) => { const y = T.heightAt(x, z); const k = y > c.waterY + 0.05 ? (rb === 'heavy' ? 1.25 : 0.9) : 0.0001; M.makeScale(s * 1.4 * k, 1, s * k); M.setPosition(x, y + 0.03, z); this.pud.setMatrixAt(i, M); }); this.pud.instanceMatrix.needsUpdate = true; }
     /* snow on the ground: 1 cm already shows, 10 cm covers */
-    SU.uSnow.value = snowCm <= 0 ? 0 : 0.35 + 0.65 * smooth(0.5, 10, snowCm);
-    this.stick.visible = snowCm > 0;
+    SU.uSnow.value = BANDS.snowCover(v.snow_depth_cm);
+    this.stick.visible = snowCm >= 0.2;
     this.mound.scale.y = Math.max(0.001, Math.min(snowCm, 80) / 100);
     for (const m of this.snowmen) m.visible = BANDS.snowmen(v.snow_depth_cm) && m.position.y > c.waterY + 0.1;
     this.haze.visible = BANDS.haze(v.temp_c);

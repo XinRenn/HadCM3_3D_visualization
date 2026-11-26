@@ -14,6 +14,7 @@ import { rng } from './scene.js';
 /* ---------------------------------------------------------------- plants */
 export const VEG_SETS = {
   tundra: { ground: '#B7B58E', kinds: { tuft: 1.0, shrub: 0.55, dwarf: 0.25 }, density: 0.55, crowns: ['#8E9A5B', '#A3A86A', '#7D8C55'] },
+  boreal_forest: { ground: '#8FA36B', kinds: { cone: 1.0, cypress: 0.35, shrub: 0.3, dwarf: 0.2 }, density: 0.9, crowns: ['#2E5E3E', '#356B45', '#27513A'] },
   steppe: { ground: '#D9C77B', kinds: { tuft: 1.0, shrub: 0.35, dwarf: 0.1 }, density: 0.55, crowns: ['#B5A955', '#C9B866', '#9AA453'] },
   temperate_forest: { ground: '#7CC46A', kinds: { round: 1.0, cone: 0.25, shrub: 0.35 }, density: 1.0, crowns: ['#3FAE55', '#4FBF5E', '#2F9A4C', '#66C766'] },
   mediterranean: { ground: '#BFC27A', kinds: { umbrella: 0.55, cypress: 0.65, shrub: 0.6, tuft: 0.3 }, density: 0.8, crowns: ['#7E9A4E', '#6E8C45', '#93A85A'] },
@@ -91,8 +92,10 @@ export default class Life {
     this.treeShadow = new THREE.InstancedMesh(sg, new THREE.MeshBasicMaterial({ color: 0x1B2A4A, transparent: true, opacity: 0.18, depthWrite: false }), cap);
     this.treeShadow.count = 0; this.treeShadow.renderOrder = 1; c.root.add(this.treeShadow);
   }
-  _plants(type) {
-    if (type === this.veg) return;
+  _plants(type, lai) {
+    const dens = lai == null ? 1 : Math.min(1.25, Math.max(0.5, lai / 5.5));          // real leaf-area index thins or fills the trees
+    const key = type + '|' + dens.toFixed(2);
+    if (key === this._vegKey) return; this._vegKey = key;
     const set = VEG_SETS[type] || VEG_SETS[FALLBACK];
     this.veg = type;
     this.city.groundColor(set.ground);
@@ -101,7 +104,7 @@ export default class Life {
     const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), S = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0), C = new THREE.Color();
     let ns = 0;
     for (const sp of this.vegSpots) {
-      if (sp.k !== 'quay' && sp.r1 > set.density) continue;
+      if (sp.k !== 'quay' && sp.r1 > set.density * dens) continue;
       let pick = sp.r2 * wsum, name = names[0];
       for (const n of names) { pick -= set.kinds[n]; if (pick <= 0) { name = n; break; } }
       const k = this.kind[name], i = counts[name]++;
@@ -183,7 +186,7 @@ export default class Life {
 
   /* ---------------- data -> people and plants */
   apply(v, c) {
-    this._plants(v.vegetation || null);
+    this._plants(v.vegetation || null, v.lai);
     const o = BANDS.outfit(v.temp_c) || 'cool';
     if (o !== this.outfit) { this.outfit = o; this._dress(); }
     const rb = BANDS.rain(v.rain_mm_yr);

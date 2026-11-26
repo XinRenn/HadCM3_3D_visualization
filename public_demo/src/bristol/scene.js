@@ -10,7 +10,7 @@ import * as A from './assets.js';
 import { Panel, COL, text, rr } from '../ui/panel.js';
 import { drawIcon } from '../ui/icons.js';
 import { labelSprite } from '../globe.js';
-import { U, tx, fmt, stopLabel, pathLabel, sourceLabel } from '../i18n.js';
+import { U, tx, fmt, pathLabel, sourceLabel, timeLabel } from '../i18n.js';
 import { fmtValue } from '../format.js';
 import { BANDS } from '../data.js';
 
@@ -179,12 +179,12 @@ export class BristolScene {
     } else if (this.lblRange) { this.lblRange.visible = false; }
   }
   _paintBoard(p, g) {
-    const W = p.W, H = p.H, v = this.v, app = this.app, d = app.data, st = d.stop(app.S.stop), pw = d.pathway(app.S.pathway);
+    const W = p.W, H = p.H, v = this.v, app = this.app, d = app.data, pw = d.pathway(app.S.pathway);
     rr(g, 6, 6, W - 12, H - 12, 34); g.fillStyle = COL.paper; g.fill(); g.lineWidth = 10; g.strokeStyle = COL.ink; g.stroke();
     rr(g, 6, 6, W - 12, 96, 34); g.fillStyle = COL.ink; g.fill(); g.fillRect(6, 60, W - 12, 42);
     text(g, tx(U.board), 32, 56, 40, { color: '#fff', weight: 900, maxW: W - 230 });
-    if (d.placeholder) { rr(g, W - 196, 28, 170, 52, 26); g.fillStyle = COL.demo; g.fill(); text(g, sourceLabel(d.sourceLabel), W - 111, 55, 26, { align: 'center', color: '#fff', weight: 900, maxW: 156 }); }
-    const sub = `${st ? stopLabel(st) : tx(U.noData)} · ${d.sharedStop(app.S.stop) ? tx(U.allPaths) : (pw ? pathLabel(pw) : tx(U.noData))}`;
+    if (d.placeholder) { rr(g, W - 196, 28, 170, 52, 26); g.fillStyle = COL.demo; g.fill(); text(g, sourceLabel(d), W - 111, 55, 26, { align: 'center', color: '#fff', weight: 900, maxW: 156 }); }
+    const sub = `${timeLabel(this.t || 0)} · ${pw ? pathLabel(pw) : tx(U.noData)}`;
     text(g, sub, 32, 132, 30, { color: COL.ink2, weight: 800, maxW: W - 64 });
     const snowing = BANDS.snowfall(v.snow_depth_cm, v.temp_c);
     const rows = [
@@ -194,17 +194,18 @@ export class BristolScene {
       ['rain_mm_yr', U.b_rain, v.rain_mm_yr == null ? tx(U.noData) : fmtValue('rain_mm_yr', v.rain_mm_yr) + (snowing ? ` (${tx(U.snowing)})` : ` (${tx(U[BANDS.rain(v.rain_mm_yr)])})`)],
       ['snow_depth_cm', U.b_snow, fmtValue('snow_depth_cm', v.snow_depth_cm)],
       ['vegetation', U.b_veg, fmtValue('vegetation', v.vegetation)],
+      ['co2', U.b_co2, fmtValue('co2_ppm', v.co2_ppm)],
     ];
     rows.forEach(([ic, lab, val], k) => {
-      const y = 172 + k * 68;
-      if (k % 2 === 0) { g.fillStyle = COL.paper2; g.fillRect(16, y - 2, W - 32, 68); }
-      if (ic === 'wind') drawWind(g, 52, y + 32, 46); else drawIcon(g, ic, 52, y + 32, 48);
+      const y = 166 + k * 62;
+      if (k % 2 === 0) { g.fillStyle = COL.paper2; g.fillRect(16, y + 1, W - 32, 62); }
+      if (ic === 'wind') drawWind(g, 52, y + 32, 44); else if (ic === 'co2') drawCO2(g, 52, y + 32, 44); else drawIcon(g, ic, 52, y + 32, 46);
       text(g, tx(lab), 92, y + 32, 27, { weight: 700, color: COL.ink2, maxW: 330 });
       const missing = val === tx(U.noData);
       text(g, val, W - 30, y + 32, 31, { align: 'right', weight: 900, color: missing ? COL.demo : COL.ink, maxW: W - 440 });
     });
-    if (st && st.kind === 'past') text(g, tx(U.pastNote), W / 2, H - 70, 22, { align: 'center', weight: 800, color: '#B07A00', maxW: W - 40 });
-    text(g, tx(U.average), W / 2, H - 34, 22, { align: 'center', weight: 700, color: COL.ink2, maxW: W - 40 });
+    text(g, tx(U.baseNote), W / 2, H - 66, 19, { align: 'center', weight: 700, color: COL.ink2, maxW: W - 40 });
+    text(g, tx(U.average), W / 2, H - 34, 21, { align: 'center', weight: 700, color: COL.ink2, maxW: W - 40 });
   }
   groundColor(hex) { SU.uGrass.value.set(hex); }
   relabel() {
@@ -215,8 +216,8 @@ export class BristolScene {
   }
 
   /* ---------------------------------------------------------------- data -> scene */
-  apply(v, stop) {
-    this.v = v; this.stop = stop;
+  apply(v, t) {
+    this.v = v; this.t = t;
     const c = this.cfg.pontoon, f = this.floor, sl = v.sea_level_m;
     this.waterY = sl == null ? 0 : sl;
     const dry = this.waterY < f + 0.05;
@@ -286,6 +287,11 @@ const CW = new THREE.Vector3();
 function lerpC(a, b, t) { return new THREE.Color(a[0]).lerp(new THREE.Color(b[0]), clamp(t, 0, 1)); }
 function fmtNum(v) { return (v < 0 ? '−' : '') + Math.abs(Math.round(v)); }
 function LANG_M() { return tx({ en: ' m', zh: ' 米' }); }
+function drawCO2(g, cx, cy, s) {
+  g.save(); g.fillStyle = '#C9CFDA'; g.strokeStyle = COL.ink; g.lineWidth = s * 0.06;
+  for (const [x, y, r] of [[-0.18, 0.05, 0.26], [0.12, -0.05, 0.3], [0.3, 0.12, 0.2]]) { g.beginPath(); g.arc(cx + x * s, cy + y * s, r * s, 0, Math.PI * 2); g.fill(); g.stroke(); }
+  text(g, 'CO₂', cx, cy + 2, s * 0.34, { align: 'center', weight: 900 }); g.restore();
+}
 function drawWind(g, cx, cy, s) {
   g.save(); g.translate(cx, cy); g.lineCap = 'round'; g.strokeStyle = COL.ink; g.lineWidth = s * 0.09;
   for (const [y, w] of [[-0.22, 0.7], [0, 0.85], [0.22, 0.55]]) {

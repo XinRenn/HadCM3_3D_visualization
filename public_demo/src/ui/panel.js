@@ -91,8 +91,24 @@ export class Panel {
     yy += subs.length ? 3 - lh / 2 + slh / 2 : 0;
     for (const l of subs) { text(g, l, ax, yy, ss, { color, align, weight: 700, maxW: aw }); yy += slh; }
   }
-  /* world-space ray -> { dist, point, button } or null */
-  hit(ray) {
+  /* a slider: a track with marks and a round handle at position p (0..1). While the trigger is held after
+     pressing it, onDrag(p, done) is called as the ray moves along the track; done is true on release. */
+  slider(id, x, y, w, h, p, o, onDrag) {
+    const g = this.g, hov = this.hover.has(id), cy = y + h / 2, r = Math.min(h * 0.42, 30);
+    rr(g, x, cy - 10, w, 20, 10); g.fillStyle = 'rgba(27,42,74,0.18)'; g.fill(); g.lineWidth = 3; g.strokeStyle = COL.ink; g.stroke();
+    rr(g, x, cy - 10, Math.max(20, w * p), 20, 10); g.fillStyle = o.fill || COL.sun; g.fill(); g.stroke();
+    for (const [q, label] of o.marks || []) {
+      const mx = x + w * q; g.fillStyle = COL.ink; g.fillRect(mx - 2, cy + 12, 4, 12);
+      if (label) text(g, label, Math.min(x + w - 4, Math.max(x + 4, mx)), cy + 40, o.markSize || 20, { align: q < 0.02 ? 'left' : q > 0.98 ? 'right' : 'center', weight: 700, color: COL.ink2 });
+    }
+    const hx = x + w * p;
+    g.beginPath(); g.arc(hx, cy + 4, r, 0, Math.PI * 2); g.fillStyle = 'rgba(27,42,74,0.35)'; g.fill();
+    g.beginPath(); g.arc(hx, cy, r, 0, Math.PI * 2); g.fillStyle = hov ? '#fff' : COL.paper; g.fill(); g.lineWidth = hov ? 8 : 6; g.strokeStyle = hov ? COL.sun : COL.ink; g.stroke();
+    g.beginPath(); g.arc(hx, cy, r * 0.35, 0, Math.PI * 2); g.fillStyle = COL.ink; g.fill();
+    this.buttons.push({ id, x: x - r, y: y - 6, w: w + 2 * r, h: h + 12, slider: { x, w }, onDrag });
+  }
+  /* world-space ray -> { dist, point, button, px, py } or null; raw: ignore the panel's edges (for dragging) */
+  hit(ray, raw = false) {
     if (!this.mesh.visible) return null;
     const m = this.mesh;
     let p = m;
@@ -103,13 +119,14 @@ export class Panel {
     const t = -r.origin.z / r.direction.z;
     if (t <= 0) return null;
     const lx = r.origin.x + r.direction.x * t, ly = r.origin.y + r.direction.y * t;
-    if (Math.abs(lx) > this.width / 2 || Math.abs(ly) > this.height / 2) return null;
+    if (!raw && (Math.abs(lx) > this.width / 2 || Math.abs(ly) > this.height / 2)) return null;
     const px = (lx / this.width + 0.5) * this.W, py = (0.5 - ly / this.height) * this.H;
     const point = new THREE.Vector3(lx, ly, 0).applyMatrix4(m.matrixWorld);
     let button = null;
     for (const b of this.buttons) if (px >= b.x && px <= b.x + b.w && py >= b.y - 4 && py <= b.y + b.h + 8) { button = b; break; }
-    return { dist: point.distanceTo(ray.origin), point, button, panel: this };
+    return { dist: point.distanceTo(ray.origin), point, button, panel: this, px, py };
   }
+  sliderP(b, px) { return Math.min(1, Math.max(0, (px - b.slider.x) / b.slider.w)); }
   setHover(ids) {
     const s = [...ids].sort().join(',');
     if (s === this._hov) return;

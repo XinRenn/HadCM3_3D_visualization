@@ -40,15 +40,21 @@
   <footer class="dock" id="dock">
     <div class="row layers" id="layers" role="group"></div>
     <div class="row paths" id="paths" role="group"></div>
-    <div class="row stops">
+    <div class="row time">
       <button type="button" class="arrow" id="btnEarlier"></button>
-      <div class="stoplist" id="stops" role="group"></div>
+      <div class="timewrap">
+        <div class="tlabel" id="tLabel" aria-live="polite"></div>
+        <input type="range" id="tSlider" min="0" max="1000" step="1" aria-labelledby="tLabel">
+        <div class="tmarks" id="tMarks"></div>
+      </div>
       <button type="button" class="arrow" id="btnLater"></button>
+      <button type="button" class="arrow play" id="btnPlay" aria-pressed="false"></button>
     </div>
     <div class="row go">
       <button type="button" class="big visit" id="btnVisit"></button>
       <button type="button" class="big back" id="btnBack" hidden></button>
       <button type="button" class="small" id="btnSummary" hidden></button>
+      <button type="button" class="small reset" id="btnReset"></button>
       <span class="gohint" id="visitHint"></span>
     </div>
   </footer>

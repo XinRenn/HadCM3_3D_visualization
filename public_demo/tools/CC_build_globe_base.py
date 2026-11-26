@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-"""Write public_demo/assets/globe_base.json: the coastline and sea-floor depth the cartoon globe is drawn on.
+"""Write public_demo/assets/globe_base.json: the present-day HadCM3 fields the globe is drawn from.
 
-This is real HadCM3 geography (pre-industrial), not placeholder data, and it does not change with the scenario:
-  kmt  ocean grid 288 x 144, number of ocean levels in each column (0 = land); row 0 is the southern row (89.375 S)
-  lsm  atmosphere grid 96 x 73, 1 = land; row 0 is 90 N
-  ice  atmosphere grid 96 x 73, land-ice fraction of the box x 100 (MOSES surface type 9)
-  level_bottom_m  depth of the bottom of each of the 20 HadCM3 ocean levels, so a column of kmt levels is
-                  level_bottom_m[kmt - 1] deep. Note: HadCM3 gives every shelf sea its minimum depth of 8 levels
-                  (about 165 m), so the globe can only treat those shallowest columns as one "shelf" class.
-Each grid is stored as base64 of its raw bytes (uint8), row by row.
+Real HadCM3 data (BRIDGE pre-industrial start dumps, via v3/data/hadcm3_state.js), fixed for every scenario:
+  frac      9 surface-type fractions on the 96 x 73 atmosphere grid (broadleaf, needleleaf, C3, C4, shrub,
+            urban, inland water, bare soil, land ice), each as uint8 = fraction x 255: land colours and 3D plants
+  precip    large-scale + convective rain and snow, November mean, uint8 = sqrt(mm/day / 60) x 255: the 3D rain
+  tstar     surface temperature, uint8 = (K - 205) / 125 x 255: rain or snow
+  lsm       land-sea mask, 1 = land
+  kmt       ocean levels per column on the 288 x 144 ocean grid (0 = land)
+Atmosphere-grid rows start at 90 N; ocean-grid rows start at 89.375 S. Each grid is base64 of raw uint8 bytes.
 
-Input: v3/data/hadcm3_state.js (made by v3/build_data.py).
-Run:   python3 public_demo/tools/CC_build_globe_base.py     (needs numpy and Pillow)
+Run: python3 public_demo/tools/CC_build_globe_base.py        (needs numpy and Pillow)
 """
 import base64
 import io
@@ -25,6 +24,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DEMO = os.path.dirname(HERE)
 ROOT = os.path.dirname(DEMO)
 
+FWD = {'lin': lambda v: v, 'int': lambda v: v, 'sqrt': lambda v: np.sqrt(np.maximum(v, 0))}
+INV = {'lin': lambda x: x, 'int': lambda x: x, 'sqrt': lambda x: x * x}
+
 
 def load_state():
     with open(os.path.join(ROOT, 'v3', 'data', 'hadcm3_state.js'), encoding='utf-8') as f:
@@ -32,43 +34,43 @@ def load_state():
     return json.loads(src[src.index('{'):src.rindex('}') + 1])
 
 
-def codes(st, name, k=0):
+def values(st, name, k=0):
+    """decode one level of a field to physical values (NaN where missing)"""
     m = st['fields'][name]
     a = st['atlases'][m['grid']]
     img = np.array(Image.open(io.BytesIO(base64.b64decode(a['png'].split(',', 1)[1]))).convert('RGBA'))[:, :, 0]
     t = m['tiles'][k]
-    return img[(t // a['cols']) * a['th']:(t // a['cols'] + 1) * a['th'], (t % a['cols']) * a['tw']:(t % a['cols'] + 1) * a['tw']].astype(int)
+    c = img[(t // a['cols']) * a['th']:(t // a['cols'] + 1) * a['th'], (t % a['cols']) * a['tw']:(t % a['cols'] + 1) * a['tw']].astype(float)
+    f, inv = FWD[m['tr']], INV[m['tr']]
+    lo, hi = f(m['lo'][k]), f(m['hi'][k])
+    return np.where(c == 0, np.nan, inv(lo + (c - 1) / 254.0 * (hi - lo)))
 
 
-def field(st, name, k=0):
-    return codes(st, name, k) - 1          # 'int' fields: code c means value c - 1, code 0 missing (-1)
-
-
-def frac(st, k):
-    m = st['fields']['frac']           # 'lin' field: code 1..255 -> lo..hi, code 0 missing
-    c = codes(st, 'frac', k)
-    return np.where(c == 0, 0.0, m['lo'][k] + (c - 1) / 254.0 * (m['hi'][k] - m['lo'][k]))
+def b64(a):
+    return base64.b64encode(np.ascontiguousarray(a, dtype=np.uint8).tobytes()).decode()
 
 
 def main():
     st = load_state()
-    kmt = np.clip(field(st, 'kmt'), 0, 20).astype(np.uint8)
-    lsm = (field(st, 'lsm') > 0).astype(np.uint8)
-    ice = np.round(np.clip(frac(st, 8), 0, 1) * 100).astype(np.uint8) * lsm
+    kmt = np.clip(np.nan_to_num(values(st, 'kmt'), nan=0), 0, 20).astype(np.uint8)
+    lsm = (np.nan_to_num(values(st, 'lsm')) > 0).astype(np.uint8)
+    frac = np.stack([np.nan_to_num(values(st, 'frac', k)) for k in range(9)])
+    precip = np.nan_to_num(values(st, 'lsPrecip')) + np.nan_to_num(values(st, 'cvPrecip'))
+    tstar = np.nan_to_num(values(st, 'tstar'), nan=280.0)
     out = {
         'meta': {'placeholder': False, 'source': 'HadCM3 pre-industrial start dumps (BRIDGE tcylx), via v3/data/hadcm3_state.js',
-                 'note': 'coastline and sea-floor depth only; fixed for every scenario'},
-        'kmt': {'grid': st['grids']['O'], 'b64': base64.b64encode(kmt.tobytes()).decode()},
-        'lsm': {'grid': st['grids']['A'], 'b64': base64.b64encode(lsm.tobytes()).decode()},
-        'ice': {'grid': st['grids']['A'], 'b64': base64.b64encode(ice.tobytes()).decode()},
-        'level_bottom_m': [round(float(x), 1) for x in np.cumsum(st['levels']['ocn']['dz'])],   # the dump's own level thicknesses
+                 'note': 'present-day model state; does not change with the scenario or the time slider'},
+        'gridA': st['grids']['A'], 'gridO': st['grids']['O'],
+        'lsm': b64(lsm), 'kmt': b64(kmt),
+        'frac': [b64(np.round(np.clip(f, 0, 1) * 255)) for f in frac],
+        'precip': b64(np.round(np.sqrt(np.clip(precip, 0, 60) / 60) * 255)),
+        'tstar': b64(np.round(np.clip((tstar - 205) / 125, 0, 1) * 255)),
     }
     os.makedirs(os.path.join(DEMO, 'assets'), exist_ok=True)
     path = os.path.join(DEMO, 'assets', 'globe_base.json')
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(out, f, separators=(',', ':'))
-    print('wrote', path, '%.0f KB' % (os.path.getsize(path) / 1024), '| ocean columns', int((kmt > 0).sum()),
-          '| land boxes (A grid)', int(lsm.sum()), '| ice boxes', int((ice > 50).sum()))
+    print('wrote', path, '%.0f KB' % (os.path.getsize(path) / 1024))
 
 
 if __name__ == '__main__':

@@ -8,29 +8,22 @@ const num = (v, d) => {
 };
 const UNITS = {
   sea_level_m: { en: 'm', zh: '米' }, temp_c: { en: '°C', zh: '°C' }, wind_ms: { en: 'm/s', zh: '米/秒' },
-  rain_mm_yr: { en: 'mm', zh: '毫米' }, snow_depth_cm: { en: 'cm', zh: '厘米' },
+  rain_mm_yr: { en: 'mm', zh: '毫米' }, snow_depth_cm: { en: 'cm', zh: '厘米' }, co2_ppm: { en: 'ppm', zh: 'ppm' },
 };
 export function fmtValue(name, v, { band = false } = {}) {
   if (v == null) return tx(U.noData);
   if (name === 'vegetation') return vegLabel(v);
   const u = UNITS[name] ? UNITS[name][LANG] || UNITS[name].en : '';
-  const sp = u.startsWith('°') ? ' ' : ' ';
   let s;
-  if (name === 'sea_level_m') s = (v > 0 ? '+' : '') + num(v, Math.abs(v) < 10 ? 1 : 0) + sp + u;
-  else if (name === 'temp_c') s = num(v, 1) + sp + u;
-  else if (name === 'wind_ms') s = num(v, 1) + sp + u;
-  else s = num(v, 0) + sp + u;
+  if (name === 'sea_level_m') s = (v > 0.05 ? '+' : '') + num(v, Math.abs(v) < 10 ? 1 : 0) + ' ' + u;
+  else if (name === 'temp_c' || name === 'wind_ms') s = num(v, 1) + ' ' + u;
+  else if (name === 'snow_depth_cm') s = num(v, v < 1 ? 1 : 0) + ' ' + u;
+  else s = num(v, 0) + ' ' + u;
   if (band) {
     const b = name === 'wind_ms' ? BANDS.wind(v) : name === 'rain_mm_yr' ? BANDS.rain(v) : null;
     if (b) s += ` (${tx(U[b])})`;
   }
   return s;
 }
-/* which stop the closing card compares: the current one if it differs by pathway, else 2100, else the latest that does */
-export function closingStop(data, stopId) {
-  const ok = id => data.stop(id) && !data.sharedStop(id) && data.bristol[id];
-  if (ok(stopId)) return data.stop(stopId);
-  if (ok('y2100')) return data.stop('y2100');
-  const s = data.stops.filter(x => ok(x.id));
-  return s.length ? s[s.length - 1] : null;
-}
+/* the time the closing card compares: the chosen time, or 1,000 years if today is chosen (all pathways agree today) */
+export function closingTime(t) { return t >= 1 ? t : 1; }

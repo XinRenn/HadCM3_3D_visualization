@@ -1,17 +1,19 @@
-/* Loads and checks data/timeline.json, data/scenarios.json and data/globe_layers/index.json.
-   Nothing here throws on bad or missing data: a problem becomes a warning, and the value becomes null,
-   which the page shows as "no data". */
+/* Loads and checks data/timeline.json, data/scenarios.json and data/globe_tas.json (format in README).
+   Time is t in thousands of years after present (kyr), 0 = today, on the axis in timeline.json.
+   Nothing here throws on bad or missing data: a problem becomes a warning, the value becomes null, and the page
+   shows "no data". */
 
-export const VARS = ['sea_level_m', 'temp_c', 'wind_ms', 'rain_mm_yr', 'snow_depth_cm', 'vegetation'];
-export const LAYER_VARS = ['temp_c', 'rain_mm_yr', 'snow_depth_cm', 'vegetation', 'sea_level_m'];
-export const VEG_DEFAULT = ['tundra', 'steppe', 'temperate_forest', 'mediterranean', 'subtropical', 'desert_scrub'];
+export const VARS = ['sea_level_m', 'temp_c', 'wind_ms', 'rain_mm_yr', 'snow_depth_cm', 'vegetation', 'co2_ppm', 'lai'];
+export const LAYERS = ['surface', 'temp', 'rain', 'plants', 'sea'];
+export const VEG_DEFAULT = ['tundra', 'boreal_forest', 'steppe', 'temperate_forest', 'mediterranean', 'subtropical', 'desert_scrub'];
 
 /* Thresholds that turn a number into what the scene shows. Change them here. */
 export const BANDS = {
   wind: v => (v == null ? null : v < 3 ? 'still' : v <= 8 ? 'breezy' : 'stormy'),            // m/s
   rain: v => (v == null ? null : v < 300 ? 'dry' : v < 700 ? 'light' : v <= 1000 ? 'steady' : 'heavy'),  // mm/yr
   outfit: t => (t == null ? null : t < 5 ? 'cold' : t < 15 ? 'cool' : t <= 25 ? 'warm' : 'hot'),  // °C
-  snowfall: (snowCm, t) => snowCm != null && snowCm >= 10 && (t == null || t <= 4),  // falling snow instead of rain
+  snowfall: (snowCm, t) => snowCm != null && snowCm >= 0.5 && (t == null || t <= 4),  // falling snow instead of rain
+  snowCover: snowCm => (snowCm == null || snowCm < 0.2 ? 0 : 0.35 + 0.65 * Math.min(1, (snowCm - 0.2) / 9.8)),
   snowmen: snowCm => snowCm != null && snowCm > 10,
   haze: t => t != null && t > 28,
 };
@@ -21,132 +23,79 @@ async function getJSON(url, warnings) {
     const r = await fetch(url, { cache: 'no-cache' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return await r.json();
-  } catch (e) {
-    warnings.push(`${url}: ${e.message}`);
-    return null;
-  }
+  } catch (e) { warnings.push(`${url}: ${e.message}`); return null; }
 }
-
 const isNum = v => typeof v === 'number' && Number.isFinite(v);
+function b64(s, T) { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new T(u.buffer); }
 
 export async function loadData(base = 'data/') {
   const warnings = [];
-  const [tl, sc, li] = await Promise.all([
-    getJSON(base + 'timeline.json', warnings), getJSON(base + 'scenarios.json', warnings), getJSON(base + 'globe_layers/index.json', warnings)]);
-
-  /* stops: keep the valid ones, ordered by time */
-  const stops = [];
-  for (const s of (tl && Array.isArray(tl.stops) ? tl.stops : [])) {
-    if (!s || typeof s.id !== 'string') { warnings.push('timeline.json: a stop without an id was skipped'); continue; }
-    if (!isNum(s.year)) { warnings.push(`timeline.json: stop "${s.id}" has no numeric year; skipped`); continue; }
-    stops.push({ id: s.id, label: s.label || s.id, label_zh: s.label_zh, kind: s.kind || 'ssp', year: s.year });
-  }
-  stops.sort((a, b) => a.year - b.year);
-  if (!stops.length) { warnings.push('timeline.json: no stops; using "Today" only'); stops.push({ id: 'now', label: 'Today', kind: 'now', year: 2025 }); }
-
+  const [tl, sc, gt] = await Promise.all([getJSON(base + 'timeline.json', warnings), getJSON(base + 'scenarios.json', warnings), getJSON(base + 'globe_tas.json', warnings)]);
+  const ax = (tl && tl.axis) || {};
+  const axis = { start: isNum(ax.start) ? ax.start : 0, end: isNum(ax.end) ? ax.end : 1000, step: isNum(ax.step) && ax.step > 0 ? ax.step : 1, nowYear: isNum(ax.now_year) ? ax.now_year : 2025 };
+  if (!tl || !tl.axis) warnings.push('timeline.json: no "axis"; using 0 to 1000 kyr');
+  const marks = (tl && Array.isArray(tl.marks) ? tl.marks : []).filter(m => m && isNum(m.t));
   const pathways = [];
   for (const p of (sc && Array.isArray(sc.pathways) ? sc.pathways : [])) {
     if (!p || typeof p.id !== 'string') { warnings.push('scenarios.json: a pathway without an id was skipped'); continue; }
-    pathways.push({ id: p.id, label: p.label || p.id, label_zh: p.label_zh, ssp: p.ssp || '', icon: p.icon });
+    pathways.push({ id: p.id, label: p.label || p.id, label_zh: p.label_zh, ssp: p.ssp || '', ssp_zh: p.ssp_zh, icon: p.icon, color: p.color });
   }
   if (!pathways.length) warnings.push('scenarios.json: no pathways');
-
-  const vegTypes = sc && Array.isArray(sc.vegetation_types) && sc.vegetation_types.length ? sc.vegetation_types.slice() : VEG_DEFAULT.slice();
-  const bristol = sc && sc.bristol && typeof sc.bristol === 'object' ? sc.bristol : {};
-  if (!sc || !sc.bristol) warnings.push('scenarios.json: no "bristol" block');
-
-  /* anything not explicitly marked as real data is treated as placeholder */
-  const metas = [tl, sc, li].filter(Boolean).map(x => x.meta || {});
+  const metas = [tl, sc, gt].filter(Boolean).map(x => x.meta || {});
   const placeholder = !metas.length || metas.some(m => m.placeholder !== false);
-  const sourceLabel = (sc && sc.meta && sc.meta.source_label) || (placeholder ? 'DEMO DATA' : '');
-
-  const ds = new DataSet({ stops, pathways, vegTypes, bristol, layers: li, placeholder, sourceLabel, warnings, base });
-  ds.checkCoverage();
+  const m0 = (sc && sc.meta) || {};
+  const ds = new DataSet({
+    axis, marks, pathways, warnings, placeholder,
+    sourceLabel: m0.source_label || (placeholder ? 'DEMO DATA' : ''), sourceLabelZh: m0.source_label_zh || '',
+    vegTypes: sc && Array.isArray(sc.vegetation_types) ? sc.vegetation_types : VEG_DEFAULT.slice(),
+    bristol: (sc && sc.bristol) || {}, baseline: (sc && sc.baseline) || null, compare: (sc && sc.closing_compare) || null,
+    missing: (sc && sc.missing) || [], gt,
+  });
+  if (ds.missing.length) warnings.push('Not in the site data (shown as "no data"): ' + ds.missing.join(', '));
+  ds.check();
   return ds;
 }
 
 export class DataSet {
-  constructor(o) { Object.assign(this, o); this._layer = new Map(); }
-  stop(id) { return this.stops.find(s => s.id === id) || null; }
+  constructor(o) { Object.assign(this, o); this.n = Math.round((this.axis.end - this.axis.start) / this.axis.step) + 1; this._tas = null; }
   pathway(id) { return this.pathways.find(p => p.id === id) || null; }
-  /* "all" applies to every pathway: the past, and today */
-  sharedStop(id) { const c = this.bristol[id]; return !!(c && c.all && !this.pathways.some(p => c[p.id])); }
-  cell(stopId, pathwayId) {
-    const c = this.bristol[stopId];
-    if (!c || typeof c !== 'object') return null;
-    return c[pathwayId] || c.all || null;
-  }
-  value(stopId, pathwayId, key) {
-    const c = this.cell(stopId, pathwayId);
-    if (!c || !(key in c)) return null;
-    const v = c[key];
+  clampT(t) { const a = this.axis; return Math.min(a.end, Math.max(a.start, Math.round((t - a.start) / a.step) * a.step + a.start)); }
+  index(t) { return Math.round((this.clampT(t) - this.axis.start) / this.axis.step); }
+  value(t, pid, key) {
+    const c = this.bristol[pid], s = c && c[key];
+    if (!Array.isArray(s)) return null;
+    const v = s[this.index(t)];
     if (key === 'vegetation') return typeof v === 'string' && this.vegTypes.includes(v) ? v : null;
-    if (key === 'sea_level_m_range') return Array.isArray(v) && v.length === 2 && v.every(isNum) ? [Math.min(...v), Math.max(...v)] : null;
     return isNum(v) ? v : null;
   }
-  values(stopId, pathwayId) {
-    const o = {};
-    for (const k of VARS) o[k] = this.value(stopId, pathwayId, k);
-    const s = o.sea_level_m;
-    o.sea_level_m_range = this.value(stopId, pathwayId, 'sea_level_m_range') || (s == null ? null : [Math.min(s * 0.8, s * 1.2), Math.max(s * 0.8, s * 1.2)]);
-    return o;
-  }
-  checkCoverage() {
-    let missing = 0, bad = 0;
-    for (const s of this.stops) for (const p of this.pathways) {
-      const c = this.cell(s.id, p.id);
-      if (!c) { missing++; continue; }
-      for (const k of VARS) if (this.value(s.id, p.id, k) == null) bad++;
+  values(t, pid) { const o = {}; for (const k of VARS) o[k] = this.value(t, pid, k); o.sea_level_m_range = null; return o; }
+  check() {
+    let bad = 0;
+    for (const p of this.pathways) {
+      const c = this.bristol[p.id];
+      if (!c) { this.warnings.push(`scenarios.json: no Bristol series for "${p.id}"`); continue; }
+      for (const k of VARS) { const s = c[k]; if (!Array.isArray(s)) bad++; else if (s.length !== this.n) this.warnings.push(`scenarios.json: ${p.id}.${k} has ${s.length} values, expected ${this.n}`); }
     }
-    if (missing) this.warnings.push(`scenarios.json: ${missing} stop × pathway combination(s) have no Bristol values`);
-    if (bad) this.warnings.push(`scenarios.json: ${bad} value(s) are missing or invalid and show as "no data"`);
-    const vs = new Set();
-    for (const c of Object.values(this.bristol)) for (const v of Object.values(c || {})) if (v && typeof v.vegetation === 'string' && !this.vegTypes.includes(v.vegetation)) vs.add(v.vegetation);
-    if (vs.size) this.warnings.push(`scenarios.json: unknown vegetation type(s): ${[...vs].join(', ')}`);
+    if (bad) this.warnings.push(`scenarios.json: ${bad} series missing`);
+    if (!this.gt) this.warnings.push('globe_tas.json missing: no temperature map');
   }
-
-  /* ---------------- globe layers */
-  layerFile(name, stopId, pathwayId) {
-    const f = this.layers && this.layers.files && this.layers.files[name] && this.layers.files[name][stopId];
-    if (!f) return null;
-    return f[pathwayId] || f.all || null;
-  }
-  layerInfo(name) { return (this.layers && this.layers.variables && this.layers.variables[name]) || null; }
-  /* resolves to { grid, values: Float32Array (NaN = no data) | null, cats: Int16Array (-1 = no data) | null, info } or null */
-  layer(name, stopId, pathwayId) {
-    const file = this.layerFile(name, stopId, pathwayId), info = this.layerInfo(name), grid = this.layers && this.layers.grid;
-    if (!file || !info || !grid) return Promise.resolve(null);
-    const url = this.base + 'globe_layers/' + file;
-    if (!this._layer.has(url)) {
-      this._layer.set(url, decodePNG(url, grid).then(code => {
-        const n = code.length;
-        if ('categories' in info) {
-          const cats = new Int16Array(n);
-          for (let i = 0; i < n; i++) { const c = code[i] - 1; cats[i] = c >= 0 && c < info.categories.length ? c : -1; }
-          return { grid, values: null, cats, info };
-        }
-        const values = new Float32Array(n), lo = info.lo, hi = info.hi;
-        for (let i = 0; i < n; i++) values[i] = code[i] === 0 ? NaN : lo + (code[i] - 1) / 254 * (hi - lo);
-        return { grid, values, cats: null, info };
-      }).catch(e => { this.warnings.push(`${url}: ${e.message}`); return null; }));
+  /* global temperature change from today on the model grid (Float32Array) or null */
+  get tasGrid() { return this.gt && this.gt.grid; }
+  tasField(t, pid) {
+    const g = this.gt; if (!g || !g.coeffs || !g.coeffs[pid]) return null;
+    if (!this._tas) {
+      const npx = g.grid.nx * g.grid.ny, k = g.k, qb = b64(g.basis, Int16Array), basis = new Float32Array(k * npx);
+      for (let c = 0; c < k; c++) { const s = g.bscale[c] / 32767; for (let i = 0; i < npx; i++) basis[c * npx + i] = qb[c * npx + i] * s; }
+      this._tas = { npx, k, mean: b64(g.mean, Float32Array), basis, co: {} };
     }
-    return this._layer.get(url);
+    const T = this._tas;
+    if (!T.co[pid]) T.co[pid] = b64(g.coeffs[pid], Int16Array);
+    const i = this.index(t), co = T.co[pid], out = Float32Array.from(T.mean);
+    for (let c = 0; c < T.k; c++) {
+      const w = co[i * T.k + c] * g.cscale[c] / 32767; if (!w) continue;
+      const b = T.basis, o = c * T.npx;
+      for (let p = 0; p < T.npx; p++) out[p] += w * b[o + p];
+    }
+    return out;
   }
-}
-
-function decodePNG(url, grid) {
-  return new Promise((res, rej) => {
-    const img = new Image();
-    img.onload = () => {
-      if (img.width !== grid.nx || img.height !== grid.ny) { rej(new Error(`size ${img.width}×${img.height}, expected ${grid.nx}×${grid.ny}`)); return; }
-      const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
-      const g = c.getContext('2d', { willReadFrequently: true });
-      g.drawImage(img, 0, 0);
-      const px = g.getImageData(0, 0, img.width, img.height).data, out = new Uint8Array(img.width * img.height);
-      for (let i = 0; i < out.length; i++) out[i] = px[i * 4];
-      res(out);
-    };
-    img.onerror = () => rej(new Error('could not load'));
-    img.src = url;
-  });
 }
